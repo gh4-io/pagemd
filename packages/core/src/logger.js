@@ -3,7 +3,14 @@
  * Universal logger for PageMD pipeline
  *
  * Log format: <timestamp>;level=<level>;module=<module>;section=<section>;result=<result>;msg="<message>";data=<json>
+ *
+ * Color support:
+ * - PAGEMD_LOG_COLOR=1/true/yes: Force colors ON
+ * - PAGEMD_LOG_COLOR=0/false/no: Force colors OFF
+ * - Unset: Auto-detect based on TTY
  */
+
+import { colors, colorLevel, colorResult } from './colors.js';
 
 const LOG_LEVELS = {
   TRACE: 0,
@@ -17,6 +24,7 @@ const LOG_LEVELS = {
 
 const VALID_MODULES = [
   'cli',
+  'env',
   'profiles',
   'layout',
   'parser',
@@ -70,7 +78,7 @@ function escapeMessage(msg) {
 }
 
 /**
- * Format log entry
+ * Format log entry with colors
  * @param {string} level - Log level
  * @param {string} module - Module name
  * @param {string} section - Section/component within module
@@ -82,11 +90,19 @@ function escapeMessage(msg) {
 function formatLogEntry(level, module, section, result, message, data) {
   const timestamp = getTimestamp();
   const escapedMsg = escapeMessage(message);
+  const d = colors.delimiter(';');
 
-  let logLine = `${timestamp};level=${level};module=${module};section=${section};result=${result};msg="${escapedMsg}"`;
+  let logLine = [
+    colors.timestamp(timestamp),
+    `level=${colorLevel(level)}`,
+    `module=${colors.module(module)}`,
+    `section=${colors.section(section)}`,
+    `result=${colorResult(result)}`,
+    `msg="${colors.message(escapedMsg)}"`
+  ].join(d);
 
   if (data !== undefined && data !== null) {
-    logLine += `;data=${JSON.stringify(data)}`;
+    logLine += `${d}data=${colors.data(JSON.stringify(data))}`;
   }
 
   return logLine;

@@ -17,6 +17,7 @@
 import path from 'node:path';
 import fs from 'node:fs';
 import { createLogger } from './logger.js';
+import { RESOURCE_PATHS } from './paths.js';
 
 const logger = createLogger('io');
 
@@ -184,6 +185,29 @@ export function resolveResourcePath(relativePath, context) {
     searchedPaths: error.searchedPaths
   });
   throw error;
+}
+
+/**
+ * Derive package root from CLI's __dirname location.
+ * Works for both development and npm-installed CLI.
+ * @param {string} cliDirname - __dirname from CLI entry point (apps/cli/src/)
+ * @returns {string} Absolute path to package root (project folder)
+ */
+export function getPackageRootFromCli(cliDirname) {
+  // From apps/cli/src/ go up 3 levels to project/
+  const derived = path.resolve(cliDirname, '../../..');
+
+  // Verify structure exists by checking profiles folder
+  const profilesPath = path.join(derived, RESOURCE_PATHS.profiles);
+  if (!fs.existsSync(profilesPath)) {
+    // Fallback: maybe we're in a different structure, try finding it
+    logger.warn('path-resolver', 'package-root', 'Profiles not found at expected location', {
+      expected: profilesPath,
+      derived
+    });
+  }
+
+  return derived;
 }
 
 /**

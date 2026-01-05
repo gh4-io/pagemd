@@ -63,10 +63,11 @@ PageMD searches for configuration files in this order (highest precedence first)
 Configuration sources merge with this priority (highest to lowest):
 
 1. **CLI flags** - Override all other sources
-2. **Frontmatter** - Per-document overrides in markdown files
-3. **Profile manifest** - Profile-specific defaults
-4. **Config file** - `.pagemrc`, `.pagemrc.json`, `pagemd.config.js`
-5. **Built-in defaults** - Hardcoded fallbacks
+2. **Environment variables** - Cross-platform overrides (`PAGEMD_*`)
+3. **Frontmatter** - Per-document overrides in markdown files
+4. **Profile manifest** - Profile-specific defaults
+5. **Config file** - `.pagemrc`, `.pagemrc.json`, `pagemd.config.js`
+6. **Built-in defaults** - Hardcoded fallbacks
 
 ### Override Examples
 
@@ -193,38 +194,55 @@ export default {
 
 ## Environment Variables
 
-Environment variables override built-in defaults but are lower precedence than config files.
+PageMD supports `PAGEMD_*` environment variables for cross-platform configuration overrides.
 
-### Supported Variables
+**Precedence:** CLI flags > env vars > frontmatter > profile > defaults
 
-| Variable | Type | Description | Example |
-|----------|------|-------------|---------|
-| `PAGEMD_LOG_LEVEL` | string | Log level (TRACE, DEBUG, INFO, WARN, ERROR, OFF) | `DEBUG` |
-| `PAGEMD_PROFILE` | string | Default profile ID or path | `standard_letter` |
-| `PAGEMD_OUTPUT_DIR` | string | Default output directory | `./output` |
-| `PAGEMD_DEBUG` | boolean | Enable debug artifacts (`true` or `false`) | `true` |
-| `PAGEMD_CHROME_PATH` | string | Explicit Chrome/Chromium path | `/usr/bin/google-chrome` |
+### Quick Reference
+
+| Variable | Type | Default | Description |
+|----------|------|---------|-------------|
+| `PAGEMD_PROFILE` | string | `standard_letter` | Default profile |
+| `PAGEMD_OUTPUT_DIR` | path | (alongside input) | Output directory |
+| `PAGEMD_OUTPUT_FORMAT` | string | `html,pdf` | Comma-separated formats |
+| `PAGEMD_LOG_LEVEL` | enum | `INFO` | TRACE/DEBUG/INFO/WARN/ERROR/FATAL/OFF |
+| `PAGEMD_DEBUG` | boolean | `false` | Enable debug artifacts |
+| `PAGEMD_BROWSER_PATH` | path | (auto-detect) | Chrome/Chromium path |
+| `PAGEMD_KEEP_CHROME` | boolean | `false` | Browser persistence |
+| `PAGEMD_HEADLESS` | boolean | `true` | Browser headless mode |
+| `PAGEMD_PAGEDJS_MODE` | enum | `browser` | `browser` or `cli` |
+| `PAGEMD_TIMEOUT` | number | `30000` | Render timeout (ms) |
+| `PAGEMD_JPEG_QUALITY` | number | `90` | JPEG quality (1-100) |
+| `PAGEMD_PROJECT_ROOT` | path | (auto-detect) | Project root override |
+| `PAGEMD_CONFIG_DIR` | path | (none) | Additional config search path |
+
+**Boolean values:** `1`, `true`, `yes` (enabled) or `0`, `false`, `no`, unset (disabled)
+
+See [Settings > Environment Variables](Settings.md#environment-variables) for complete reference.
 
 ### Usage Examples
 
 **Linux/macOS:**
 ```bash
-export PAGEMD_LOG_LEVEL=DEBUG
 export PAGEMD_PROFILE=company_letter
+export PAGEMD_LOG_LEVEL=DEBUG
+export PAGEMD_DEBUG=1
 pagemd build SOP-001.md
 ```
 
 **Windows (PowerShell):**
 ```powershell
-$env:PAGEMD_LOG_LEVEL="DEBUG"
-$env:PAGEMD_PROFILE="company_letter"
+$env:PAGEMD_PROFILE = "company_letter"
+$env:PAGEMD_LOG_LEVEL = "DEBUG"
+$env:PAGEMD_DEBUG = "1"
 pagemd build SOP-001.md
 ```
 
 **Windows (CMD):**
 ```cmd
-set PAGEMD_LOG_LEVEL=DEBUG
 set PAGEMD_PROFILE=company_letter
+set PAGEMD_LOG_LEVEL=DEBUG
+set PAGEMD_DEBUG=1
 pagemd build SOP-001.md
 ```
 

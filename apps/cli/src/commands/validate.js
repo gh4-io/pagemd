@@ -17,8 +17,7 @@ import {
   loadAndMergeProfile,
   getDefaultProfile,
   createPathContext,
-  resolvePath,
-  findProjectRoot
+  resolvePath
 } from '@pagemd/core';
 import { parseFile } from '@pagemd/parser';
 
@@ -53,9 +52,11 @@ export const builder = {
  * @param {object} options - Validation options
  * @param {string} [options.profile] - Profile ID override
  * @param {boolean} [options.strict] - Strict mode
+ * @param {string} [options.projectRoot] - Project root directory
  * @returns {Promise<{valid: boolean, errors: string[], warnings: string[]}>} Validation result
  */
 async function validateMarkdownFile(filePath, options = {}) {
+  const { projectRoot } = options;
   const errors = [];
   const warnings = [];
 
@@ -128,7 +129,6 @@ async function validateMarkdownFile(filePath, options = {}) {
 
     // Create path context for resource resolution
     const markdownDir = dirname(filePath);
-    const projectRoot = findProjectRoot(markdownDir) || process.cwd();
     const pathContext = createPathContext({
       markdownDir,
       projectRoot,
@@ -288,7 +288,11 @@ export async function handler(argv) {
     // Validate each file
     const results = [];
     for (const filePath of filesToValidate) {
-      const result = await validateMarkdownFile(filePath, { profile, strict });
+      const result = await validateMarkdownFile(filePath, {
+        profile,
+        strict,
+        projectRoot: argv.projectRoot
+      });
       results.push({ file: filePath, ...result });
     }
 

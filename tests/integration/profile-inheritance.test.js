@@ -58,7 +58,6 @@ describe('Profile Inheritance System', () => {
 
       // Required sections
       expect(profile).toHaveProperty('id');
-      expect(profile).toHaveProperty('layout');
       expect(profile).toHaveProperty('resources');
       expect(profile).toHaveProperty('pagedjs');
       expect(profile).toHaveProperty('outputs');
@@ -66,13 +65,13 @@ describe('Profile Inheritance System', () => {
       expect(profile).toHaveProperty('metadata');
     });
 
-    it('should have valid layout config', () => {
+    it('should have valid resources config with template and layout', () => {
       const profile = loadProfileSync('standard_letter', PROJECT_ROOT, PROJECT_ROOT);
 
-      expect(profile.layout).toMatchObject({
-        type: 'html',
-        source: expect.stringContaining('standard_letter.html')
-      });
+      expect(profile.resources).toHaveProperty('template');
+      expect(profile.resources.template).toContain('standard_letter.html');
+      expect(profile.resources).toHaveProperty('layout');
+      expect(profile.resources.layout).toContain('letter.css');
     });
 
     it('should have valid resources config', () => {

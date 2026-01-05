@@ -13,6 +13,7 @@ This page provides precise definitions for all tokens, metadata normalization ru
 - [Filename Tokens](#filename-tokens)
 - [Metadata Normalization](#metadata-normalization)
 - [Logging Specification](#logging-specification)
+  - [Debug Summary Output](#debug-summary-output)
 - [Output Modes](#output-modes)
 - [See Also](#see-also)
 
@@ -56,10 +57,19 @@ Path tokens resolve filesystem locations in profile manifests.
 
 | Token | Description | Example Value |
 |-------|-------------|---------------|
-| `${manifestDir}` | Directory containing the profile manifest | `/project/templates/profiles` |
+| `${manifestDir}` | Directory containing the profile manifest | `/project/profiles` |
 | `${projectRoot}` | Project root (package.json, .git, .pagemrc) | `/project` |
 | `${workspaceFolder}` | VS Code workspace folder | `/workspace` |
 | `${markdownDir}` | Directory of source markdown file | `/docs` |
+
+**Path Configuration Module:**
+
+Path configuration is centralized in `packages/core/src/paths.js`. This module defines:
+- `RESOURCE_PATHS` - Folder locations for profiles, templates, layouts, styles
+- `DEFAULT_FILES` - Default file names for base/primary CSS
+- Path resolution helpers
+
+To restructure project folders, update the constants in `paths.js`.
 
 **Resolution Priority:**
 
@@ -305,6 +315,201 @@ With structured data:
 - Production: logging disabled
 - Development: TRACE to console
 - File logs: plain text with optional JSON data field
+
+### Color Output
+
+Logs are colorized for terminal display when `stdout` is a TTY.
+
+**Color Scheme:**
+
+| Component | Color | Condition |
+|-----------|-------|-----------|
+| Timestamp | Green | Always |
+| Level FATAL/ERROR | Red | - |
+| Level WARN | Yellow | - |
+| Level INFO | Cyan | - |
+| Level DEBUG/TRACE | Gray | - |
+| Result success/ok/done | Green | - |
+| Result fail/failure/error | Red | - |
+| Result warn/warning/skip/partial | Yellow | - |
+| Module, Section, Message | White | - |
+| Data (JSON) | Gray | - |
+
+**Environment Control:**
+
+| `PAGEMD_LOG_COLOR` | Behavior |
+|--------------------|----------|
+| `1`, `true`, `yes` | Force colors ON (even when piped) |
+| `0`, `false`, `no` | Force colors OFF |
+| Unset | Auto-detect based on TTY |
+
+**Examples:**
+```bash
+# Force colors when piping
+PAGEMD_LOG_COLOR=1 pagemd build doc.md | less -R
+
+# Disable colors for log parsing
+PAGEMD_LOG_COLOR=0 pagemd build doc.md > build.log
+```
+
+### Debug Summary Output
+
+When debug mode is enabled (`--debug` flag or `PAGEMD_DEBUG=1`), the CLI outputs an integrated summary after the build completes. The debug summary replaces the standard build summary with enhanced diagnostic information.
+
+#### Format Specification
+
+```
+======================================================================
+  DEBUG MODE ACTIVE
+======================================================================
+
+Build Summary:
+  Total files: <count>
+  Successful: <count>
+  Failed: <count>
+  Total outputs: <count>
+  Duration: <seconds>s
+
+Overrides:
+  <ENV_VAR>: <value> (<source>)
+  ...
+
+Directory Context:
+  Project Root:  <absolute-path>
+  Output Dir:    <absolute-path>
+  Debug Dir:     <absolute-path>
+  Markdown Dir:  <absolute-path>
+
+Loaded Resources:
+  Styles:
+    [css] <source-path> (<layer>)
+          <resolved-absolute-path> (<size>)
+  Layouts:
+    [css] <source-path> (<layer>)
+          <resolved-absolute-path> (<size>)
+  Templates:
+    [template] <source-path>
+          <resolved-absolute-path> (<size>)
+
+Per-File Breakdown:
+  <input-filename>
+    Profile: <profile-id>
+    Duration: <milliseconds>ms
+    Outputs: <format1>, <format2>, ...
+    Debug artifacts:
+      - <artifact-filename>
+      ...
+
+----------------------------------------------------------------------
+```
+
+#### Field Definitions
+
+| Field | Description | Format |
+|-------|-------------|--------|
+| Build Summary | Aggregate build statistics | Counts and duration |
+| Overrides | Active non-default settings | `ENV_VAR: value (source)` |
+| Override source | Where override came from | `cli`, `env`, or `meta` |
+| Project Root | Resolved project root directory | Absolute path |
+| Output Dir | Target directory for generated files | Absolute path |
+| Debug Dir | Directory for debug artifacts | Absolute path |
+| Markdown Dir | Source markdown file directory | Absolute path |
+| Resource category | Grouped by purpose | `Styles`, `Layouts`, `Templates` |
+| Source path | Original path from profile (may include tokens) | String |
+| Layer | CSS cascade layer | `base`, `primary`, `profile` |
+| Resolved path | Full resolved absolute path | Absolute path |
+| Resource size | File size | `X.X KB` or `X.X MB` |
+| Input filename | Source markdown file | Basename only |
+| Profile | Profile ID used for rendering | String |
+| Duration | Render time for this file | Integer milliseconds |
+| Outputs | Generated output formats | Comma-separated list |
+| Debug artifacts | Files created in debug directory | Basename list |
+
+#### Section Semantics
+
+**Build Summary:**
+- Shows aggregate statistics for the entire build
+- Replaces the standard summary when debug mode is active
+- Duration shows total wall-clock time
+
+**Overrides:**
+- Only shown when non-default values are in effect
+- Source indicates where the override came from: `cli` (command line), `env` (environment variable), or `meta` (frontmatter)
+- Helps diagnose unexpected behavior from configuration
+
+**Directory Context:**
+- Shows the resolved project root (detected or overridden via `PAGEMD_PROJECT_ROOT`)
+- Shows the output directory (CLI flag, env var, or default to input directory)
+- Debug Dir shows where debug artifacts are saved
+- Markdown Dir shows the source file location
+
+**Loaded Resources:**
+- Resources organized by category: Styles, Layouts, Templates
+- Styles: Base and primary CSS (non-profile layers)
+- Layouts: Profile-specific CSS (profile layer)
+- Templates: HTML layout templates
+- Each resource shows original source path (with tokens) and resolved absolute path
+- Size shown in human-readable format
+
+**Per-File Breakdown:**
+- One entry per input markdown file
+- Profile shows the resolved profile ID
+- Duration measures total render time including all outputs
+- Outputs lists only successfully generated formats
+- Debug artifacts lists files saved to debug directory
+
+#### Example Output
+
+```
+======================================================================
+  DEBUG MODE ACTIVE
+======================================================================
+
+Build Summary:
+  Total files: 2
+  Successful: 2
+  Failed: 0
+  Total outputs: 4
+  Duration: 2.07s
+
+Overrides:
+  PAGEMD_DEBUG: true (cli)
+  PAGEMD_PROFILE: technical_report (env)
+
+Directory Context:
+  Project Root:  /home/user/project
+  Output Dir:    /home/user/project/dist
+  Debug Dir:     /home/user/project/dist/debug
+  Markdown Dir:  /home/user/project/docs
+
+Loaded Resources:
+  Styles:
+    [css] styles/base.css (base)
+          /home/user/project/styles/base.css (8.8 KB)
+    [css] styles/primary.css (primary)
+          /home/user/project/styles/primary.css (649 B)
+  Layouts:
+    [css] ${projectRoot}/templates/layouts/technical_report.css (profile)
+          /home/user/project/templates/layouts/technical_report.css (1.2 KB)
+  Templates:
+    [template] ${projectRoot}/templates/layouts/technical_report.html
+          /home/user/project/templates/layouts/technical_report.html (892 B)
+
+Per-File Breakdown:
+  introduction.md
+    Profile: technical_report
+    Duration: 820ms
+    Outputs: html, pdf
+    Debug artifacts:
+      - introduction.paged.html
+      - introduction.screenshot.png
+  technical-spec.md
+    Profile: technical_report
+    Duration: 1240ms
+    Outputs: html, pdf
+
+----------------------------------------------------------------------
+```
 
 ---
 

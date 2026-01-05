@@ -5,6 +5,19 @@
 
 export { createLogger, setLogLevel, getLogLevel } from './logger.js';
 export {
+  loadEnvConfig,
+  getEnv,
+  getAllEnv,
+  getEnvWarnings,
+  resetEnvConfig,
+  mergeWithEnv,
+  parseBoolean,
+  parseNumber,
+  parseArray,
+  normalizePath,
+  ENV_SCHEMA
+} from './env.js';
+export {
   loadConfig,
   loadConfigSync,
   loadProjectConfig,
@@ -18,7 +31,8 @@ export {
   resolvePath,
   resolveResourcePath,
   expandTokens,
-  findProjectRoot
+  findProjectRoot,
+  getPackageRootFromCli
 } from './path-resolver.js';
 export {
   loadAndMergeProfile,
@@ -27,3 +41,20 @@ export {
   detectCircularInheritance,
   getDefaultProfile
 } from './profile-loader.js';
+export {
+  createDebugMetadata,
+  addResource,
+  setDirectoryContext,
+  addFileResult,
+  getFileSize,
+  getFileSizeSync,
+  formatBytes,
+  formatDebugSummary,
+  clearFileSizeCache
+} from './debug-metadata.js';
+export { RESOURCE_PATHS, DEFAULT_FILES, getResourcePath } from './paths.js';
+export {
+  directoryExists,
+  validateOutputDir,
+  isInteractive
+} from './prompts.js';

@@ -29,7 +29,8 @@ const logger = createLogger('renderer.pdf');
  * @param {'browser'|'cli'} [options.pagedjs='browser'] - Paged.js mode
  * @param {boolean} [options.headless=true] - Run headless
  * @param {object} [options.pdfOptions] - Additional PDF generation options
- * @returns {Promise<{pdfPath: string, pages: number}>}
+ * @param {object} [options.debugMetadata] - Debug metadata collector (optional)
+ * @returns {Promise<{pdfPath: string, pages: number, debugArtifacts?: string[]}>}
  */
 export async function renderPdf(markdownPath, options = {}) {
   const {
@@ -39,7 +40,8 @@ export async function renderPdf(markdownPath, options = {}) {
     pagedjs = 'browser',
     headless = true,
     pdfOptions = {},
-    projectRoot
+    projectRoot,
+    debugMetadata
   } = options;
 
   logger.info('render.start', 'started', `Rendering PDF from ${markdownPath}`, {
@@ -50,6 +52,7 @@ export async function renderPdf(markdownPath, options = {}) {
 
   let browser = null;
   let debugDir = null;
+  const debugArtifacts = [];
 
   try {
     // Step 1: Render HTML using renderer-web
@@ -57,7 +60,8 @@ export async function renderPdf(markdownPath, options = {}) {
     const htmlResult = await renderDocument(markdownPath, {
       profile,
       format: 'html',
-      projectRoot
+      projectRoot,
+      debugMetadata
     });
 
     if (!htmlResult || !htmlResult.html) {
@@ -168,19 +172,27 @@ export async function renderPdf(markdownPath, options = {}) {
       logger.debug('render.debug', 'started', 'Saving debug artifacts');
 
       // Save injected HTML
-      await saveDebugHtml(injectedHtml, absolutePdfPath, {
+      const htmlArtifact = await saveDebugHtml(injectedHtml, absolutePdfPath, {
         debugDir,
         suffix: '.paged'
       });
+      if (htmlArtifact) {
+        debugArtifacts.push(htmlArtifact);
+      }
 
       // Save screenshot
-      await saveDebugScreenshot(page, absolutePdfPath, {
+      const screenshotArtifact = await saveDebugScreenshot(page, absolutePdfPath, {
         debugDir,
         format: 'png',
         fullPage: true
       });
+      if (screenshotArtifact) {
+        debugArtifacts.push(screenshotArtifact);
+      }
 
-      logger.debug('render.debug', 'success', 'Debug artifacts saved');
+      logger.debug('render.debug', 'success', 'Debug artifacts saved', {
+        artifacts: debugArtifacts.length
+      });
     }
 
     // Step 10: Generate PDF
@@ -224,10 +236,17 @@ export async function renderPdf(markdownPath, options = {}) {
     // Step 12: Close browser
     await closeBrowser(browser);
 
-    return {
+    const result = {
       pdfPath: absolutePdfPath,
       pages: pageCount
     };
+
+    // Include debug artifacts in result if any were saved
+    if (debugArtifacts.length > 0) {
+      result.debugArtifacts = debugArtifacts;
+    }
+
+    return result;
 
   } catch (error) {
     logger.error('render.failed', 'error', 'PDF rendering failed', {

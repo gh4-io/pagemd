@@ -9,14 +9,14 @@
  *
  * Profile search:
  * 1. .pagemd/profiles/<name>.{json,yaml,yml}
- * 2. project/templates/profiles/<name>.{json,yaml,yml}
+ * 2. project/profiles/<name>.{json,yaml,yml}
  */
 
 import { cosmiconfig } from 'cosmiconfig';
 import { cosmiconfigSync } from 'cosmiconfig';
 import yaml from 'js-yaml';
 import { readFileSync, existsSync } from 'fs';
-import { join, dirname, resolve } from 'path';
+import { join, dirname, resolve, isAbsolute, extname } from 'path';
 import { createLogger } from './logger.js';
 
 const logger = createLogger('io');
@@ -170,6 +170,98 @@ function findProfilePath(profileName, searchPaths) {
 }
 
 /**
+ * Detect if input is a file path vs profile ID
+ * @param {string} input - User input (profile ID or file path)
+ * @returns {boolean} True if input appears to be a file path
+ */
+function isFilePath(input) {
+  if (!input || typeof input !== 'string') return false;
+  if (input.includes('/') || input.includes('\\')) return true;
+  const lower = input.toLowerCase();
+  return lower.endsWith('.json') || lower.endsWith('.yaml') || lower.endsWith('.yml');
+}
+
+/**
+ * Load profile from direct file path
+ * @param {string} profilePath - Path to profile file (absolute or relative)
+ * @returns {object|null} Profile object or null if not found
+ */
+function loadProfileFromPath(profilePath) {
+  logger.trace('profiles', 'path-resolve', 'Resolving profile file path', { path: profilePath });
+
+  // Normalize path separators (convert backslashes to forward slashes on Unix)
+  // This handles Windows-style paths like "subdir\file.json" on Unix
+  const normalizedPath = profilePath.replace(/\\/g, '/');
+
+  // Resolve to absolute path
+  let resolvedPath;
+  if (isAbsolute(normalizedPath)) {
+    resolvedPath = normalizedPath;
+  } else {
+    resolvedPath = resolve(process.cwd(), normalizedPath);
+  }
+
+  // If no extension, try common extensions
+  if (!extname(resolvedPath)) {
+    const extensions = ['.json', '.yaml', '.yml'];
+    for (const ext of extensions) {
+      const pathWithExt = `${resolvedPath}${ext}`;
+      if (existsSync(pathWithExt)) {
+        resolvedPath = pathWithExt;
+        logger.trace('profiles', 'path-ext-found', 'Profile file found with extension', {
+          original: profilePath,
+          resolved: resolvedPath
+        });
+        break;
+      }
+    }
+  }
+
+  // Check if file exists
+  if (!existsSync(resolvedPath)) {
+    logger.warn('profiles', 'path-not-found', 'Profile file path does not exist', {
+      input: profilePath,
+      resolved: resolvedPath
+    });
+    return null;
+  }
+
+  try {
+    logger.debug('profiles', 'path-loading', 'Loading profile from file path', {
+      path: resolvedPath
+    });
+
+    const content = readFileSync(resolvedPath, 'utf8');
+    let profile;
+
+    if (resolvedPath.endsWith('.json')) {
+      profile = JSON.parse(content);
+    } else if (resolvedPath.endsWith('.yaml') || resolvedPath.endsWith('.yml')) {
+      profile = yaml.load(content);
+    } else {
+      throw new Error(`Unsupported profile file extension: ${resolvedPath}`);
+    }
+
+    // Attach manifest directory for token resolution (e.g., ${manifestDir})
+    profile._manifestDir = dirname(resolvedPath);
+
+    logger.info('profiles', 'path-success', 'Profile loaded from file path', {
+      path: resolvedPath,
+      id: profile.id,
+      manifestDir: profile._manifestDir
+    });
+
+    return profile;
+  } catch (err) {
+    logger.error('profiles', 'path-failure', 'Failed to load profile from file path', {
+      path: resolvedPath,
+      error: err.message
+    });
+    throw new Error(`Failed to load profile from ${resolvedPath}: ${err.message}`);
+  }
+}
+
+/**
  * Load a profile manifest
  * @param {string} profileName - Name of the profile to load
  * @param {string} [searchFrom] - Directory to start search from (markdown file dir)
@@ -177,6 +269,19 @@ function findProfilePath(profileName, searchPaths) {
  * @returns {Promise<object|null>} Profile object or null if not found
  */
 export async function loadProfile(profileName, searchFrom = null, configDir = null) {
+  // Check if input is a file path
+  if (isFilePath(profileName)) {
+    logger.trace('profiles', 'path-mode', 'Profile input detected as file path', { profile: profileName });
+    const cacheKey = `profile-path:${resolve(process.cwd(), profileName)}`;
+    if (profileCache.has(cacheKey)) {
+      logger.debug('profiles', 'cache-hit', 'Profile loaded from cache (path)', { profile: profileName });
+      return profileCache.get(cacheKey);
+    }
+    const profile = loadProfileFromPath(profileName);
+    profileCache.set(cacheKey, profile);
+    return profile;
+  }
+
   const cacheKey = `profile:${profileName}:${searchFrom || 'default'}:${configDir || 'default'}`;
 
   // Check cache
@@ -210,11 +315,11 @@ export async function loadProfile(profileName, searchFrom = null, configDir = nu
   }
 
   // 4. Project root .pagemd/profiles/
-  const projectRoot = process.cwd();
+  const projectRoot = configDir || searchFrom || process.cwd();
   searchPaths.push(join(projectRoot, '.pagemd', 'profiles'));
 
-  // 5. Project templates profiles/
-  searchPaths.push(join(projectRoot, 'templates', 'profiles'));
+  // 5. Project profiles/
+  searchPaths.push(join(projectRoot, 'profiles'));
 
   // Find profile file
   const profilePath = findProfilePath(profileName, searchPaths);
@@ -245,10 +350,14 @@ export async function loadProfile(profileName, searchFrom = null, configDir = nu
       throw new Error(`Unsupported profile file extension: ${profilePath}`);
     }
 
+    // Attach manifest directory for token resolution (e.g., ${manifestDir})
+    profile._manifestDir = dirname(profilePath);
+
     logger.info('profiles', 'success', 'Profile loaded', {
       profile: profileName,
       file: profilePath,
-      id: profile.id
+      id: profile.id,
+      manifestDir: profile._manifestDir
     });
 
     // Validate profile.id matches filename
@@ -280,6 +389,19 @@ export async function loadProfile(profileName, searchFrom = null, configDir = nu
  * @returns {object|null} Profile object or null if not found
  */
 export function loadProfileSync(profileName, searchFrom = null, configDir = null) {
+  // Check if input is a file path
+  if (isFilePath(profileName)) {
+    logger.trace('profiles', 'path-mode', 'Profile input detected as file path', { profile: profileName });
+    const cacheKey = `profile-path:${resolve(process.cwd(), profileName)}`;
+    if (profileCache.has(cacheKey)) {
+      logger.debug('profiles', 'cache-hit', 'Profile loaded from cache (path)', { profile: profileName });
+      return profileCache.get(cacheKey);
+    }
+    const profile = loadProfileFromPath(profileName);
+    profileCache.set(cacheKey, profile);
+    return profile;
+  }
+
   const cacheKey = `profile:${profileName}:${searchFrom || 'default'}:${configDir || 'default'}`;
 
   // Check cache
@@ -313,11 +435,11 @@ export function loadProfileSync(profileName, searchFrom = null, configDir = null
   }
 
   // 4. Project root .pagemd/profiles/
-  const projectRoot = process.cwd();
+  const projectRoot = configDir || searchFrom || process.cwd();
   searchPaths.push(join(projectRoot, '.pagemd', 'profiles'));
 
-  // 5. Project templates profiles/
-  searchPaths.push(join(projectRoot, 'templates', 'profiles'));
+  // 5. Project profiles/
+  searchPaths.push(join(projectRoot, 'profiles'));
 
   // Find profile file
   const profilePath = findProfilePath(profileName, searchPaths);
@@ -348,10 +470,14 @@ export function loadProfileSync(profileName, searchFrom = null, configDir = null
       throw new Error(`Unsupported profile file extension: ${profilePath}`);
     }
 
+    // Attach manifest directory for token resolution (e.g., ${manifestDir})
+    profile._manifestDir = dirname(profilePath);
+
     logger.info('profiles', 'success', 'Profile loaded', {
       profile: profileName,
       file: profilePath,
-      id: profile.id
+      id: profile.id,
+      manifestDir: profile._manifestDir
     });
 
     // Validate profile.id matches filename

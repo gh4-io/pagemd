@@ -9,15 +9,25 @@ import { resolvePath, expandTokens, createLogger } from '@pagemd/core';
 const logger = createLogger('renderer.web');
 
 /**
- * Load HTML template from profile
- * @param {object} profile - Profile object with layout.template path
- * @param {object} pathContext - Path resolution context
- * @returns {Promise<string>} Template HTML
+ * @typedef {Object} TemplateResult
+ * @property {string} template - Template HTML content
+ * @property {string} resolvedPath - Full resolved path to template file
+ * @property {number} size - File size in bytes
  */
-export async function loadTemplate(profile, pathContext) {
-  const templatePath = profile?.layout?.source;
+
+/**
+ * Load HTML template from profile
+ * @param {object} profile - Profile object with resources.template or layout.source path
+ * @param {object} pathContext - Path resolution context
+ * @param {object} [options={}] - Options
+ * @param {boolean} [options.returnMetadata=false] - Return full result with metadata
+ * @returns {Promise<string|TemplateResult>} Template HTML or full result with metadata
+ */
+export async function loadTemplate(profile, pathContext, options = {}) {
+  // Primary: resources.template, Fallback: layout.source (legacy)
+  const templatePath = profile?.resources?.template || profile?.layout?.source;
   if (!templatePath) {
-    throw new Error('Profile missing layout.source path');
+    throw new Error('Profile missing resources.template or layout.source path');
   }
 
   // Resolve template path using path context
@@ -27,6 +37,17 @@ export async function loadTemplate(profile, pathContext) {
   try {
     const template = await readFile(resolved, 'utf-8');
     logger.debug(`Loaded template (${template.length} chars)`);
+
+    if (options.returnMetadata) {
+      const { stat } = await import('fs/promises');
+      const stats = await stat(resolved);
+      return {
+        template,
+        resolvedPath: resolved,
+        size: stats.size
+      };
+    }
+
     return template;
   } catch (err) {
     logger.error(`Failed to load template: ${err.message}`);

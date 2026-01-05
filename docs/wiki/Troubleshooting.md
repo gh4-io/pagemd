@@ -6,6 +6,7 @@ Common issues, error messages, and solutions for PageMD.
 
 ## Contents
 
+- [Environment Variables](#environment-variables)
 - [Chrome/Browser Issues](#chromebrowser-issues)
 - [Profile Not Found](#profile-not-found)
 - [Path Resolution Errors](#path-resolution-errors)
@@ -15,6 +16,114 @@ Common issues, error messages, and solutions for PageMD.
 - [Log Levels](#log-levels)
 - [Common Error Messages](#common-error-messages)
 - [See Also](#see-also)
+
+---
+
+## Environment Variables
+
+### Env Var Not Taking Effect
+
+**Symptom:** Setting `PAGEMD_*` env var but CLI uses default value.
+
+**Causes:**
+- CLI flag overrides env var (by design)
+- Env var set in wrong shell session
+- Invalid value falling back to default
+
+**Solutions:**
+
+1. **Check precedence:** CLI flags > env vars > frontmatter > profile > defaults
+   ```bash
+   # This uses env var
+   export PAGEMD_PROFILE=technical_report
+   pagemd build doc.md
+
+   # This ignores env var (CLI flag wins)
+   export PAGEMD_PROFILE=technical_report
+   pagemd build doc.md --profile standard_letter
+   ```
+
+2. **Verify env var is set:**
+   ```bash
+   # Linux/macOS
+   echo $PAGEMD_PROFILE
+
+   # Windows PowerShell
+   echo $env:PAGEMD_PROFILE
+
+   # Windows CMD
+   echo %PAGEMD_PROFILE%
+   ```
+
+3. **Check for invalid values (logged as warnings):**
+   ```bash
+   pagemd build doc.md --log-level DEBUG
+   # Look for: env:warning messages
+   ```
+
+---
+
+### Boolean Env Var Format
+
+**Symptom:** Boolean env var not working as expected.
+
+**Valid boolean values:**
+- **True:** `1`, `true`, `yes`
+- **False:** `0`, `false`, `no`, or unset
+
+**Examples:**
+```bash
+# These enable debug mode
+export PAGEMD_DEBUG=1
+export PAGEMD_DEBUG=true
+export PAGEMD_DEBUG=yes
+
+# These disable debug mode
+export PAGEMD_DEBUG=0
+export PAGEMD_DEBUG=false
+unset PAGEMD_DEBUG
+
+# Invalid (treated as false, warning logged)
+export PAGEMD_DEBUG=enabled  # Wrong!
+```
+
+---
+
+### Path Env Var on Windows
+
+**Symptom:** `PAGEMD_OUTPUT_DIR` or `PAGEMD_BROWSER_PATH` not working on Windows.
+
+**Solutions:**
+
+1. **Use forward slashes (recommended):**
+   ```powershell
+   $env:PAGEMD_OUTPUT_DIR = "C:/temp/output"
+   ```
+
+2. **Or escape backslashes:**
+   ```powershell
+   $env:PAGEMD_OUTPUT_DIR = "C:\\temp\\output"
+   ```
+
+3. **Verify path exists:**
+   ```powershell
+   Test-Path $env:PAGEMD_OUTPUT_DIR
+   ```
+
+---
+
+### Env Var Debugging
+
+**Show all loaded env vars:**
+```bash
+pagemd build doc.md --log-level TRACE
+# Look for: env:loaded messages showing parsed values
+```
+
+**Common issues:**
+- Trailing whitespace in value
+- Quotes included literally (`"value"` instead of `value`)
+- Wrong shell (bash vs zsh vs PowerShell)
 
 ---
 
@@ -230,21 +339,26 @@ extends: profile_a  # Loop!
 
 ### CSS/Font Files Missing
 
-**Symptom:** Warnings about missing CSS or font files.
+**Symptom:** Build fails with error about missing CSS resources.
 
 **Behavior:**
-- **CSS files:** Warning logged, build continues (may render incorrectly)
+- **CSS files:** Build fails immediately (hard-fail per spec)
 - **Font files:** Warning only, build continues
+
+**Example error:**
+```
+Error: Missing referenced CSS resource: ${manifestDir}/styles/custom.css
+```
 
 **Solution:**
 
-1. **Check profile manifest:**
+1. **Check profile manifest uses correct structure:**
    ```json
    {
      "resources": {
        "css": [
          "${projectRoot}/project/styles/primary.css",
-         "${configDir}/custom.css"
+         "${manifestDir}/custom.css"
        ],
        "fonts": [
          "${projectRoot}/project/fonts/roboto.woff2"
@@ -253,15 +367,22 @@ extends: profile_a  # Loop!
    }
    ```
 
-2. **Verify paths:**
+2. **Supported path tokens:**
+   - `${projectRoot}` - Detected project root
+   - `${manifestDir}` - Directory containing the profile file
+   - `${configDir}` - Directory containing markdown file
+
+3. **Verify paths:**
    ```bash
-   pagemd validate document.md --strict
+   pagemd validate document.md --strict --log-level DEBUG
    ```
 
-3. **Fix missing files:**
+4. **Fix missing files:**
    - Add files to expected locations
    - Update profile paths
    - Remove entries for unused resources
+
+**Note:** Profile-relative resources (like `${manifestDir}/styles/custom.css`) require the profile to be loaded from a file path, not just by ID.
 
 ---
 
@@ -419,6 +540,94 @@ $env:PAGEMD_KEEP_CHROME="1"
 
 ## Debug Mode
 
+### Using Debug Mode for Diagnostics
+
+Debug mode provides comprehensive visibility into the build process via an integrated summary output that replaces the standard build summary.
+
+**Enable:**
+```bash
+pagemd build document.md --debug
+# Or via environment
+PAGEMD_DEBUG=1 pagemd build document.md
+```
+
+**Debug summary output:**
+```
+======================================================================
+  DEBUG MODE ACTIVE
+======================================================================
+
+Build Summary:
+  Total files: 1
+  Successful: 1
+  Failed: 0
+  Total outputs: 2
+  Duration: 0.82s
+
+Overrides:
+  PAGEMD_DEBUG: true (cli)
+
+Directory Context:
+  Project Root:  /path/to/project
+  Output Dir:    /path/to/output
+  Debug Dir:     /path/to/output/debug
+  Markdown Dir:  /path/to/docs
+
+Loaded Resources:
+  Styles:
+    [css] styles/base.css (base)
+          /path/to/project/styles/base.css (8.8 KB)
+    [css] styles/primary.css (primary)
+          /path/to/project/styles/primary.css (649 B)
+  Layouts:
+    [css] ${projectRoot}/templates/layouts/standard_letter.css (profile)
+          /path/to/project/templates/layouts/standard_letter.css (447 B)
+  Templates:
+    [template] ${projectRoot}/templates/layouts/standard_letter.html
+          /path/to/project/templates/layouts/standard_letter.html (689 B)
+
+Per-File Breakdown:
+  document.md
+    Profile: standard_letter
+    Duration: 820ms
+    Outputs: html, pdf
+    Debug artifacts:
+      - document.paged.html
+      - document.screenshot.png
+
+----------------------------------------------------------------------
+```
+
+**What to check in debug summary:**
+
+| Issue | Check | Look For |
+|-------|-------|----------|
+| Wrong profile | Per-File Breakdown, Overrides | Profile name mismatch, unexpected override |
+| Missing styles | Loaded Resources > Styles | Expected CSS files absent |
+| Path resolution | Directory Context | Unexpected project root |
+| Slow builds | Per-File Breakdown | Duration values |
+| Missing output | Per-File Breakdown | Outputs list |
+| Config override | Overrides | Unexpected env/cli values |
+| Layout issues | Loaded Resources > Layouts | Profile CSS missing or wrong |
+
+**Common diagnostic workflows:**
+
+1. **CSS not applying:**
+   - Check "Loaded Resources" for expected CSS files
+   - Verify file sizes are non-zero
+   - Inspect `*-debug.css` for merged output
+
+2. **Profile mismatch:**
+   - Check "Per-File Breakdown" shows expected profile
+   - Verify profile exists with `pagemd list-profiles`
+
+3. **Performance issues:**
+   - Compare duration across files
+   - Look for unexpectedly long renders
+   - Check loaded resource sizes
+
+---
+
 ### Enable Debug Artifacts
 
 **Purpose:** Capture intermediate files for troubleshooting.
@@ -542,6 +751,59 @@ pagemd build document.md
 - Every validation check
 
 **Warning:** Very verbose; use only for deep debugging.
+
+---
+
+### Colored Logs Not Showing
+
+**Symptom:** Logs appear without colors in terminal.
+
+**Causes:**
+- Terminal doesn't support ANSI colors
+- Output is piped or redirected
+- `PAGEMD_LOG_COLOR=0` is set
+
+**Solutions:**
+
+1. **Check if colors are auto-disabled:**
+   ```bash
+   # Colors disabled when piped
+   pagemd build doc.md | cat  # No colors (expected)
+
+   # Colors enabled in terminal
+   pagemd build doc.md        # Colors shown
+   ```
+
+2. **Force colors when piping:**
+   ```bash
+   PAGEMD_LOG_COLOR=1 pagemd build doc.md | less -R
+   ```
+
+3. **Check env var:**
+   ```bash
+   echo $PAGEMD_LOG_COLOR  # Should be empty or 1
+   ```
+
+---
+
+### Disable Colored Logs
+
+**Symptom:** Want plain text logs for parsing or file storage.
+
+**Solution:**
+```bash
+# Disable colors
+export PAGEMD_LOG_COLOR=0
+
+# Or inline
+PAGEMD_LOG_COLOR=0 pagemd build doc.md > build.log
+```
+
+**When to disable:**
+- Logging to files
+- Parsing logs programmatically
+- CI/CD systems without color support
+- Accessibility requirements
 
 ---
 

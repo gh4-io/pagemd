@@ -3,17 +3,63 @@
  * Main document assembler - orchestrates HTML rendering pipeline
  */
 
+import { promises as fs } from 'node:fs';
 import { parse, parseFile } from '@pagemd/parser';
 import {
   loadProfileSync,
   createPathContext,
   findProjectRoot,
-  createLogger
+  createLogger,
+  addResource,
+  resolvePath
 } from '@pagemd/core';
 import { loadTemplate, renderTemplate } from './template.js';
 import { buildStyleBlock } from './styles.js';
 
 const logger = createLogger('renderer.web');
+
+/**
+ * Load frontmatter CSS files and concatenate content
+ * @param {string[]} stylePaths - Array of CSS file paths from metadata.styles
+ * @param {object} pathContext - Path resolution context
+ * @returns {Promise<{css: string, resources: Array}>} Combined CSS and resource metadata
+ */
+async function loadFrontmatterStyles(stylePaths, pathContext) {
+  if (!stylePaths || !Array.isArray(stylePaths) || stylePaths.length === 0) {
+    return { css: '', resources: [] };
+  }
+
+  const cssChunks = [];
+  const resources = [];
+
+  for (const stylePath of stylePaths) {
+    try {
+      const resolved = resolvePath(stylePath, pathContext);
+      const content = await fs.readFile(resolved, 'utf-8');
+      cssChunks.push(content);
+      resources.push({
+        layer: 'frontmatter',
+        source: stylePath,
+        resolvedPath: resolved,
+        size: content.length
+      });
+      logger.debug('frontmatter-css', 'success', `Loaded frontmatter CSS: ${stylePath}`, {
+        resolved,
+        size: content.length
+      });
+    } catch (error) {
+      logger.warn('frontmatter-css', 'failure', `Failed to load frontmatter CSS: ${stylePath}`, {
+        error: error.message
+      });
+      // Continue with other files - don't fail the entire render
+    }
+  }
+
+  return {
+    css: cssChunks.join('\n'),
+    resources
+  };
+}
 
 /**
  * Create rendering context from options
@@ -36,10 +82,11 @@ export function createRenderContext(options) {
     throw new Error(`Profile not found: ${profileId}`);
   }
 
-  // Create path context
+  // Create path context (include manifestDir from profile for ${manifestDir} token)
   const pathContext = createPathContext({
     markdownPath,
-    projectRoot
+    projectRoot,
+    manifestDir: profile._manifestDir
   });
 
   logger.debug(`Render context created: profile=${profile.id}, root=${projectRoot}`);
@@ -58,10 +105,12 @@ export function createRenderContext(options) {
  * @param {string} options.profile - Profile ID (default: 'standard_letter')
  * @param {string} options.outputPath - Output path (optional)
  * @param {string} options.projectRoot - Project root (auto-detected if not provided)
+ * @param {object} options.debugMetadata - Debug metadata collector (optional)
  * @returns {Promise<{html: string, metadata: object, profile: object}>} Rendered document
  */
 export async function renderDocument(markdownPath, options = {}) {
   logger.info(`Rendering document: ${markdownPath}`);
+  const { debugMetadata } = options;
 
   // Step 1: Parse markdown file
   logger.debug('Step 1: Parsing markdown');
@@ -72,16 +121,68 @@ export async function renderDocument(markdownPath, options = {}) {
   const context = createRenderContext({ ...options, markdownPath });
   const { profile, pathContext } = context;
 
-  // Step 3: Load HTML template
+  // Step 3: Load HTML template (with metadata if debug mode)
   logger.debug('Step 3: Loading template');
-  const template = await loadTemplate(profile, pathContext);
+  const templateResult = await loadTemplate(profile, pathContext, {
+    returnMetadata: !!debugMetadata
+  });
 
-  // Step 4: Build CSS style block
-  logger.debug('Step 4: Building styles');
-  const styles = await buildStyleBlock(profile, pathContext);
+  let template;
+  if (debugMetadata && typeof templateResult === 'object') {
+    template = templateResult.template;
+    addResource(debugMetadata, {
+      name: profile?.layout?.source || 'template',
+      path: templateResult.resolvedPath,
+      source: profile?.layout?.source,
+      type: 'template',
+      size: templateResult.size
+    });
+  } else {
+    template = templateResult;
+  }
 
-  // Step 5: Render template with content, styles, and metadata
-  logger.debug('Step 5: Rendering template');
+  // Step 4: Load frontmatter styles (if any specified in metadata.styles)
+  logger.debug('Step 4: Loading frontmatter styles');
+  const frontmatterStyles = await loadFrontmatterStyles(metadata.styles, pathContext);
+
+  // Step 5: Build CSS style block (with metadata if debug mode)
+  logger.debug('Step 5: Building styles');
+  const styleResult = await buildStyleBlock(profile, pathContext, {
+    returnMetadata: !!debugMetadata,
+    frontmatterCSS: frontmatterStyles.css || undefined
+  });
+
+  let styles;
+  if (debugMetadata && typeof styleResult === 'object') {
+    styles = styleResult.styleBlock;
+    // Add CSS resources to debug metadata
+    for (const res of styleResult.resources) {
+      addResource(debugMetadata, {
+        name: res.source,
+        path: res.resolvedPath,
+        source: res.source,
+        layer: res.layer,
+        type: 'css',
+        size: res.size
+      });
+    }
+    // Add frontmatter CSS resources to debug metadata
+    for (const res of frontmatterStyles.resources) {
+      addResource(debugMetadata, {
+        name: res.source,
+        path: res.resolvedPath,
+        source: res.source,
+        layer: 'frontmatter',
+        type: 'css',
+        size: res.size
+      });
+    }
+  } else {
+    styles = styleResult;
+  }
+
+  // Step 6: Render template with content, styles, and metadata
+  logger.debug('Step 6: Rendering template');
   const finalHtml = renderTemplate(template, {
     content: html,
     styles,
@@ -127,12 +228,18 @@ export async function renderMarkdown(markdown, options = {}) {
   logger.debug('Step 3: Loading template');
   const template = await loadTemplate(profile, pathContext);
 
-  // Step 4: Build CSS style block
-  logger.debug('Step 4: Building styles');
-  const styles = await buildStyleBlock(profile, pathContext);
+  // Step 4: Load frontmatter styles (if any specified in metadata.styles)
+  logger.debug('Step 4: Loading frontmatter styles');
+  const frontmatterStyles = await loadFrontmatterStyles(metadata.styles, pathContext);
 
-  // Step 5: Render template with content, styles, and metadata
-  logger.debug('Step 5: Rendering template');
+  // Step 5: Build CSS style block
+  logger.debug('Step 5: Building styles');
+  const styles = await buildStyleBlock(profile, pathContext, {
+    frontmatterCSS: frontmatterStyles.css || undefined
+  });
+
+  // Step 6: Render template with content, styles, and metadata
+  logger.debug('Step 6: Rendering template');
   const finalHtml = renderTemplate(template, {
     content: html,
     styles,

@@ -52,51 +52,6 @@ export const builder = {
 };
 
 /**
- * Find project root directory
- * Looks for package.json with @pagemd/cli or project/ directory
- * @returns {string} Absolute path to project root
- */
-function findProjectRoot() {
-  let current = process.cwd();
-  const root = resolve('/');
-
-  while (current !== root) {
-    // Check for project/templates/profiles directory
-    const profilesDir = join(current, 'project', 'templates', 'profiles');
-    if (existsSync(profilesDir)) {
-      logger.debug('discovery', 'success', 'Found project root via project/templates/profiles', {
-        root: current
-      });
-      return current;
-    }
-
-    // Check for package.json with @pagemd scope
-    const pkgPath = join(current, 'package.json');
-    if (existsSync(pkgPath)) {
-      try {
-        const pkg = JSON.parse(readFileSync(pkgPath, 'utf8'));
-        if (pkg.name && pkg.name.startsWith('@pagemd/')) {
-          logger.debug('discovery', 'success', 'Found project root via package.json', {
-            root: current
-          });
-          return current;
-        }
-      } catch (err) {
-        // Ignore parse errors
-      }
-    }
-
-    current = resolve(current, '..');
-  }
-
-  // Fallback to cwd
-  logger.warn('discovery', 'fallback', 'Could not find project root, using cwd', {
-    cwd: process.cwd()
-  });
-  return process.cwd();
-}
-
-/**
  * Load profile from file
  * @param {string} filePath - Absolute path to profile file
  * @returns {object|null} Profile object or null if load fails
@@ -281,14 +236,11 @@ function formatProfilesList(profiles, verbose) {
  * @param {object} argv - Yargs arguments
  */
 export async function handler(argv) {
-  const { json, verbose } = argv;
+  const { json, verbose, projectRoot } = argv;
 
   logger.trace('command', 'start', 'list-profiles command started', { json, verbose });
 
   try {
-    // Find project root
-    const projectRoot = findProjectRoot();
-
     // Discover profiles
     const profiles = discoverProfiles(projectRoot);
 

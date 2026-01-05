@@ -350,7 +350,7 @@ describe('profile-loader', () => {
 
       const profile = await loadAndMergeProfile('simple', { searchFrom: testDir });
 
-      expect(profile).toEqual(profileData);
+      expect(profile).toMatchObject(profileData);
     });
 
     it('loads and merges profile with single parent', async () => {

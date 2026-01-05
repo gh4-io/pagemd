@@ -3,16 +3,17 @@
  * CSS layer management, font resolution, and style aggregation
  *
  * CSS Layer Order (priority low to high):
- * 1. base - CSS reset/normalize
- * 2. primary - project/styles/primary.css
- * 3. profile - profile-specific CSS
- * 4. frontmatter - inline styles from frontmatter
+ * 1. base - CSS reset/normalize (project/styles/base.css)
+ * 2. primary - project overrides (project/styles/primary.css)
+ * 3. layout - Paged.js structure (@page rules, margins) - optional
+ * 4. profile - visual styling (fonts, colors) from resources.css
+ * 5. frontmatter - inline styles from frontmatter
  */
 
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { createLogger } from '@pagemd/core';
-import { resolvePath, resolveResourcePath, expandTokens } from '@pagemd/core';
+import { resolvePath, resolveResourcePath, expandTokens, DEFAULT_FILES } from '@pagemd/core';
 
 const logger = createLogger('assets');
 
@@ -20,33 +21,48 @@ const logger = createLogger('assets');
  * CSS Layer Order (priority low to high)
  * @constant {string[]}
  */
-export const CSS_LAYER_ORDER = ['base', 'primary', 'profile', 'frontmatter'];
+export const CSS_LAYER_ORDER = ['base', 'primary', 'layout', 'profile', 'frontmatter'];
+
+/**
+ * @typedef {Object} StylesheetResult
+ * @property {string} content - CSS file content
+ * @property {string} resolvedPath - Full resolved absolute path
+ * @property {number} size - File size in bytes
+ */
 
 /**
  * Load a stylesheet file
  * @param {string} cssPath - Path to CSS file (may contain tokens)
  * @param {object} context - Path resolution context from @pagemd/core
- * @returns {Promise<string>} CSS file content
+ * @returns {Promise<StylesheetResult>} CSS content with resolved path info
  * @throws {Error} If file not found or read fails
  */
 export async function loadStylesheet(cssPath, context) {
   logger.trace('stylesheet', 'in-progress', `Loading stylesheet: ${cssPath}`);
 
   try {
-    // Resolve path with token expansion and priority search
-    const resolved = path.isAbsolute(cssPath)
-      ? resolvePath(cssPath, context)
-      : resolveResourcePath(cssPath, context);
+    // Expand tokens first (e.g., ${projectRoot}, ${manifestDir})
+    const expanded = expandTokens(cssPath, context);
+
+    // Resolve path with priority search
+    const resolved = path.isAbsolute(expanded)
+      ? resolvePath(expanded, context)
+      : resolveResourcePath(expanded, context);
 
     const content = await fs.readFile(resolved, 'utf-8');
+    const stats = await fs.stat(resolved);
 
     logger.debug('stylesheet', 'success', `Loaded stylesheet`, {
       cssPath,
       resolved,
-      size: content.length
+      size: stats.size
     });
 
-    return content;
+    return {
+      content,
+      resolvedPath: resolved,
+      size: stats.size
+    };
   } catch (error) {
     logger.error('stylesheet', 'failure', `Failed to load stylesheet: ${cssPath}`, {
       error: error.message,
@@ -58,9 +74,12 @@ export async function loadStylesheet(cssPath, context) {
 
 /**
  * Aggregate all CSS for a profile in correct layer order
+ * Supports both legacy (styles.profile) and modern (resources.css) structures
+ *
  * @param {object} profile - Profile manifest object
  * @param {object} context - Path resolution context from @pagemd/core
- * @returns {Promise<Array<{layer: string, content: string, source: string}>>}
+ * @returns {Promise<Array<{layer: string, content: string, source: string, resolvedPath: string, size: number}>>}
+ * @throws {Error} If referenced CSS resources are missing (hard-fail per spec)
  */
 export async function aggregateStyles(profile, context) {
   logger.trace('aggregate', 'in-progress', 'Aggregating styles for profile', {
@@ -69,61 +88,147 @@ export async function aggregateStyles(profile, context) {
 
   const styles = [];
 
-  // Layer 1: Base styles (CSS reset/normalize)
-  if (profile?.styles?.base) {
-    try {
-      const baseContent = await loadStylesheet(profile.styles.base, context);
-      styles.push({
-        layer: 'base',
-        content: baseContent,
-        source: profile.styles.base
-      });
-    } catch (error) {
-      logger.warn('aggregate', 'failure', 'Base stylesheet not found, skipping', {
-        path: profile.styles.base
-      });
-    }
+  // ==========================================================================
+  // Layer 1: Base CSS (engine-provided markdown defaults) - ALWAYS loaded
+  // ==========================================================================
+  const basePath = DEFAULT_FILES.baseCSS;
+  try {
+    const baseResult = await loadStylesheet(basePath, context);
+    styles.push({
+      layer: 'base',
+      content: baseResult.content,
+      source: basePath,
+      resolvedPath: baseResult.resolvedPath,
+      size: baseResult.size
+    });
+    logger.debug('aggregate', 'info', 'Loaded base stylesheet', { path: basePath });
+  } catch (error) {
+    // Base CSS is engine-provided; warn but continue if missing
+    logger.warn('aggregate', 'warning', 'Base stylesheet not found, continuing', {
+      path: basePath
+    });
   }
 
-  // Layer 2: Primary styles (project/styles/primary.css)
-  const primaryPath = 'project/styles/primary.css';
+  // ==========================================================================
+  // Layer 2: Primary CSS (project overrides) - ALWAYS loaded
+  // ==========================================================================
+  const primaryPath = DEFAULT_FILES.primaryCSS;
   try {
-    const primaryContent = await loadStylesheet(primaryPath, context);
+    const primaryResult = await loadStylesheet(primaryPath, context);
     styles.push({
       layer: 'primary',
-      content: primaryContent,
-      source: primaryPath
+      content: primaryResult.content,
+      source: primaryPath,
+      resolvedPath: primaryResult.resolvedPath,
+      size: primaryResult.size
     });
+    logger.debug('aggregate', 'info', 'Loaded primary stylesheet', { path: primaryPath });
   } catch (error) {
-    logger.warn('aggregate', 'failure', 'Primary stylesheet not found, skipping', {
+    // Primary CSS is optional; warn but continue if missing
+    logger.warn('aggregate', 'warning', 'Primary stylesheet not found, continuing', {
       path: primaryPath
     });
   }
 
-  // Layer 3: Profile-specific styles
-  if (profile?.styles?.profile) {
+  // ==========================================================================
+  // Layer 3: Layout CSS (Paged.js structure) - optional
+  // Primary: resources.layout, Fallback: layout.css (backward compatibility)
+  // ==========================================================================
+  const layoutCssPath = profile?.resources?.layout || profile?.layout?.css;
+  if (layoutCssPath) {
+    logger.debug('aggregate', 'info', 'Loading layout CSS', {
+      cssPath: layoutCssPath
+    });
+
+    try {
+      const layoutResult = await loadStylesheet(layoutCssPath, context);
+      styles.push({
+        layer: 'layout',
+        content: layoutResult.content,
+        source: layoutCssPath,
+        resolvedPath: layoutResult.resolvedPath,
+        size: layoutResult.size
+      });
+      logger.debug('aggregate', 'info', 'Loaded layout stylesheet', {
+        path: layoutCssPath
+      });
+    } catch (error) {
+      // Layout CSS is specified but missing - hard fail per spec
+      logger.error('aggregate', 'failure', `Layout stylesheet not found: ${layoutCssPath}`, {
+        cssPath: layoutCssPath,
+        profileId: profile?.id
+      });
+      throw new Error(`Missing layout CSS: ${layoutCssPath}`);
+    }
+  }
+
+  // ==========================================================================
+  // Layer 4: Profile-specific styles
+  // Supports both modern (resources.css[]) and legacy (styles.profile) structures
+  // ==========================================================================
+  const hasResourcesCss = Array.isArray(profile?.resources?.css) && profile.resources.css.length > 0;
+  const hasLegacyStyles = profile?.styles?.profile;
+
+  if (hasResourcesCss) {
+    // Modern structure: resources.css[] contains profile-specific CSS
+    // Skip entries that match base.css or primary.css (already loaded)
+    logger.debug('aggregate', 'info', 'Loading profile styles from resources.css', {
+      cssCount: profile.resources.css.length
+    });
+
+    for (const cssPath of profile.resources.css) {
+      // Skip if this is base.css or primary.css (already loaded in layers 1-2)
+      if (cssPath.endsWith('/base.css') || cssPath.endsWith('/primary.css') ||
+          cssPath === DEFAULT_FILES.baseCSS || cssPath === DEFAULT_FILES.primaryCSS) {
+        logger.debug('aggregate', 'skip', 'Skipping already-loaded stylesheet', { cssPath });
+        continue;
+      }
+
+      try {
+        const result = await loadStylesheet(cssPath, context);
+        styles.push({
+          layer: 'profile',
+          content: result.content,
+          source: cssPath,
+          resolvedPath: result.resolvedPath,
+          size: result.size
+        });
+      } catch (error) {
+        // Hard-fail on missing referenced resources (per PROJECT_BRIEF.md spec)
+        logger.error('aggregate', 'failure', `Referenced CSS resource not found: ${cssPath}`, {
+          cssPath,
+          profileId: profile?.id
+        });
+        throw new Error(`Missing referenced CSS resource: ${cssPath}`);
+      }
+    }
+  } else if (hasLegacyStyles) {
+    // Legacy structure: styles.profile
+    logger.debug('aggregate', 'info', 'Loading profile styles from styles.profile');
+
     const profileStyles = Array.isArray(profile.styles.profile)
       ? profile.styles.profile
       : [profile.styles.profile];
 
     for (const profilePath of profileStyles) {
       try {
-        const profileContent = await loadStylesheet(profilePath, context);
+        const result = await loadStylesheet(profilePath, context);
         styles.push({
           layer: 'profile',
-          content: profileContent,
-          source: profilePath
+          content: result.content,
+          source: profilePath,
+          resolvedPath: result.resolvedPath,
+          size: result.size
         });
       } catch (error) {
-        logger.error('aggregate', 'failure', `Profile stylesheet required but not found: ${profilePath}`, {
-          profilePath
-        });
-        throw error;
+        // Hard-fail on missing referenced resources
+        logger.error('aggregate', 'failure', `Referenced profile stylesheet not found: ${profilePath}`);
+        throw new Error(`Missing referenced profile stylesheet: ${profilePath}`);
       }
     }
   }
 
-  // Layer 4: Frontmatter inline styles (added by caller if present)
+  // Layer 5: Frontmatter inline styles (added by caller if present)
   // Frontmatter styles are typically added separately by the renderer
 
   logger.info('aggregate', 'success', `Aggregated ${styles.length} stylesheets`, {

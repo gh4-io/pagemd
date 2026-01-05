@@ -156,16 +156,18 @@ describe('config', () => {
       writeFileSync(profilePath, JSON.stringify(profileData));
 
       const profile = await loadProfile('test_profile', testDir);
-      expect(profile).toEqual(profileData);
+      expect(profile).toMatchObject(profileData);
+      expect(profile._manifestDir).toBeDefined();
 
       // Test sync version
       clearConfigCache();
       const profileSync = loadProfileSync('test_profile', testDir);
-      expect(profileSync).toEqual(profileData);
+      expect(profileSync).toMatchObject(profileData);
+      expect(profileSync._manifestDir).toBeDefined();
     });
 
-    it('loads profile from templates/profiles/', async () => {
-      const profilesDir = join(testDir, 'templates', 'profiles');
+    it('loads profile from profiles/', async () => {
+      const profilesDir = join(testDir, 'profiles');
       mkdirSync(profilesDir, { recursive: true });
 
       const profilePath = join(profilesDir, 'standard.json');
@@ -178,7 +180,8 @@ describe('config', () => {
 
       try {
         const profile = await loadProfile('standard');
-        expect(profile).toEqual(profileData);
+        expect(profile).toMatchObject(profileData);
+        expect(profile._manifestDir).toBeDefined();
       } finally {
         process.chdir(originalCwd);
       }
@@ -247,7 +250,7 @@ describe('config', () => {
       writeFileSync(join(configProfiles, 'fallback.json'), JSON.stringify(profileData));
 
       const profile = await loadProfile('fallback', testDir, configDir);
-      expect(profile).toEqual(profileData);
+      expect(profile).toMatchObject(profileData);
     });
 
     it('warns when profile ID does not match filename', async () => {
@@ -260,7 +263,7 @@ describe('config', () => {
 
       // Should still load but log warning (which we're suppressing in tests)
       const profile = await loadProfile('filename', testDir);
-      expect(profile).toEqual(profileData);
+      expect(profile).toMatchObject(profileData);
     });
 
     it('uses cache for repeated loads', async () => {
@@ -292,12 +295,12 @@ describe('config', () => {
       writeFileSync(configPath, JSON.stringify(configData));
 
       const config = await loadConfig(testDir, 'config_test');
-      expect(config).toEqual(configData);
+      expect(config).toMatchObject(configData);
 
       // Test sync version
       clearConfigCache();
       const configSync = loadConfigSync(testDir, 'config_test');
-      expect(configSync).toEqual(configData);
+      expect(configSync).toMatchObject(configData);
     });
   });
 
@@ -333,6 +336,181 @@ describe('config', () => {
 
       const profile = await loadProfile('test', testDir);
       expect(profile.name).toBe('Changed');
+    });
+  });
+
+  describe('profile path resolution', () => {
+    it('detects Unix-style paths with forward slashes', async () => {
+      const profilePath = join(testDir, 'custom.json');
+      const profileData = { id: 'custom_path', name: 'Custom Path Profile' };
+      writeFileSync(profilePath, JSON.stringify(profileData));
+
+      const originalCwd = process.cwd();
+      process.chdir(testDir);
+
+      try {
+        // Use forward slash relative path
+        const profile = await loadProfile('./custom.json');
+        expect(profile).toMatchObject(profileData);
+      } finally {
+        process.chdir(originalCwd);
+      }
+    });
+
+    it('detects Windows-style paths with backslashes', () => {
+      const subDir = join(testDir, 'subdir');
+      mkdirSync(subDir, { recursive: true });
+      const profilePath = join(subDir, 'windows.json');
+      const profileData = { id: 'windows_path', name: 'Windows Path Profile' };
+      writeFileSync(profilePath, JSON.stringify(profileData));
+
+      const originalCwd = process.cwd();
+      process.chdir(testDir);
+
+      try {
+        // Use backslash in path - will be detected as path indicator
+        // On Windows: subdir\windows.json, On Unix: treated as path due to backslash
+        const profile = loadProfileSync('subdir\\windows.json');
+        expect(profile).toMatchObject(profileData);
+      } finally {
+        process.chdir(originalCwd);
+      }
+    });
+
+    it('detects file extensions as paths', async () => {
+      const profilePath = join(testDir, 'extension.json');
+      const profileData = { id: 'extension_test', name: 'Extension Test' };
+      writeFileSync(profilePath, JSON.stringify(profileData));
+
+      // Change to testDir to use relative path without /
+      const originalCwd = process.cwd();
+      process.chdir(testDir);
+
+      try {
+        const profile = await loadProfile('extension.json');
+        expect(profile).toMatchObject(profileData);
+      } finally {
+        process.chdir(originalCwd);
+      }
+    });
+
+    it('returns false for profile IDs without path indicators', async () => {
+      const profilesDir = join(testDir, '.pagemd', 'profiles');
+      mkdirSync(profilesDir, { recursive: true });
+
+      const profilePath = join(profilesDir, 'standard_letter.json');
+      const profileData = { id: 'standard_letter', name: 'Standard Letter' };
+      writeFileSync(profilePath, JSON.stringify(profileData));
+
+      // Should use profile ID search, not path mode
+      const profile = await loadProfile('standard_letter', testDir);
+      expect(profile).toMatchObject(profileData);
+    });
+
+    it('loads profile from relative path', async () => {
+      const customDir = join(testDir, 'custom');
+      mkdirSync(customDir, { recursive: true });
+
+      const profilePath = join(customDir, 'relative.json');
+      const profileData = { id: 'relative_profile', name: 'Relative Profile' };
+      writeFileSync(profilePath, JSON.stringify(profileData));
+
+      const originalCwd = process.cwd();
+      process.chdir(testDir);
+
+      try {
+        const profile = await loadProfile('./custom/relative.json');
+        expect(profile).toMatchObject(profileData);
+
+        // Test sync version
+        clearConfigCache();
+        const profileSync = loadProfileSync('./custom/relative.json');
+        expect(profileSync).toMatchObject(profileData);
+      } finally {
+        process.chdir(originalCwd);
+      }
+    });
+
+    it('loads profile from absolute path', async () => {
+      const absolutePath = join(testDir, 'absolute.json');
+      const profileData = { id: 'absolute_profile', name: 'Absolute Profile' };
+      writeFileSync(absolutePath, JSON.stringify(profileData));
+
+      const profile = await loadProfile(absolutePath);
+      expect(profile).toMatchObject(profileData);
+
+      // Test sync version
+      clearConfigCache();
+      const profileSync = loadProfileSync(absolutePath);
+      expect(profileSync).toMatchObject(profileData);
+    });
+
+    it('loads profile path without extension (tries .json first)', async () => {
+      const profileBase = join(testDir, 'noext');
+      const profileData = { id: 'noext_profile', name: 'No Extension Profile' };
+      writeFileSync(`${profileBase}.json`, JSON.stringify(profileData));
+
+      const originalCwd = process.cwd();
+      process.chdir(testDir);
+
+      try {
+        const profile = await loadProfile('./noext');
+        expect(profile).toMatchObject(profileData);
+
+        // Test sync version
+        clearConfigCache();
+        const profileSync = loadProfileSync('./noext');
+        expect(profileSync).toMatchObject(profileData);
+      } finally {
+        process.chdir(originalCwd);
+      }
+    });
+
+    it('returns null when path not found', async () => {
+      const profile = await loadProfile('./nonexistent.json', testDir);
+      expect(profile).toBeNull();
+
+      // Test sync version
+      clearConfigCache();
+      const profileSync = loadProfileSync('./nonexistent.json', testDir);
+      expect(profileSync).toBeNull();
+    });
+
+    it('loads YAML profile from path', async () => {
+      const yamlPath = join(testDir, 'custom.yaml');
+      const yamlContent = `id: yaml_path\nname: YAML Path Profile\npageSize: a4`;
+      writeFileSync(yamlPath, yamlContent);
+
+      const originalCwd = process.cwd();
+      process.chdir(testDir);
+
+      try {
+        const profile = await loadProfile('./custom.yaml');
+        expect(profile.id).toBe('yaml_path');
+        expect(profile.name).toBe('YAML Path Profile');
+        expect(profile.pageSize).toBe('a4');
+      } finally {
+        process.chdir(originalCwd);
+      }
+    });
+
+    it('caches profile loaded from path', async () => {
+      const profilePath = join(testDir, 'cached-path.json');
+      const profileData = { id: 'cached_path', name: 'Cached Path Profile' };
+      writeFileSync(profilePath, JSON.stringify(profileData));
+
+      const originalCwd = process.cwd();
+      process.chdir(testDir);
+
+      try {
+        const profile1 = await loadProfile('./cached-path.json');
+        const profile2 = await loadProfile('./cached-path.json');
+
+        // Should be same instance from cache
+        expect(profile1).toBe(profile2);
+      } finally {
+        process.chdir(originalCwd);
+      }
     });
   });
 });

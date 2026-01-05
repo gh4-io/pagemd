@@ -6,11 +6,15 @@ Step-by-step guide for contributing to PageMD development.
 
 - [Repository Layout](#repository-layout)
 - [Local Development Setup](#local-development-setup)
+- [Environment Variables for Development](#environment-variables-for-development)
 - [Testing](#testing)
 - [Build Commands](#build-commands)
 - [Branch Naming](#branch-naming)
 - [Commit Messages](#commit-messages)
 - [Contribution Workflow](#contribution-workflow)
+- [CSS Layering System](#css-layering-system)
+- [Logger and Color Utilities](#logger-and-color-utilities)
+- [Debug Mode Development](#debug-mode-development)
 - [Code Style](#code-style)
 - [See Also](#see-also)
 
@@ -69,6 +73,56 @@ export PAGEMD_KEEP_CHROME=1  # Linux/macOS
 $env:PAGEMD_KEEP_CHROME="1"  # PowerShell
 ```
 Saves ~2-3s per render after the first (browser reuse within same process).
+
+## Environment Variables for Development
+
+PageMD supports `PAGEMD_*` environment variables for configuration. These are especially useful during development for debugging and testing different configurations.
+
+**Recommended dev environment:**
+
+```bash
+# Linux/macOS
+export PAGEMD_LOG_LEVEL=DEBUG    # Verbose logging
+export PAGEMD_LOG_COLOR=1        # Force colored output (optional)
+export PAGEMD_DEBUG=1            # Emit debug artifacts
+export PAGEMD_KEEP_CHROME=1      # Browser reuse
+
+# Windows PowerShell
+$env:PAGEMD_LOG_LEVEL = "DEBUG"
+$env:PAGEMD_LOG_COLOR = "1"
+$env:PAGEMD_DEBUG = "1"
+$env:PAGEMD_KEEP_CHROME = "1"
+```
+
+**Log colors:** Logs are automatically colored when outputting to a terminal. Use `PAGEMD_LOG_COLOR=0` to disable, or `PAGEMD_LOG_COLOR=1` to force colors when piping.
+
+**All available env vars:** See [Settings > Environment Variables](Settings.md#environment-variables) for complete reference.
+
+**Testing env var handling:**
+
+When implementing new env var support, follow these patterns:
+
+1. **Centralized handling** - Use `project/packages/core/src/env.js` for all env var parsing
+2. **Type coercion** - Use `parseBoolean()` for boolean vars, handle edge cases
+3. **Cross-platform paths** - Normalize path separators, handle `~` and `%USERPROFILE%`
+4. **Precedence** - CLI flags > env vars > frontmatter > profile > defaults
+5. **Validation** - Log warnings for invalid values, fall back to defaults
+
+**Example test cases:**
+
+```javascript
+// Test boolean parsing
+process.env.PAGEMD_DEBUG = '1'       // should be true
+process.env.PAGEMD_DEBUG = 'true'    // should be true
+process.env.PAGEMD_DEBUG = 'yes'     // should be true
+process.env.PAGEMD_DEBUG = '0'       // should be false
+process.env.PAGEMD_DEBUG = ''        // should be false (unset equivalent)
+delete process.env.PAGEMD_DEBUG      // should use default
+
+// Test path normalization
+process.env.PAGEMD_OUTPUT_DIR = 'C:\\Users\\test\\output'  // should normalize to forward slashes
+process.env.PAGEMD_OUTPUT_DIR = '/tmp/output'               // should work as-is
+```
 
 ## Testing
 
@@ -245,6 +299,183 @@ Users prefer YAML for config readability; extends profile manifest format.
 2. `npm test` - verify new tests pass
 3. `pwsh scripts/smoke_test.ps1` - verify end-to-end
 ```
+
+## CSS Layering System
+
+PageMD uses a 4-layer additive CSS system for styling consistency and extensibility.
+
+**Layer order (additive):**
+
+1. **Base CSS** (`project/styles/base.css`) - Engine-provided markdown defaults
+   - Core element styling (headings, paragraphs, lists, tables, blockquotes)
+   - VS Code theming classes (`.vscode-light`, `.vscode-dark`, `.vscode-high-contrast`)
+   - Always loaded first
+
+2. **Primary CSS** (`project/styles/primary.css`) - Global project styles
+   - Brand colors, typography, spacing
+   - Page layout defaults
+   - Always loaded second
+
+3. **Profile CSS** - Profile-specific styles
+   - From `profile.resources.css[]` or `profile.styles.profile`
+   - Layout-specific overrides
+   - Loaded third
+
+4. **Frontmatter CSS** - Document-level overrides
+   - From markdown frontmatter `styles: [...]`
+   - Document-specific styling
+   - Loaded last (highest priority)
+
+**Implementation:**
+
+```javascript
+// theme-kit aggregateStyles() always loads:
+const baseCss = path.join(projectRoot, 'styles/base.css')
+const primaryCss = path.join(projectRoot, 'styles/primary.css')
+// ...then profile CSS, then frontmatter CSS
+```
+
+**Key principles:**
+- Each layer adds to previous layers (not replaces)
+- Missing CSS files hard-fail (strict validation)
+- VS Code theming prepared for future extension support
+
+## Logger and Color Utilities
+
+PageMD includes a universal logger with semantic color support.
+
+**Logger module:** `project/packages/core/src/logger.js`
+
+```javascript
+import { createLogger, setLogLevel } from '@pagemd/core/logger.js'
+
+const logger = createLogger('cli')
+logger.info('build', 'success', 'Build complete', { files: 5 })
+```
+
+**Color module:** `project/packages/core/src/colors.js`
+
+Colors are automatically applied based on:
+- **Timestamp:** Green
+- **Level:** Red (ERROR/FATAL), Yellow (WARN), Cyan (INFO), Gray (DEBUG/TRACE)
+- **Result:** Green (success/ok), Red (fail/failure), Yellow (warn/skip)
+
+**Extending colors:**
+
+```javascript
+import { colors, colorLevel, colorResult, isColorsEnabled } from '@pagemd/core/colors.js'
+
+// Check if colors are enabled
+if (isColorsEnabled()) {
+  console.log(colors.timestamp('2025-01-01'))
+}
+
+// Add custom result colors
+const myResult = lowerResult === 'custom' ? colors.resultSuccess(result) : colorResult(result)
+```
+
+**Implementation:** Uses raw ANSI escape codes (no external dependencies) to avoid ES module import hoisting issues with color libraries.
+
+## Debug Mode Development
+
+When developing or troubleshooting PageMD, debug mode provides enhanced visibility into the build process.
+
+**Enable debug mode:**
+```bash
+pagemd build document.md --debug
+# Or via environment
+PAGEMD_DEBUG=1 pagemd build document.md
+```
+
+### Debug Artifacts
+
+Debug mode emits additional files alongside outputs:
+
+| Artifact | Description |
+|----------|-------------|
+| `*-debug.html` | Final HTML before PDF generation (with all CSS inlined) |
+| `*-debug.css` | Merged CSS from all sources (base, primary, profile, frontmatter) |
+| Browser window | Visible (not headless) for interactive inspection |
+
+### Enhanced Build Summary
+
+Debug mode outputs an integrated summary that replaces the standard build summary:
+
+```
+======================================================================
+  DEBUG MODE ACTIVE
+======================================================================
+
+Build Summary:
+  Total files: 1
+  Successful: 1
+  Failed: 0
+  Total outputs: 2
+  Duration: 1.85s
+
+Overrides:
+  PAGEMD_DEBUG: true (cli)
+
+Directory Context:
+  Project Root:  /path/to/project
+  Output Dir:    /path/to/output
+  Debug Dir:     /path/to/output/debug
+  Markdown Dir:  /path/to/docs
+
+Loaded Resources:
+  Styles:
+    [css] styles/base.css (base)
+          /path/to/project/styles/base.css (8.8 KB)
+    [css] styles/primary.css (primary)
+          /path/to/project/styles/primary.css (649 B)
+  Layouts:
+    [css] ${projectRoot}/templates/layouts/standard_letter.css (profile)
+          /path/to/project/templates/layouts/standard_letter.css (447 B)
+  Templates:
+    [template] ${projectRoot}/templates/layouts/standard_letter.html
+          /path/to/project/templates/layouts/standard_letter.html (689 B)
+
+Per-File Breakdown:
+  doc1.md
+    Profile: standard_letter
+    Duration: 820ms
+    Outputs: html, pdf
+    Debug artifacts:
+      - doc1.paged.html
+      - doc1.screenshot.png
+
+----------------------------------------------------------------------
+```
+
+**Summary sections:**
+
+1. **Build Summary** - Aggregate statistics for the entire build
+2. **Overrides** - Active non-default configuration (CLI, env, or frontmatter sources)
+3. **Directory Context** - Shows resolved project root, output, debug, and markdown directories
+4. **Loaded Resources** - CSS and templates organized by category (Styles, Layouts, Templates)
+5. **Per-File Breakdown** - Profile used, render duration, outputs, and debug artifacts for each input file
+
+### Using Debug for Development
+
+**Path resolution issues:**
+- Check "Directory Context" for unexpected project root
+- Verify "Loaded Resources" shows expected files
+- Missing resources appear as warnings in logs
+
+**Performance profiling:**
+- "Per-File Breakdown" shows duration per file
+- Compare times across profiles
+- Identify slow renders for optimization
+
+**CSS debugging:**
+- Inspect `*-debug.css` for merged styles
+- Open `*-debug.html` in browser DevTools
+- Check layer order (base -> primary -> profile -> frontmatter)
+
+**Browser debugging:**
+- Debug mode shows browser window
+- Open DevTools (F12) for console errors
+- Inspect Paged.js layout directly
 
 ## Code Style
 

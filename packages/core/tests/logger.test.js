@@ -4,6 +4,7 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { createLogger, setLogLevel, getLogLevel } from '../src/logger.js';
+import { isColorsEnabled, colorLevel, colorResult, colors } from '../src/colors.js';
 
 describe('logger', () => {
   // Store original console methods
@@ -314,6 +315,179 @@ describe('logger', () => {
       logger2.error('test', 'failure', 'Should log');
 
       expect(consoleErrorMock).toHaveBeenCalledTimes(2);
+    });
+  });
+});
+
+describe('colors', () => {
+  let originalEnv;
+  let originalIsTTY;
+
+  beforeEach(() => {
+    // Save original env and TTY state
+    originalEnv = process.env.PAGEMD_LOG_COLOR;
+    originalIsTTY = process.stdout.isTTY;
+    // Clear env var for clean test state
+    delete process.env.PAGEMD_LOG_COLOR;
+  });
+
+  afterEach(() => {
+    // Restore original state
+    if (originalEnv !== undefined) {
+      process.env.PAGEMD_LOG_COLOR = originalEnv;
+    } else {
+      delete process.env.PAGEMD_LOG_COLOR;
+    }
+    process.stdout.isTTY = originalIsTTY;
+  });
+
+  describe('isColorsEnabled', () => {
+    it('returns true when TTY and no env override', () => {
+      process.stdout.isTTY = true;
+      delete process.env.PAGEMD_LOG_COLOR;
+      expect(isColorsEnabled()).toBe(true);
+    });
+
+    it('returns false when not TTY and no env override', () => {
+      process.stdout.isTTY = false;
+      delete process.env.PAGEMD_LOG_COLOR;
+      expect(isColorsEnabled()).toBe(false);
+    });
+
+    it('PAGEMD_LOG_COLOR=1 forces colors on', () => {
+      process.stdout.isTTY = false;
+      process.env.PAGEMD_LOG_COLOR = '1';
+      expect(isColorsEnabled()).toBe(true);
+    });
+
+    it('PAGEMD_LOG_COLOR=true forces colors on', () => {
+      process.stdout.isTTY = false;
+      process.env.PAGEMD_LOG_COLOR = 'true';
+      expect(isColorsEnabled()).toBe(true);
+    });
+
+    it('PAGEMD_LOG_COLOR=yes forces colors on', () => {
+      process.stdout.isTTY = false;
+      process.env.PAGEMD_LOG_COLOR = 'yes';
+      expect(isColorsEnabled()).toBe(true);
+    });
+
+    it('PAGEMD_LOG_COLOR=0 forces colors off', () => {
+      process.stdout.isTTY = true;
+      process.env.PAGEMD_LOG_COLOR = '0';
+      expect(isColorsEnabled()).toBe(false);
+    });
+
+    it('PAGEMD_LOG_COLOR=false forces colors off', () => {
+      process.stdout.isTTY = true;
+      process.env.PAGEMD_LOG_COLOR = 'false';
+      expect(isColorsEnabled()).toBe(false);
+    });
+
+    it('PAGEMD_LOG_COLOR=no forces colors off', () => {
+      process.stdout.isTTY = true;
+      process.env.PAGEMD_LOG_COLOR = 'no';
+      expect(isColorsEnabled()).toBe(false);
+    });
+
+    it('handles case insensitive env values', () => {
+      process.stdout.isTTY = false;
+      process.env.PAGEMD_LOG_COLOR = 'TRUE';
+      expect(isColorsEnabled()).toBe(true);
+
+      process.env.PAGEMD_LOG_COLOR = 'FALSE';
+      expect(isColorsEnabled()).toBe(false);
+    });
+  });
+
+  describe('colorLevel', () => {
+    it('handles undefined level', () => {
+      const result = colorLevel(undefined);
+      expect(result).toContain('undefined');
+    });
+
+    it('handles null level', () => {
+      const result = colorLevel(null);
+      expect(result).toContain('undefined');
+    });
+
+    it('returns level string for valid levels', () => {
+      // When colors disabled, should return plain text
+      process.stdout.isTTY = false;
+      delete process.env.PAGEMD_LOG_COLOR;
+
+      expect(colorLevel('INFO')).toBe('INFO');
+      expect(colorLevel('WARN')).toBe('WARN');
+      expect(colorLevel('ERROR')).toBe('ERROR');
+      expect(colorLevel('DEBUG')).toBe('DEBUG');
+      expect(colorLevel('TRACE')).toBe('TRACE');
+      expect(colorLevel('FATAL')).toBe('FATAL');
+    });
+
+    it('handles lowercase levels', () => {
+      process.stdout.isTTY = false;
+      // colorLevel preserves original case in output
+      expect(colorLevel('info')).toBe('info');
+    });
+  });
+
+  describe('colorResult', () => {
+    it('handles undefined result', () => {
+      const result = colorResult(undefined);
+      expect(result).toContain('undefined');
+    });
+
+    it('handles null result', () => {
+      const result = colorResult(null);
+      expect(result).toContain('undefined');
+    });
+
+    it('returns result string for valid results', () => {
+      // When colors disabled, should return plain text
+      process.stdout.isTTY = false;
+      delete process.env.PAGEMD_LOG_COLOR;
+
+      expect(colorResult('success')).toBe('success');
+      expect(colorResult('ok')).toBe('ok');
+      expect(colorResult('fail')).toBe('fail');
+      expect(colorResult('warning')).toBe('warning');
+      expect(colorResult('skip')).toBe('skip');
+    });
+
+    it('handles mixed case results', () => {
+      process.stdout.isTTY = false;
+      expect(colorResult('SUCCESS')).toBe('SUCCESS');
+      expect(colorResult('Success')).toBe('Success');
+    });
+  });
+
+  describe('colors object', () => {
+    it('exports all expected color functions', () => {
+      expect(colors.timestamp).toBeTypeOf('function');
+      expect(colors.levelFatal).toBeTypeOf('function');
+      expect(colors.levelError).toBeTypeOf('function');
+      expect(colors.levelWarn).toBeTypeOf('function');
+      expect(colors.levelInfo).toBeTypeOf('function');
+      expect(colors.levelDebug).toBeTypeOf('function');
+      expect(colors.levelTrace).toBeTypeOf('function');
+      expect(colors.resultSuccess).toBeTypeOf('function');
+      expect(colors.resultFail).toBeTypeOf('function');
+      expect(colors.resultWarn).toBeTypeOf('function');
+      expect(colors.resultDefault).toBeTypeOf('function');
+      expect(colors.module).toBeTypeOf('function');
+      expect(colors.section).toBeTypeOf('function');
+      expect(colors.message).toBeTypeOf('function');
+      expect(colors.data).toBeTypeOf('function');
+      expect(colors.delimiter).toBeTypeOf('function');
+    });
+
+    it('returns input when colors disabled', () => {
+      process.stdout.isTTY = false;
+      delete process.env.PAGEMD_LOG_COLOR;
+
+      expect(colors.timestamp('test')).toBe('test');
+      expect(colors.module('cli')).toBe('cli');
+      expect(colors.message('hello')).toBe('hello');
     });
   });
 });

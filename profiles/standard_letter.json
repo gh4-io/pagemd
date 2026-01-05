@@ -2,15 +2,12 @@
   "id": "standard_letter",
   "description": "Standard US Letter layout for SOPs and documentation",
 
-  "layout": {
-    "type": "html",
-    "source": "${projectRoot}/templates/layouts/standard_letter.html"
-  },
-
   "resources": {
+    "template": "${projectRoot}/templates/standard_letter.html",
+    "layout": "${projectRoot}/layouts/letter.css",
     "css": [
       "${projectRoot}/styles/primary.css",
-      "${projectRoot}/templates/layouts/standard_letter.css"
+      "${projectRoot}/templates/standard_letter.css"
     ],
     "fonts": [],
     "assets": []

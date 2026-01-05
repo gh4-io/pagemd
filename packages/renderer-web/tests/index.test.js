@@ -198,8 +198,8 @@ describe('index.js', () => {
       const result = await renderDocument('/project/docs/test.md');
 
       expect(parseFile).toHaveBeenCalledWith('/project/docs/test.md', {});
-      expect(loadTemplate).toHaveBeenCalledWith(mocks.mockProfile, mocks.mockPathContext);
-      expect(buildStyleBlock).toHaveBeenCalledWith(mocks.mockProfile, mocks.mockPathContext);
+      expect(loadTemplate).toHaveBeenCalledWith(mocks.mockProfile, mocks.mockPathContext, { returnMetadata: false });
+      expect(buildStyleBlock).toHaveBeenCalledWith(mocks.mockProfile, mocks.mockPathContext, { returnMetadata: false });
       expect(renderTemplate).toHaveBeenCalledWith(mocks.mockTemplate, {
         content: mocks.mockHtml,
         styles: mocks.mockStyles,
@@ -339,7 +339,9 @@ describe('index.js', () => {
 
       expect(parse).toHaveBeenCalledWith(markdown, {});
       expect(loadTemplate).toHaveBeenCalledWith(mocks.mockProfile, mocks.mockPathContext);
-      expect(buildStyleBlock).toHaveBeenCalledWith(mocks.mockProfile, mocks.mockPathContext);
+      expect(buildStyleBlock).toHaveBeenCalledWith(mocks.mockProfile, mocks.mockPathContext, {
+        frontmatterCSS: undefined
+      });
       expect(renderTemplate).toHaveBeenCalled();
 
       expect(result.html).toBe('<html><p>Test content</p></html>');

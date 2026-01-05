@@ -202,13 +202,10 @@ This is a test paragraph.`;
         projectRoot: PROJECT_ROOT
       });
 
-      // Profile should have layout config
-      expect(result.profile).toHaveProperty('layout');
-      expect(result.profile.layout).toHaveProperty('type', 'html');
-      expect(result.profile.layout).toHaveProperty('source');
-
-      // Profile should have resources
+      // Profile should have resources with template and layout
       expect(result.profile).toHaveProperty('resources');
+      expect(result.profile.resources).toHaveProperty('template');
+      expect(result.profile.resources).toHaveProperty('layout');
       expect(result.profile.resources).toHaveProperty('css');
       expect(Array.isArray(result.profile.resources.css)).toBe(true);
 

@@ -15,13 +15,20 @@ import { createLogger } from '@pagemd/core';
 const logger = createLogger('renderer.web');
 
 /**
+ * @typedef {Object} StyleBlockResult
+ * @property {string} styleBlock - HTML string with <style> tags
+ * @property {Array<{layer: string, source: string, resolvedPath: string, size: number}>} resources - CSS resource metadata
+ */
+
+/**
  * Build complete <style> block for injection into HTML templates
  * @param {object} profile - Profile manifest object
  * @param {object} context - Path resolution context from @pagemd/core
  * @param {object} [options={}] - Options
  * @param {boolean} [options.minify=false] - Minify CSS output
  * @param {string} [options.frontmatterCSS] - Optional frontmatter inline CSS
- * @returns {Promise<string>} HTML string with <style> tags in layer order
+ * @param {boolean} [options.returnMetadata=false] - Return full result with metadata
+ * @returns {Promise<string|StyleBlockResult>} HTML string or full result with metadata
  */
 export async function buildStyleBlock(profile, context, options = {}) {
   logger.trace('styles', 'in-progress', 'Building style block', {
@@ -34,14 +41,28 @@ export async function buildStyleBlock(profile, context, options = {}) {
     // Aggregate styles from theme-kit (base, primary, profile layers)
     const aggregated = await aggregateStyles(profile, context);
 
-    // Build style tags for each layer
+    // Build style tags for each layer and collect resource metadata
     let styleBlock = '';
-    for (const { layer, content } of aggregated) {
+    const resources = [];
+
+    for (const { layer, content, source, resolvedPath, size } of aggregated) {
       const css = options.minify ? minifyCSS(content) : content;
       styleBlock += formatStyleTag(css, layer) + '\n';
+
+      // Collect resource metadata for debug
+      if (resolvedPath) {
+        resources.push({
+          layer,
+          source: source || resolvedPath,
+          resolvedPath,
+          size: size || 0
+        });
+      }
     }
 
     // Add frontmatter layer if provided
+    // Note: Resource tracking for frontmatter CSS is handled by the caller (renderDocument)
+    // which has access to the actual file paths from loadFrontmatterStyles()
     if (options.frontmatterCSS) {
       const css = options.minify ? minifyCSS(options.frontmatterCSS) : options.frontmatterCSS;
       styleBlock += formatStyleTag(css, 'frontmatter') + '\n';
@@ -52,6 +73,11 @@ export async function buildStyleBlock(profile, context, options = {}) {
       layers: aggregated.length + (options.frontmatterCSS ? 1 : 0),
       size: styleBlock.length
     });
+
+    // Return metadata if requested (for debug mode)
+    if (options.returnMetadata) {
+      return { styleBlock, resources };
+    }
 
     return styleBlock;
   } catch (error) {

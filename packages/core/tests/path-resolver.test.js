@@ -362,9 +362,9 @@ describe('path-resolver', () => {
     });
 
     it('handles complex token expansion with relative paths', () => {
-      const pathWithToken = '${projectRoot}/templates/profiles';
+      const pathWithToken = '${projectRoot}/profiles';
       const resolved = resolvePath(pathWithToken, context);
-      expect(resolved).toBe(resolve(projectRoot, 'templates/profiles'));
+      expect(resolved).toBe(resolve(projectRoot, 'profiles'));
     });
 
     it('handles paths with .. navigation', () => {

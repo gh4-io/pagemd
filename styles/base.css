@@ -1,0 +1,371 @@
+/* PageMD Base CSS - Markdown Element Defaults
+ * Source reference: Microsoft VS Code markdown.css (MIT License)
+ * https://github.com/microsoft/vscode/blob/master/extensions/markdown-language-features/media/markdown.css
+ *
+ * This file provides default styling for ALL markdown elements.
+ * It is loaded first in the CSS layer order and can be overridden by:
+ * - primary.css (project overrides)
+ * - profile CSS (profile-specific styles)
+ * - frontmatter CSS (document-specific styles)
+ */
+
+/* ==========================================================================
+   Body Defaults
+   ========================================================================== */
+
+body {
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif;
+	font-size: 14px;
+	padding: 0 26px;
+	line-height: 22px;
+	word-wrap: break-word;
+}
+
+/* ==========================================================================
+   VS Code Editor Integration (for future extension)
+   ========================================================================== */
+
+#code-csp-warning {
+	position: fixed;
+	top: 0;
+	right: 0;
+	color: white;
+	margin: 16px;
+	text-align: center;
+	font-size: 12px;
+	font-family: sans-serif;
+	background-color: #444444;
+	cursor: pointer;
+	padding: 6px;
+	box-shadow: 1px 1px 1px rgba(0, 0, 0, 0.25);
+}
+
+#code-csp-warning:hover {
+	text-decoration: none;
+	background-color: #007acc;
+	box-shadow: 2px 2px 2px rgba(0, 0, 0, 0.25);
+}
+
+body.scrollBeyondLastLine {
+	margin-bottom: calc(100vh - 22px);
+}
+
+body.showEditorSelection .code-line {
+	position: relative;
+}
+
+body.showEditorSelection .code-active-line:before,
+body.showEditorSelection .code-line:hover:before {
+	content: "";
+	display: block;
+	position: absolute;
+	top: 0;
+	left: -12px;
+	height: 100%;
+}
+
+body.showEditorSelection li.code-active-line:before,
+body.showEditorSelection li.code-line:hover:before {
+	left: -30px;
+}
+
+.vscode-light.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.15);
+}
+
+.vscode-light.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.40);
+}
+
+.vscode-light.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+.vscode-dark.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.4);
+}
+
+.vscode-dark.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.60);
+}
+
+.vscode-dark.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+.vscode-high-contrast.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 160, 0, 0.7);
+}
+
+.vscode-high-contrast.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 160, 0, 1);
+}
+
+.vscode-high-contrast.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+/* ==========================================================================
+   Images
+   ========================================================================== */
+
+img {
+	max-width: 100%;
+	max-height: 100%;
+}
+
+/* ==========================================================================
+   Links
+   ========================================================================== */
+
+a {
+	text-decoration: none;
+	color: #0066cc;
+}
+
+a:hover {
+	text-decoration: underline;
+}
+
+a:focus,
+input:focus,
+select:focus,
+textarea:focus {
+	outline: 1px solid -webkit-focus-ring-color;
+	outline-offset: -1px;
+}
+
+/* ==========================================================================
+   Horizontal Rules
+   ========================================================================== */
+
+hr {
+	border: 0;
+	height: 2px;
+	border-bottom: 2px solid;
+}
+
+/* ==========================================================================
+   Headings
+   ========================================================================== */
+
+h1 {
+	padding-bottom: 0.3em;
+	line-height: 1.2;
+	border-bottom-width: 1px;
+	border-bottom-style: solid;
+}
+
+h1, h2, h3 {
+	font-weight: normal;
+}
+
+h1 { font-size: 2em; margin: 0.67em 0; }
+h2 { font-size: 1.5em; margin: 0.83em 0; }
+h3 { font-size: 1.17em; margin: 1em 0; }
+h4 { font-size: 1em; margin: 1.33em 0; }
+h5 { font-size: 0.83em; margin: 1.67em 0; }
+h6 { font-size: 0.67em; margin: 2.33em 0; }
+
+/* ==========================================================================
+   Paragraphs
+   ========================================================================== */
+
+p {
+	margin: 1em 0;
+}
+
+/* ==========================================================================
+   Lists
+   ========================================================================== */
+
+ul, ol {
+	margin: 1em 0;
+	padding-left: 2em;
+}
+
+ul {
+	list-style-type: disc;
+}
+
+ol {
+	list-style-type: decimal;
+}
+
+li {
+	margin: 0.25em 0;
+}
+
+li > ul,
+li > ol {
+	margin: 0.25em 0;
+}
+
+/* Nested list styling */
+ul ul {
+	list-style-type: circle;
+}
+
+ul ul ul {
+	list-style-type: square;
+}
+
+/* Task lists (GitHub-style checkboxes) */
+ul.task-list {
+	list-style-type: none;
+	padding-left: 0;
+}
+
+ul.task-list li {
+	position: relative;
+	padding-left: 1.5em;
+}
+
+ul.task-list input[type="checkbox"] {
+	position: absolute;
+	left: 0;
+	top: 0.25em;
+}
+
+/* ==========================================================================
+   Tables
+   ========================================================================== */
+
+table {
+	border-collapse: collapse;
+	width: 100%;
+	margin: 1em 0;
+}
+
+table > thead > tr > th {
+	text-align: left;
+	border-bottom: 1px solid;
+	font-weight: bold;
+}
+
+table > thead > tr > th,
+table > thead > tr > td,
+table > tbody > tr > th,
+table > tbody > tr > td {
+	padding: 5px 10px;
+}
+
+table > tbody > tr + tr > td {
+	border-top: 1px solid;
+}
+
+/* ==========================================================================
+   Blockquotes
+   ========================================================================== */
+
+blockquote {
+	margin: 0 7px 0 5px;
+	padding: 0 16px 0 10px;
+	border-left-width: 5px;
+	border-left-style: solid;
+}
+
+/* ==========================================================================
+   Code
+   ========================================================================== */
+
+code {
+	font-family: Menlo, Monaco, Consolas, "Droid Sans Mono", "Courier New", monospace, "Droid Sans Fallback";
+	font-size: 1em;
+	line-height: 1.357em;
+}
+
+body.wordWrap pre {
+	white-space: pre-wrap;
+}
+
+pre:not(.hljs),
+pre.hljs code > div {
+	padding: 16px;
+	border-radius: 3px;
+	overflow: auto;
+}
+
+pre code {
+	color: var(--vscode-editor-foreground, inherit);
+	tab-size: 4;
+}
+
+/* ==========================================================================
+   VS Code Theme Variations
+   ========================================================================== */
+
+/* Light theme */
+.vscode-light pre {
+	background-color: rgba(220, 220, 220, 0.4);
+}
+
+.vscode-light table > thead > tr > th {
+	border-color: rgba(0, 0, 0, 0.69);
+}
+
+.vscode-light h1,
+.vscode-light hr,
+.vscode-light table > tbody > tr + tr > td {
+	border-color: rgba(0, 0, 0, 0.18);
+}
+
+.vscode-light blockquote {
+	border-color: rgba(0, 0, 0, 0.25);
+}
+
+/* Dark theme */
+.vscode-dark pre {
+	background-color: rgba(10, 10, 10, 0.4);
+}
+
+.vscode-dark table > thead > tr > th {
+	border-color: rgba(255, 255, 255, 0.69);
+}
+
+.vscode-dark h1,
+.vscode-dark hr,
+.vscode-dark table > tbody > tr + tr > td {
+	border-color: rgba(255, 255, 255, 0.18);
+}
+
+.vscode-dark blockquote {
+	border-color: rgba(255, 255, 255, 0.25);
+}
+
+/* High contrast theme */
+.vscode-high-contrast pre {
+	background-color: rgb(0, 0, 0);
+}
+
+.vscode-high-contrast h1 {
+	border-color: rgb(0, 0, 0);
+}
+
+.vscode-high-contrast blockquote {
+	border-color: rgb(255, 160, 0);
+}
+
+/* ==========================================================================
+   Default Theme (no VS Code class - print/standalone)
+   ========================================================================== */
+
+/* When not in VS Code context, use sensible defaults */
+body:not(.vscode-light):not(.vscode-dark):not(.vscode-high-contrast) pre {
+	background-color: #f5f5f5;
+}
+
+body:not(.vscode-light):not(.vscode-dark):not(.vscode-high-contrast) table > thead > tr > th {
+	border-color: #cccccc;
+}
+
+body:not(.vscode-light):not(.vscode-dark):not(.vscode-high-contrast) h1,
+body:not(.vscode-light):not(.vscode-dark):not(.vscode-high-contrast) hr,
+body:not(.vscode-light):not(.vscode-dark):not(.vscode-high-contrast) table > tbody > tr + tr > td {
+	border-color: #e0e0e0;
+}
+
+body:not(.vscode-light):not(.vscode-dark):not(.vscode-high-contrast) blockquote {
+	border-color: #007acc;
+	background-color: rgba(0, 122, 204, 0.05);
+}

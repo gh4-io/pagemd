@@ -29,27 +29,26 @@ Profiles are configuration manifests that define how PageMD processes Markdown f
 | `description` | string | No | Human-readable profile description. |
 | `extends` | string | No | Parent profile to inherit from. Single parent only. |
 
-### Layout Block
+### Resources Block
+
+The `resources` block consolidates all external file references:
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `layout.type` | string | Yes | Layout type. Use `"html"`. |
-| `layout.source` | string | Yes | Path to HTML template file. Supports `${projectRoot}` token. |
+| `resources.template` | string | Yes | Path to HTML template file. |
+| `resources.layout` | string | No | Path to layout CSS (Paged.js @page rules). |
+| `resources.css` | array | No | CSS file paths (loaded in order). |
+| `resources.fonts` | array | No | Font file paths. |
+| `resources.assets` | array | No | Image/asset paths. |
 
 **HTML Template Tokens:**
 - `{{content}}` - Rendered Markdown content
 - `{{title}}` - Document title
 - `{{meta.document_id}}` - Metadata fields (use `{{meta.field_name}}`)
 
-### Resources Block
+**Path Resolution:** Missing files hard-fail. Paths support `${projectRoot}` and `${manifestDir}` tokens.
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `resources.css` | array | CSS file paths (loaded in order). |
-| `resources.fonts` | array | Font file paths. |
-| `resources.assets` | array | Image/asset paths. |
-
-**Path Resolution:** Missing files hard-fail. Paths support `${projectRoot}` token.
+**Legacy Support:** The old `layout` object structure (`layout.type`, `layout.source`, `layout.css`) is deprecated but still supported via internal fallback. New profiles should use `resources.template` and `resources.layout` instead.
 
 ### Outputs Block
 
@@ -114,9 +113,9 @@ Profiles support single-parent inheritance via the `extends` field:
 **Parent:**
 ```json
 {
-  "layout": {
-    "page": { "width": "8.5in", "height": "11in" },
-    "margins": { "top": "1in", "bottom": "1in" }
+  "metadata": {
+    "defaults": { "status": "Draft", "revision": 0 },
+    "date_format": "MM/DD/YYYY"
   }
 }
 ```
@@ -124,8 +123,8 @@ Profiles support single-parent inheritance via the `extends` field:
 **Child:**
 ```json
 {
-  "layout": {
-    "margins": { "top": "2in" }
+  "metadata": {
+    "defaults": { "status": "Review" }
   }
 }
 ```
@@ -133,9 +132,9 @@ Profiles support single-parent inheritance via the `extends` field:
 **Result:**
 ```json
 {
-  "layout": {
-    "page": { "width": "8.5in", "height": "11in" },
-    "margins": { "top": "2in", "bottom": "1in" }
+  "metadata": {
+    "defaults": { "status": "Review", "revision": 0 },
+    "date_format": "MM/DD/YYYY"
   }
 }
 ```
@@ -335,23 +334,22 @@ Specify expected date format for validation and parsing:
 
 Default profile for US Letter documents (8.5" x 11").
 
-**File:** `project/templates/profiles/standard_letter.json`
+**File:** `project/profiles/standard_letter.json`
 
 ```json
 {
   "id": "standard_letter",
   "description": "Standard US Letter layout for SOPs and documentation",
 
-  "layout": {
-    "type": "html",
-    "source": "${projectRoot}/templates/layouts/standard_letter.html"
-  },
-
   "resources": {
+    "template": "${projectRoot}/templates/standard_letter.html",
+    "layout": "${projectRoot}/layouts/letter.css",
     "css": [
       "${projectRoot}/styles/primary.css",
-      "${projectRoot}/templates/layouts/standard_letter.css"
-    ]
+      "${projectRoot}/templates/standard_letter.css"
+    ],
+    "fonts": [],
+    "assets": []
   },
 
   "pagedjs": {

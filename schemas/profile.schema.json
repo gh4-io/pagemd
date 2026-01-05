@@ -22,7 +22,7 @@
     },
     "layout": {
       "type": "object",
-      "description": "Layout configuration",
+      "description": "DEPRECATED: Use resources.template and resources.layout instead. Legacy layout configuration.",
       "required": ["type", "source"],
       "properties": {
         "type": {
@@ -41,6 +41,14 @@
       "type": "object",
       "description": "External resources required by the profile",
       "properties": {
+        "template": {
+          "type": "string",
+          "description": "Path to HTML template file"
+        },
+        "layout": {
+          "type": "string",
+          "description": "Path to layout CSS file (@page rules)"
+        },
         "css": {
           "type": "array",
           "description": "CSS file paths (relative to profile location)",

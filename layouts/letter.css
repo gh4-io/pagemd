@@ -1,0 +1,16 @@
+/**
+ * Letter Page Layout (8.5" x 11") - Paged.js Structure
+ *
+ * This file contains ONLY paged-media structural CSS:
+ * - @page rules (size, margins)
+ * - Named pages
+ * - Running headers/footers
+ * - Page break controls
+ *
+ * Visual styling (colors, fonts) belongs in template CSS.
+ */
+
+@page {
+  size: Letter;
+  margin: 1in;
+}

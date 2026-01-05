@@ -33,7 +33,13 @@ export const FIELD_ALIASES = {
 
   documentStatus: 'status',
   document_status: 'status',
-  'document-status': 'status'
+  'document-status': 'status',
+
+  // Styles aliases (loose interpretation per PROJECT_BRIEF)
+  style: 'styles',
+  css: 'styles',
+  stylesheet: 'styles',
+  stylesheets: 'styles'
 };
 
 // Default values (loaded from metadata.defaults.json)
@@ -47,6 +53,7 @@ const DEFAULT_VALUES = {
   approver: '',
   category: '',
   tags: [],
+  styles: [],
   pipeline_profile: 'standard_letter'
 };
 
@@ -61,6 +68,7 @@ const FIELD_DEFINITIONS = {
   approver: { type: 'string', trim: true },
   category: { type: 'string', trim: true },
   tags: { type: 'array', items: 'string' },
+  styles: { type: 'array', items: 'string' },
   pipeline_profile: { type: 'string', trim: true }
 };
 

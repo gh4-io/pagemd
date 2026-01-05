@@ -53,13 +53,13 @@ describe('template.js', () => {
       expect(readFile).toHaveBeenCalledWith('/resolved/templates/test.html', 'utf-8');
     });
 
-    it('should throw error when profile missing layout.source', async () => {
+    it('should throw error when profile missing template path', async () => {
       const profile = { id: 'test' };
       const pathContext = {};
 
       await expect(loadTemplate(profile, pathContext))
         .rejects
-        .toThrow('Profile missing layout.source path');
+        .toThrow('Profile missing resources.template or layout.source path');
     });
 
     it('should throw error when template file not found', async () => {
