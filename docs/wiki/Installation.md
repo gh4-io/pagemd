@@ -65,7 +65,7 @@ npm install
 
 This installs:
 - Core PageMD packages (`@pagemd/parser`, `@pagemd/renderer-web`, etc.)
-- Puppeteer 23.11.1 (includes Chromium fallback)
+- Puppeteer 24.15.0 (includes Chromium fallback)
 - Paged.js CLI tools
 - Development dependencies (Vitest, etc.)
 

@@ -118,6 +118,25 @@ export function injectPagedJs(html, options = {}) {
   // Build script content
   const scriptParts = [];
 
+  // IMPORTANT: Config MUST come before polyfill - Paged.js reads PagedConfig on load
+  if (autoInit) {
+    const configJson = JSON.stringify(pagedConfig, null, 2);
+
+    scriptParts.push(`<script>
+  // Completion flag for Puppeteer detection
+  window.__pagedjs_complete = false;
+
+  // PagedConfig for Paged.js initialization (must be set before polyfill loads)
+  window.PagedConfig = ${configJson};
+
+  // Set completion flag when Paged.js finishes
+  window.PagedConfig.after = (flow) => {
+    console.log('Paged.js rendering complete:', flow.total, 'pages');
+    window.__pagedjs_complete = true;
+  };
+</script>`);
+  }
+
   // For browser mode, inline the polyfill content directly
   // This ensures it works in Puppeteer headless context without external dependencies
   if (mode === 'browser') {
@@ -126,23 +145,6 @@ export function injectPagedJs(html, options = {}) {
     logger.trace('pagedjs.inject', 'polyfill-inlined', 'Inlined Paged.js polyfill', {
       size: polyfillContent.length
     });
-  }
-
-  // Add configuration and initialization
-  if (autoInit) {
-    const configJson = JSON.stringify(pagedConfig, null, 2);
-
-    scriptParts.push(`<script>
-  // PagedConfig for Paged.js initialization
-  window.PagedConfig = ${configJson};
-
-  // Optional: Add callback placeholder
-  if (window.PagedConfig.after === undefined) {
-    window.PagedConfig.after = (flow) => {
-      console.log('Paged.js rendering complete:', flow.total, 'pages');
-    };
-  }
-</script>`);
   }
 
   const scriptBlock = scriptParts.join('\n');

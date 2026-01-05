@@ -262,6 +262,9 @@ Control when each format is generated:
 | Variable | Type | Values | Default | Description |
 |----------|------|--------|---------|-------------|
 | `PAGEMD_LOG_LEVEL` | string | TRACE, DEBUG, INFO, WARN, ERROR, FATAL, OFF | INFO | Default logging verbosity |
+| `PAGEMD_KEEP_CHROME` | string | `1`, `true` | unset | Keep browser alive between renders |
+
+### PAGEMD_LOG_LEVEL
 
 **Precedence:** CLI `--log-level` flag > `PAGEMD_LOG_LEVEL` > default (INFO)
 
@@ -274,6 +277,37 @@ pagemd build document.md
 # Set for single command
 PAGEMD_LOG_LEVEL=TRACE pagemd build document.md
 ```
+
+### PAGEMD_KEEP_CHROME
+
+Keep Chrome/Chromium browser instance alive between PDF renders within the same process. Saves ~2-3s per render after the first.
+
+**When to use:**
+- Batch builds (multiple files in one command)
+- Programmatic API with repeated `renderPdf()` calls
+- Watch mode / dev server scenarios
+
+**Usage:**
+```bash
+# Linux/macOS
+export PAGEMD_KEEP_CHROME=1
+pagemd build *.md -o pdf
+
+# Windows (cmd)
+set PAGEMD_KEEP_CHROME=1
+pagemd build *.md -o pdf
+
+# Windows (PowerShell)
+$env:PAGEMD_KEEP_CHROME="1"
+pagemd build *.md -o pdf
+```
+
+**Behavior:**
+- First render: Launches Chrome (~2-3s cold start)
+- Subsequent renders: Reuses existing browser (~0s overhead)
+- Process exit: Browser cleaned up automatically via SIGINT/SIGTERM handlers
+
+**Note:** Browser persistence works within a single Node.js process. Separate CLI invocations start fresh processes and cannot share browser instances.
 
 ---
 

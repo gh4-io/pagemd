@@ -17,9 +17,9 @@ import { dirname, resolve } from 'path';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// Example markdown file path
-const EXAMPLE_MD_PATH = '/mnt/c/Users/Jason/Documents/Git/PageMD/examples/md/SOP-200_Create_Workackage_Sequencing_Type.md';
-const PROJECT_ROOT = '/mnt/c/Users/Jason/Documents/Git/PageMD/project';
+// Example markdown file path (relative to test file location)
+const EXAMPLE_MD_PATH = resolve(__dirname, '../../../examples/md/SOP-200_Create_Workackage_Sequencing_Type.md');
+const PROJECT_ROOT = resolve(__dirname, '../..');
 
 describe('PageMD Pipeline Integration', () => {
   let exampleMarkdown;

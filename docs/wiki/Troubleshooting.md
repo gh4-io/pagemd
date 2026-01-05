@@ -10,6 +10,7 @@ Common issues, error messages, and solutions for PageMD.
 - [Profile Not Found](#profile-not-found)
 - [Path Resolution Errors](#path-resolution-errors)
 - [PDF Rendering Issues](#pdf-rendering-issues)
+  - [Browser Persistence](#browser-persistence)
 - [Debug Mode](#debug-mode)
 - [Log Levels](#log-levels)
 - [Common Error Messages](#common-error-messages)
@@ -310,7 +311,7 @@ extends: profile_a  # Loop!
 
 ### PDF Generation Timeout
 
-**Symptom:** Error: `PDF generation timed out after 30000ms`
+**Symptom:** Warning: `Paged.js rendering may not have completed`
 
 **Causes:**
 - Large document (many pages)
@@ -319,10 +320,15 @@ extends: profile_a  # Loop!
 
 **Solutions:**
 
-1. **Increase timeout (future feature):**
+1. **Enable browser persistence (batch builds):**
    ```bash
-   # Not yet implemented
-   pagemd build document.md --timeout 60000
+   # Linux/macOS
+   export PAGEMD_KEEP_CHROME=1
+   pagemd build *.md -o pdf
+
+   # Windows (PowerShell)
+   $env:PAGEMD_KEEP_CHROME="1"
+   pagemd build *.md -o pdf
    ```
 
 2. **Simplify document:**
@@ -336,6 +342,38 @@ extends: profile_a  # Loop!
    pagemd build document.md --debug
    # Monitor CPU/memory usage
    ```
+
+---
+
+### Browser Persistence
+
+**Purpose:** Keep Chrome alive between renders for batch operations.
+
+**Environment Variable:** `PAGEMD_KEEP_CHROME`
+
+**Usage:**
+```bash
+# Linux/macOS
+export PAGEMD_KEEP_CHROME=1
+
+# Windows (cmd)
+set PAGEMD_KEEP_CHROME=1
+
+# Windows (PowerShell)
+$env:PAGEMD_KEEP_CHROME="1"
+```
+
+**When to Use:**
+- Building multiple files in sequence
+- Programmatic API with repeated renders
+- Watch mode / dev server
+
+**Behavior:**
+- First render: Launch Chrome (~2-3s)
+- Subsequent renders: Reuse existing browser (~0s overhead)
+- Process exit: Browser cleaned up automatically
+
+**Note:** Persistence works within a single Node.js process. Separate CLI invocations start fresh processes.
 
 ---
 

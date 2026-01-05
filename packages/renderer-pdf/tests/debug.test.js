@@ -48,8 +48,9 @@ describe('createDebugDir', () => {
     const basePath = '/output/document.pdf';
     const result = await createDebugDir(basePath);
 
-    expect(result).toBe('/output/debug');
-    expect(fs.mkdir).toHaveBeenCalledWith('/output/debug', { recursive: true });
+    const expectedDir = path.join(path.dirname(basePath), 'debug');
+    expect(result).toBe(expectedDir);
+    expect(fs.mkdir).toHaveBeenCalledWith(expectedDir, { recursive: true });
   });
 
   it('should handle nested output paths', async () => {
@@ -58,7 +59,8 @@ describe('createDebugDir', () => {
     const basePath = '/output/subdir/nested/document.pdf';
     const result = await createDebugDir(basePath);
 
-    expect(result).toBe('/output/subdir/nested/debug');
+    const expectedDir = path.join(path.dirname(basePath), 'debug');
+    expect(result).toBe(expectedDir);
   });
 
   it('should throw error when mkdir fails', async () => {
@@ -164,9 +166,11 @@ describe('saveDebugHtml', () => {
 
     const result = await saveDebugHtml(html, outputPath);
 
-    expect(result).toBe('/output/debug/document.paged.html');
+    const expectedDir = path.join(path.dirname(outputPath), 'debug');
+    const expectedPath = path.join(expectedDir, 'document.paged.html');
+    expect(result).toBe(expectedPath);
     expect(fs.writeFile).toHaveBeenCalledWith(
-      '/output/debug/document.paged.html',
+      expectedPath,
       html,
       'utf-8'
     );
@@ -181,7 +185,8 @@ describe('saveDebugHtml', () => {
 
     const result = await saveDebugHtml(html, outputPath, { suffix: '.processed' });
 
-    expect(result).toBe('/output/debug/document.processed.html');
+    const expectedDir = path.join(path.dirname(outputPath), 'debug');
+    expect(result).toBe(path.join(expectedDir, 'document.processed.html'));
   });
 
   it('should use provided debugDir instead of creating new one', async () => {
@@ -189,10 +194,11 @@ describe('saveDebugHtml', () => {
 
     const html = '<html><body>Test</body></html>';
     const outputPath = '/output/document.pdf';
+    const customDebugDir = '/custom/debug';
 
-    const result = await saveDebugHtml(html, outputPath, { debugDir: '/custom/debug' });
+    const result = await saveDebugHtml(html, outputPath, { debugDir: customDebugDir });
 
-    expect(result).toBe('/custom/debug/document.paged.html');
+    expect(result).toBe(path.join(customDebugDir, 'document.paged.html'));
     expect(fs.mkdir).not.toHaveBeenCalled();
   });
 
@@ -210,9 +216,11 @@ describe('saveDebugHtml', () => {
     fs.mkdir.mockResolvedValue(undefined);
     fs.writeFile.mockResolvedValue(undefined);
 
-    const result = await saveDebugHtml('', '/output/document.pdf');
+    const outputPath = '/output/document.pdf';
+    const result = await saveDebugHtml('', outputPath);
 
-    expect(result).toBe('/output/debug/document.paged.html');
+    const expectedDir = path.join(path.dirname(outputPath), 'debug');
+    expect(result).toBe(path.join(expectedDir, 'document.paged.html'));
     expect(fs.writeFile).toHaveBeenCalledWith(
       expect.any(String),
       '',
@@ -229,7 +237,8 @@ describe('saveDebugHtml', () => {
 
     const result = await saveDebugHtml(html, outputPath);
 
-    expect(result).toBe('/output/debug/my-custom-name.paged.html');
+    const expectedDir = path.join(path.dirname(outputPath), 'debug');
+    expect(result).toBe(path.join(expectedDir, 'my-custom-name.paged.html'));
   });
 
   it('should handle output paths without extension', async () => {
@@ -261,9 +270,11 @@ describe('saveDebugScreenshot', () => {
     const outputPath = '/output/document.pdf';
     const result = await saveDebugScreenshot(mockPage, outputPath);
 
-    expect(result).toBe('/output/debug/document.screenshot.png');
+    const expectedDir = path.join(path.dirname(outputPath), 'debug');
+    const expectedPath = path.join(expectedDir, 'document.screenshot.png');
+    expect(result).toBe(expectedPath);
     expect(mockPage.screenshot).toHaveBeenCalledWith({
-      path: '/output/debug/document.screenshot.png',
+      path: expectedPath,
       type: 'png',
       fullPage: true
     });
@@ -278,9 +289,11 @@ describe('saveDebugScreenshot', () => {
       quality: 90
     });
 
-    expect(result).toBe('/output/debug/document.screenshot.jpeg');
+    const expectedDir = path.join(path.dirname(outputPath), 'debug');
+    const expectedPath = path.join(expectedDir, 'document.screenshot.jpeg');
+    expect(result).toBe(expectedPath);
     expect(mockPage.screenshot).toHaveBeenCalledWith({
-      path: '/output/debug/document.screenshot.jpeg',
+      path: expectedPath,
       type: 'jpeg',
       fullPage: true,
       quality: 90
@@ -302,11 +315,12 @@ describe('saveDebugScreenshot', () => {
 
   it('should use custom debugDir when provided', async () => {
     const outputPath = '/output/document.pdf';
+    const customDebugDir = '/custom/debug';
     const result = await saveDebugScreenshot(mockPage, outputPath, {
-      debugDir: '/custom/debug'
+      debugDir: customDebugDir
     });
 
-    expect(result).toBe('/custom/debug/document.screenshot.png');
+    expect(result).toBe(path.join(customDebugDir, 'document.screenshot.png'));
     expect(fs.mkdir).not.toHaveBeenCalled();
   });
 
@@ -336,7 +350,8 @@ describe('saveDebugScreenshot', () => {
     const outputPath = '/output/my-report.pdf';
     const result = await saveDebugScreenshot(mockPage, outputPath);
 
-    expect(result).toBe('/output/debug/my-report.screenshot.png');
+    const expectedDir = path.join(path.dirname(outputPath), 'debug');
+    expect(result).toBe(path.join(expectedDir, 'my-report.screenshot.png'));
   });
 
   it('should support jpeg format with custom quality', async () => {
@@ -373,10 +388,11 @@ describe('cleanupDebugArtifacts', () => {
     const basePath = '/output/document.pdf';
     await cleanupDebugArtifacts(basePath);
 
+    const debugDir = path.join(path.dirname(basePath), 'debug');
     expect(fs.unlink).toHaveBeenCalledTimes(2);
-    expect(fs.unlink).toHaveBeenCalledWith('/output/debug/document.paged.html');
-    expect(fs.unlink).toHaveBeenCalledWith('/output/debug/document.screenshot.png');
-    expect(fs.unlink).not.toHaveBeenCalledWith('/output/debug/other.paged.html');
+    expect(fs.unlink).toHaveBeenCalledWith(path.join(debugDir, 'document.paged.html'));
+    expect(fs.unlink).toHaveBeenCalledWith(path.join(debugDir, 'document.screenshot.png'));
+    expect(fs.unlink).not.toHaveBeenCalledWith(path.join(debugDir, 'other.paged.html'));
   });
 
   it('should remove entire debug directory when removeDir is true', async () => {
@@ -386,7 +402,8 @@ describe('cleanupDebugArtifacts', () => {
     const basePath = '/output/document.pdf';
     await cleanupDebugArtifacts(basePath, { removeDir: true });
 
-    expect(fs.rm).toHaveBeenCalledWith('/output/debug', {
+    const debugDir = path.join(path.dirname(basePath), 'debug');
+    expect(fs.rm).toHaveBeenCalledWith(debugDir, {
       recursive: true,
       force: true
     });
@@ -451,8 +468,9 @@ describe('cleanupDebugArtifacts', () => {
     const basePath = '/output/document.pdf';
     await cleanupDebugArtifacts(basePath);
 
+    const debugDir = path.join(path.dirname(basePath), 'debug');
     // Should only remove exact matches
-    expect(fs.unlink).toHaveBeenCalledWith('/output/debug/document.paged.html');
+    expect(fs.unlink).toHaveBeenCalledWith(path.join(debugDir, 'document.paged.html'));
     expect(fs.unlink).toHaveBeenCalledTimes(1);
   });
 
@@ -478,8 +496,9 @@ describe('cleanupDebugArtifacts', () => {
     const basePath = '/output/subdir/document.pdf';
     await cleanupDebugArtifacts(basePath);
 
-    expect(fs.access).toHaveBeenCalledWith('/output/subdir/debug');
-    expect(fs.readdir).toHaveBeenCalledWith('/output/subdir/debug');
+    const debugDir = path.join(path.dirname(basePath), 'debug');
+    expect(fs.access).toHaveBeenCalledWith(debugDir);
+    expect(fs.readdir).toHaveBeenCalledWith(debugDir);
   });
 
   it('should handle Windows-style paths', async () => {

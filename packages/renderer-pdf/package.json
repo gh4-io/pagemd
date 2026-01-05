@@ -11,6 +11,6 @@
     "@pagemd/core": "*",
     "@pagemd/renderer-web": "*",
     "pagedjs": "^0.4.3",
-    "puppeteer": "^23.11.1"
+    "puppeteer": "^24.15.0"
   }
 }

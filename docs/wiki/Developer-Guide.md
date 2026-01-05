@@ -63,6 +63,13 @@ npm install
 - System Chrome preferred; falls back to bundled Chromium
 - No additional environment variables required for basic dev
 
+**Performance tip:** Set `PAGEMD_KEEP_CHROME=1` to keep browser alive between PDF renders:
+```bash
+export PAGEMD_KEEP_CHROME=1  # Linux/macOS
+$env:PAGEMD_KEEP_CHROME="1"  # PowerShell
+```
+Saves ~2-3s per render after the first (browser reuse within same process).
+
 ## Testing
 
 PageMD uses Vitest for unit and integration testing.
@@ -100,17 +107,7 @@ npm run test:coverage
 
 ## Build Commands
 
-**Placeholder build:**
-
-```bash
-npm run build
-```
-
-Or via PowerShell:
-
-```bash
-pwsh scripts/build.ps1
-```
+PageMD is a pure JS monorepo with no build step. Packages use source directly (`"main": "src/index.js"`).
 
 **Smoke test:**
 
@@ -120,8 +117,8 @@ pwsh scripts/smoke_test.ps1
 
 **Before committing:**
 - Run `npm test` to verify tests pass
-- Run `pwsh scripts/build.ps1` and `pwsh scripts/smoke_test.ps1` when touching pipeline/CLI/renderer
-- Remove dev artifacts: `dist/`, `spike-output/`, experiments
+- Run `pwsh scripts/smoke_test.ps1` when touching pipeline/CLI/renderer
+- Remove dev artifacts: `spike-output/`, experiments
 
 ## Branch Naming
 
@@ -173,7 +170,7 @@ Use conventional commit prefixes:
 git commit -m "feat: add YAML profile parsing"
 git commit -m "fix: resolve template path lookup order"
 git commit -m "docs: update wiki Developer-Guide"
-git commit -m "chore: bump puppeteer to 23.11.1"
+git commit -m "chore: bump puppeteer to 24.15.0"
 ```
 
 ## Contribution Workflow
@@ -232,7 +229,7 @@ gh pr create
 **PR description must include:**
 - **What changed** - concise overview
 - **Why** - context/motivation
-- **How to test** - exact commands (e.g., `npm test`, `npm run build`)
+- **How to test** - exact commands (e.g., `npm test`, `pwsh scripts/smoke_test.ps1`)
 
 **Example PR template:**
 

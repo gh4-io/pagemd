@@ -22,7 +22,8 @@ describe('getPagedJsScript', () => {
   it('should return absolute path to paged.polyfill.js', () => {
     const scriptPath = getPagedJsScript();
     expect(scriptPath).toContain('paged.polyfill.js');
-    expect(scriptPath).toContain('node_modules/pagedjs/dist');
+    // Use regex to match either forward or back slashes (cross-platform)
+    expect(scriptPath).toMatch(/node_modules[/\\]pagedjs[/\\]dist/);
   });
 
   it('should return path that exists on filesystem', () => {

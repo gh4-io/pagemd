@@ -38,7 +38,8 @@ export async function renderPdf(markdownPath, options = {}) {
     debug = false,
     pagedjs = 'browser',
     headless = true,
-    pdfOptions = {}
+    pdfOptions = {},
+    projectRoot
   } = options;
 
   logger.info('render.start', 'started', `Rendering PDF from ${markdownPath}`, {
@@ -55,7 +56,8 @@ export async function renderPdf(markdownPath, options = {}) {
     logger.debug('render.html', 'started', 'Rendering HTML from markdown');
     const htmlResult = await renderDocument(markdownPath, {
       profile,
-      format: 'html'
+      format: 'html',
+      projectRoot
     });
 
     if (!htmlResult || !htmlResult.html) {
@@ -134,27 +136,31 @@ export async function renderPdf(markdownPath, options = {}) {
     logger.debug('render.pagedjs', 'started', 'Waiting for Paged.js to complete');
 
     try {
-      // Wait for Paged.js to add the 'pagedjs_pages' class to body
-      // This indicates pagination is complete
+      // Wait for Paged.js completion using the after callback
+      // This is more reliable than polling DOM classes
       await page.waitForFunction(
-        () => {
-          return (
-            document.body.classList.contains('pagedjs_pages') ||
-            document.documentElement.classList.contains('pagedjs_pages')
-          );
-        },
-        { timeout: 60000 }
+        () => window.__pagedjs_complete === true,
+        { timeout: 30000 }
       );
 
-      // Additional small delay to ensure all CSS is applied
-      await page.waitForTimeout(500);
+      // Small delay for CSS paint (using setTimeout - waitForTimeout deprecated in Puppeteer 24)
+      await new Promise(resolve => setTimeout(resolve, 200));
 
       logger.debug('render.pagedjs', 'success', 'Paged.js rendering complete');
     } catch (error) {
+      // Log what we actually found for debugging
+      const domState = await page.evaluate(() => ({
+        bodyClasses: document.body.className,
+        pagedPagesCount: document.querySelectorAll('.pagedjs_page').length,
+        pagedContainer: document.querySelector('.pagedjs_pages') !== null,
+        completionFlag: window.__pagedjs_complete
+      })).catch(() => ({}));
+
       logger.warn('render.pagedjs', 'timeout', 'Paged.js rendering may not have completed', {
-        error: error.message
+        error: error.message,
+        domState
       });
-      // Continue anyway - some content may still render
+      // Continue anyway - content may still render
     }
 
     // Step 9: Save debug artifacts if enabled

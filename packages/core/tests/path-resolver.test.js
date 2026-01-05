@@ -4,7 +4,7 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { writeFileSync, mkdirSync, rmSync, existsSync } from 'fs';
-import { join, resolve } from 'path';
+import { join, resolve, normalize } from 'path';
 import { tmpdir } from 'os';
 import {
   createPathContext,
@@ -311,7 +311,8 @@ describe('path-resolver', () => {
     it('resolves absolute path as-is', () => {
       const absolutePath = '/absolute/path/to/file.txt';
       const resolved = resolvePath(absolutePath, context);
-      expect(resolved).toBe(absolutePath);
+      // path.normalize() is applied for consistent separators on all platforms
+      expect(resolved).toBe(normalize(absolutePath));
     });
 
     it('resolves relative path against projectRoot', () => {

@@ -202,13 +202,15 @@ export function resolvePath(pathString, context) {
   // First expand tokens
   const expanded = expandTokens(pathString, context);
 
-  // If already absolute, use as-is
+  // If already absolute, normalize and return
+  // (normalization handles mixed separators from token expansion)
   if (path.isAbsolute(expanded)) {
+    const normalized = path.normalize(expanded);
     logger.debug('path-resolver', 'success', 'Resolved absolute path', {
       original: pathString,
-      resolved: expanded
+      resolved: normalized
     });
-    return expanded;
+    return normalized;
   }
 
   // Relative path - resolve against projectRoot (or first available context dir)

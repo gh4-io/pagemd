@@ -31,14 +31,23 @@ describe('profile-loader', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
   });
 
-  afterEach(() => {
-    // Clean up test directory
-    if (existsSync(testDir)) {
-      rmSync(testDir, { recursive: true, force: true });
-    }
-
-    // Restore console
+  afterEach(async () => {
+    // Restore console first
     vi.restoreAllMocks();
+
+    // Clean up test directory with retry for Windows file locking
+    if (existsSync(testDir)) {
+      // Small delay to allow file handles to release on Windows
+      await new Promise(resolve => setTimeout(resolve, 50));
+      try {
+        rmSync(testDir, { recursive: true, force: true });
+      } catch (err) {
+        // Ignore EPERM errors on Windows - temp directory will be cleaned up eventually
+        if (err.code !== 'EPERM' && err.code !== 'EBUSY') {
+          console.warn('Failed to clean up test directory:', err.message);
+        }
+      }
+    }
   });
 
   describe('getDefaultProfile', () => {

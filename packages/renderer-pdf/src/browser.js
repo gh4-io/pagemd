@@ -12,6 +12,48 @@ import { createLogger } from '@pagemd/core';
 
 const logger = createLogger('renderer.pdf');
 
+// Cached browser instance for PAGEMD_KEEP_CHROME mode
+let cachedBrowser = null;
+let browserPersistenceEnabled = null;
+
+/**
+ * Check if browser persistence is enabled via env var
+ * Works on Linux/Windows/macOS
+ * @returns {boolean}
+ */
+function isBrowserPersistenceEnabled() {
+  if (browserPersistenceEnabled === null) {
+    const envVal = process.env.PAGEMD_KEEP_CHROME;
+    browserPersistenceEnabled = envVal === '1' || envVal === 'true';
+    if (browserPersistenceEnabled) {
+      logger.info('browser_persist', 'enabled', 'Browser persistence enabled via PAGEMD_KEEP_CHROME');
+    }
+  }
+  return browserPersistenceEnabled;
+}
+
+// Cleanup on process exit
+process.on('exit', () => {
+  if (cachedBrowser) {
+    try {
+      cachedBrowser.close();
+    } catch (e) {
+      // Ignore - process exiting anyway
+    }
+  }
+});
+
+// Handle SIGINT/SIGTERM for graceful shutdown
+['SIGINT', 'SIGTERM'].forEach(signal => {
+  process.on(signal, async () => {
+    if (cachedBrowser) {
+      await cachedBrowser.close().catch(() => {});
+      cachedBrowser = null;
+    }
+    process.exit(0);
+  });
+});
+
 /**
  * Detect system Chrome installation across platforms
  * @returns {string|null} Path to Chrome executable or null if not found
@@ -90,6 +132,19 @@ export async function launchBrowser(options = {}) {
     args = []
   } = options;
 
+  // Return cached browser if persistence enabled and browser is still connected
+  if (isBrowserPersistenceEnabled() && cachedBrowser) {
+    try {
+      if (cachedBrowser.connected) {
+        logger.debug('browser_launch', 'reused', 'Reusing cached browser instance');
+        return cachedBrowser;
+      }
+    } catch (e) {
+      // Browser disconnected, will launch new one
+      cachedBrowser = null;
+    }
+  }
+
   // Build base launch config
   const baseArgs = [
     '--no-sandbox',
@@ -158,6 +213,12 @@ export async function launchBrowser(options = {}) {
   const version = await browser.version();
   logger.info('browser_ready', 'ok', `${browserType} ${version} ready (headless: ${baseConfig.headless})`);
 
+  // Cache browser if persistence enabled
+  if (isBrowserPersistenceEnabled()) {
+    cachedBrowser = browser;
+    logger.debug('browser_cache', 'stored', 'Browser cached for reuse');
+  }
+
   return browser;
 }
 
@@ -169,6 +230,12 @@ export async function launchBrowser(options = {}) {
 export async function closeBrowser(browser) {
   if (!browser) {
     logger.debug('browser_close', 'skip', 'No browser instance to close');
+    return;
+  }
+
+  // Skip closing if persistence enabled - browser will be reused
+  if (isBrowserPersistenceEnabled() && browser === cachedBrowser) {
+    logger.debug('browser_close', 'skip', 'Keeping browser alive (PAGEMD_KEEP_CHROME)');
     return;
   }
 
