@@ -224,9 +224,11 @@ describe('injectPagedJs', () => {
     expect(result.indexOf('</body>')).toBeGreaterThan(result.indexOf('PagedConfig'));
   });
 
-  it('should inject polyfill script reference in browser mode', () => {
+  it('should inline polyfill content in browser mode', () => {
     const result = injectPagedJs(simpleHtml, { mode: 'browser' });
-    expect(result).toContain('paged.polyfill.js');
+    // Polyfill is inlined, check for Paged.js signature
+    expect(result).toContain('Paged');
+    expect(result.length).toBeGreaterThan(simpleHtml.length + 10000);
   });
 
   it('should not inject polyfill script reference in cli mode', () => {
@@ -236,7 +238,9 @@ describe('injectPagedJs', () => {
 
   it('should default to browser mode', () => {
     const result = injectPagedJs(simpleHtml);
-    expect(result).toContain('paged.polyfill.js');
+    // Default mode is browser, which inlines polyfill
+    expect(result).toContain('Paged');
+    expect(result.length).toBeGreaterThan(simpleHtml.length + 10000);
   });
 
   it('should include PagedConfig when autoInit is true', () => {
@@ -249,7 +253,7 @@ describe('injectPagedJs', () => {
   });
 
   it('should not include PagedConfig when autoInit is false', () => {
-    const result = injectPagedJs(simpleHtml, { autoInit: false });
+    const result = injectPagedJs(simpleHtml, { autoInit: false, mode: 'cli' });
     expect(result).not.toContain('window.PagedConfig');
   });
 
@@ -335,11 +339,14 @@ describe('injectPagedJs', () => {
   it('should handle multiple script injections in browser mode', () => {
     const result = injectPagedJs(simpleHtml, { mode: 'browser', autoInit: true });
 
-    // Should have polyfill script tag
-    expect(result.match(/<script[^>]*src=/g)).toHaveLength(1);
+    // Should have inlined polyfill script tag (contains Paged.js code)
+    expect(result).toContain('Paged');
 
-    // Should have config script tag
-    expect(result.match(/<script>/g)).toHaveLength(1);
+    // Should have config script tag with PagedConfig
+    expect(result).toContain('window.PagedConfig');
+
+    // Should have at least 2 script blocks (polyfill + config)
+    expect(result.match(/<script>/g).length).toBeGreaterThanOrEqual(2);
   });
 
   it('should inject only config script when mode is cli', () => {
@@ -365,9 +372,13 @@ describe('injectPagedJs', () => {
     expect(result.endsWith('</script>')).toBe(true);
   });
 
-  it('should reference correct polyfill path', () => {
+  it('should inline Paged.js polyfill content', () => {
     const result = injectPagedJs(simpleHtml, { mode: 'browser' });
-    expect(result).toContain('./node_modules/pagedjs/dist/paged.polyfill.js');
+    // Polyfill is now inlined, not referenced via path
+    expect(result).toContain('<script>');
+    // Check for Paged.js signature (it defines Paged namespace)
+    expect(result).toContain('Paged');
+    expect(result.length).toBeGreaterThan(simpleHtml.length + 10000); // Polyfill adds ~180KB
   });
 
   it('should preserve whitespace and formatting around injection point', () => {

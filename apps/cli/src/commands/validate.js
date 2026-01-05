@@ -17,7 +17,8 @@ import {
   loadAndMergeProfile,
   getDefaultProfile,
   createPathContext,
-  resolvePath
+  resolvePath,
+  findProjectRoot
 } from '@pagemd/core';
 import { parseFile } from '@pagemd/parser';
 
@@ -127,7 +128,7 @@ async function validateMarkdownFile(filePath, options = {}) {
 
     // Create path context for resource resolution
     const markdownDir = dirname(filePath);
-    const projectRoot = process.cwd(); // TODO: Use findProjectRoot() for more accurate detection
+    const projectRoot = findProjectRoot(markdownDir) || process.cwd();
     const pathContext = createPathContext({
       markdownDir,
       projectRoot,

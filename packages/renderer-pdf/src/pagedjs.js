@@ -8,9 +8,13 @@
 
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import { readFileSync } from 'node:fs';
 import { createLogger } from '@pagemd/core';
 
 const logger = createLogger('renderer.pdf');
+
+// Cache for Paged.js polyfill content (loaded once per process)
+let pagedPolyfillCache = null;
 
 /**
  * Get absolute path to bundled Paged.js polyfill script
@@ -27,6 +31,23 @@ export function getPagedJsScript() {
   logger.trace('pagedjs.getScript', 'resolved', 'Located Paged.js polyfill', { scriptPath });
 
   return scriptPath;
+}
+
+/**
+ * Get Paged.js polyfill content (cached after first load)
+ * Reads the polyfill file and caches it for subsequent calls
+ * @returns {string} Paged.js polyfill JavaScript content
+ */
+export function getPagedPolyfillContent() {
+  if (!pagedPolyfillCache) {
+    const scriptPath = getPagedJsScript();
+    pagedPolyfillCache = readFileSync(scriptPath, 'utf-8');
+    logger.debug('pagedjs.polyfill', 'loaded', 'Cached Paged.js polyfill content', {
+      size: pagedPolyfillCache.length,
+      path: scriptPath
+    });
+  }
+  return pagedPolyfillCache;
 }
 
 /**
@@ -97,13 +118,14 @@ export function injectPagedJs(html, options = {}) {
   // Build script content
   const scriptParts = [];
 
-  // For browser mode, load the polyfill from bundled file
-  // Note: In actual HTML, we'll need to either inline the script or serve it
-  // For now, we reference it via a relative path that assumes it's been copied
-  // to the output directory or is accessible via node_modules
+  // For browser mode, inline the polyfill content directly
+  // This ensures it works in Puppeteer headless context without external dependencies
   if (mode === 'browser') {
-    // Add polyfill script tag
-    scriptParts.push('<script src="./node_modules/pagedjs/dist/paged.polyfill.js"></script>');
+    const polyfillContent = getPagedPolyfillContent();
+    scriptParts.push(`<script>${polyfillContent}</script>`);
+    logger.trace('pagedjs.inject', 'polyfill-inlined', 'Inlined Paged.js polyfill', {
+      size: polyfillContent.length
+    });
   }
 
   // Add configuration and initialization
