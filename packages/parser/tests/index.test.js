@@ -83,7 +83,7 @@ describe('createParser', () => {
     const html = md.render(input);
 
     expect(html).toContain('<figure>');
-    expect(html).toContain('Figure 1: Test');
+    expect(html).toContain('Figure <span class="fig-num">1</span>: Test');
   });
 
   it('should register wikilink plugin', () => {
@@ -203,7 +203,7 @@ Content`;
     const result = parse(markdown);
 
     expect(result.html).toContain('<figure>');
-    expect(result.html).toContain('Figure 1: Test');
+    expect(result.html).toContain('Figure <span class="fig-num">1</span>: Test');
   });
 
   it('should handle complex markdown with all features', () => {
@@ -444,9 +444,9 @@ This document outlines [[Standard Operating Procedures]] for safety.
     expect(html).toContain('<div class="callout callout-warning">');
     expect(html).toContain('All personnel must review');
 
-    // Figure
+    // Figure (now includes span around figure number)
     expect(html).toContain('<figure>');
-    expect(html).toContain('Figure 1: Safety Equipment Layout');
+    expect(html).toContain('Figure <span class="fig-num">1</span>: Safety Equipment Layout');
     expect(html).toContain('src="equipment.png"');
 
     // Inline callout
@@ -476,9 +476,10 @@ More text
 
     const result = parse(markdown);
 
-    expect(result.html).toContain('Figure 1: First');
-    expect(result.html).toContain('Figure 2: Second');
-    expect(result.html).toContain('Figure 3: Third');
+    // Figure numbers now wrapped in span
+    expect(result.html).toContain('Figure <span class="fig-num">1</span>: First');
+    expect(result.html).toContain('Figure <span class="fig-num">2</span>: Second');
+    expect(result.html).toContain('Figure <span class="fig-num">3</span>: Third');
   });
 
   it('should handle nested markdown in callouts', () => {

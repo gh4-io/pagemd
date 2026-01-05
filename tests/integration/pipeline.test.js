@@ -18,7 +18,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 // Example markdown file path (relative to test file location)
-const EXAMPLE_MD_PATH = resolve(__dirname, '../../../examples/md/SOP-200_Create_Workackage_Sequencing_Type.md');
+const EXAMPLE_MD_PATH = resolve(__dirname, '../../examples/md/basic-document.md');
 const PROJECT_ROOT = resolve(__dirname, '../..');
 
 describe('PageMD Pipeline Integration', () => {
@@ -39,24 +39,15 @@ describe('PageMD Pipeline Integration', () => {
 
       // Verify metadata extraction
       expect(result.metadata).toMatchObject({
-        title: 'Create Workackage Sequencing Type',
-        category: 'SOP',
-        document_id: 'SOP-200',
-        owner: 'Jason Grace',
+        title: 'PageMD Basic Document Example',
+        document_id: 'DOC-001',
         status: 'Draft',
-        amos_version: '25.6',
-        apn: '2201',
-        department: 'Planning',
-        pipeline_profile: 'dts_master_report',
-        revision: 0
+        revision: 1,
+        author: 'Documentation Team'
       });
 
-      // Verify tags array
-      expect(result.metadata.tags).toEqual(['AMOS']);
-
-      // Verify downstream/upstream apn (normalized: hyphen -> underscore)
-      expect(result.metadata.downstream_apn).toEqual(['58']);
-      expect(result.metadata).toHaveProperty('upstream_apn');
+      // Verify effective_date is present
+      expect(result.metadata).toHaveProperty('effective_date');
     });
 
     it('should parse markdown content to HTML', async () => {
@@ -68,31 +59,27 @@ describe('PageMD Pipeline Integration', () => {
 
       // HTML should contain headings
       expect(result.html).toContain('<h1>');
-      expect(result.html).toContain('Create Workpackage Sequencing Type');
+      expect(result.html).toContain('Introduction');
 
       // HTML should contain section headings
-      expect(result.html).toContain('Scope');
-      expect(result.html).toContain('Prerequisites');
-      expect(result.html).toContain('Procedure');
+      expect(result.html).toContain('Document Metadata');
+      expect(result.html).toContain('Text Formatting');
+      expect(result.html).toContain('Code Blocks');
     });
 
-    it('should handle custom extensions (callouts)', async () => {
+    it('should handle GitHub-style alerts', async () => {
       const result = await parseFile(EXAMPLE_MD_PATH);
 
-      // Should contain callout/admonition markup
-      // [[WARNING]] becomes callout-warning
-      expect(result.html).toContain('callout');
-
-      // Obsidian-style > [!DANGER] becomes danger callout
-      expect(result.html).toMatch(/danger|callout/i);
+      // Should contain GitHub-style alert markup
+      // > [!NOTE], > [!WARNING], > [!TIP]
+      expect(result.html).toMatch(/markdown-alert|alert-note|alert-warning|alert-tip/i);
     });
 
-    it('should handle wikilinks', async () => {
+    it('should contain links', async () => {
       const result = await parseFile(EXAMPLE_MD_PATH);
 
-      // Should contain wikilink references
-      // ![[Screenshot...]] and [[REF-2201...]]
-      expect(result.html).toMatch(/wikilink|href/);
+      // Should contain link references
+      expect(result.html).toContain('href');
     });
 
     it('should preserve content without frontmatter', async () => {
@@ -102,7 +89,7 @@ describe('PageMD Pipeline Integration', () => {
       expect(result.content).not.toContain('---\ntitle:');
 
       // Content should start with actual markdown
-      expect(result.content).toContain('# Create Workpackage Sequencing Type');
+      expect(result.content).toContain('# Introduction');
     });
   });
 
@@ -151,8 +138,8 @@ describe('PageMD Pipeline Integration', () => {
       });
 
       // Metadata should be available
-      expect(result.metadata.document_id).toBe('SOP-200');
-      expect(result.metadata.title).toBe('Create Workackage Sequencing Type');
+      expect(result.metadata.document_id).toBe('DOC-001');
+      expect(result.metadata.title).toBe('PageMD Basic Document Example');
       expect(result.metadata.status).toBe('Draft');
     });
 
@@ -193,7 +180,7 @@ This is a test paragraph.`;
       expect(html).toMatch(/<html|<body|<!DOCTYPE/i);
 
       // Should contain content
-      expect(html).toContain('Create Workpackage Sequencing Type');
+      expect(html).toContain('Introduction');
     });
 
     it('should include all required profile elements', async () => {

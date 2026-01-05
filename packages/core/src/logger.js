@@ -24,6 +24,7 @@ const LOG_LEVELS = {
 
 const VALID_MODULES = [
   'cli',
+  'discovery',
   'env',
   'profiles',
   'layout',

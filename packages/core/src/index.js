@@ -58,3 +58,8 @@ export {
   validateOutputDir,
   isInteractive
 } from './prompts.js';
+export {
+  discoverResources,
+  getResourceDirectories,
+  RESOURCE_TYPES
+} from './resource-discovery.js';

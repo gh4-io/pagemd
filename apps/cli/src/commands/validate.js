@@ -27,6 +27,7 @@ const logger = createLogger('cli');
  * Yargs command configuration
  */
 export const command = 'validate <input>';
+export const aliases = ['val'];
 export const describe = 'Validate markdown file(s) without rendering';
 
 export const builder = {

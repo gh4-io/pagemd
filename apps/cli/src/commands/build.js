@@ -27,6 +27,7 @@ const logger = createLogger('cli');
  * Yargs command definition
  */
 export const command = 'build <input>';
+export const aliases = ['bld'];
 export const describe = 'Build markdown to output formats';
 
 // Get env var defaults (loaded at CLI startup)
@@ -73,6 +74,11 @@ export const builder = {
     type: 'string',
     choices: ['browser', 'cli'],
     default: envPagedjsMode.toLowerCase()
+  },
+  stdout: {
+    describe: 'Output HTML to stdout (single file, html format only)',
+    type: 'boolean',
+    default: false
   }
 };
 
@@ -90,7 +96,8 @@ export async function handler(argv) {
     profile,
     'output-dir': outputDir,
     debug,
-    pagedjs
+    pagedjs,
+    stdout
   } = argv;
 
   logger.info('build', 'start', `Building markdown: ${input}`, {
@@ -117,6 +124,25 @@ export async function handler(argv) {
       });
       console.error(`Error: Input not found: ${inputPath}`);
       process.exit(1);
+    }
+
+    // Step 2b: Validate stdout constraints
+    if (stdout) {
+      // Stdout mode requires single file input
+      if (inputStat.isDirectory()) {
+        logger.error('build', 'failure', '--stdout requires single file input, not directory');
+        console.error('Error: --stdout requires a single markdown file, not a directory');
+        process.exit(1);
+      }
+
+      // Stdout mode requires HTML format only
+      const requestedFormats = outputFormats.split(',').map(f => f.trim().toLowerCase());
+      const nonHtmlFormats = requestedFormats.filter(f => f !== 'html');
+      if (nonHtmlFormats.length > 0) {
+        logger.error('build', 'failure', `--stdout only supports html format, not: ${nonHtmlFormats.join(', ')}`);
+        console.error(`Error: --stdout only supports html format. Remove: ${nonHtmlFormats.join(', ')}`);
+        process.exit(1);
+      }
     }
 
     // Step 3: Collect markdown files
@@ -203,8 +229,14 @@ export async function handler(argv) {
       outputs: []
     };
 
+    // For stdout mode, we capture HTML content to write at the end
+    let stdoutContent = null;
+
     for (const markdownFile of markdownFiles) {
-      console.log(`\nProcessing: ${markdownFile}`);
+      // Suppress processing message in stdout mode
+      if (!stdout) {
+        console.log(`\nProcessing: ${markdownFile}`);
+      }
       const fileStartTime = Date.now();
 
       try {
@@ -214,12 +246,18 @@ export async function handler(argv) {
           outputDir,
           debug,
           pagedjs,
+          stdout,
           projectRoot: argv.projectRoot,
           debugMetadata
         });
 
         results.success++;
         results.outputs.push(...fileResults.outputs);
+
+        // Capture HTML content for stdout mode
+        if (stdout && fileResults.htmlContent) {
+          stdoutContent = fileResults.htmlContent;
+        }
 
         // Add file result to debug metadata
         if (debugMetadata) {
@@ -233,86 +271,97 @@ export async function handler(argv) {
           });
         }
 
-        console.log(`  ✓ Success: ${fileResults.outputs.length} outputs created`);
+        // Suppress success message in stdout mode
+        if (!stdout) {
+          console.log(`  ✓ Success: ${fileResults.outputs.length} outputs created`);
+        }
       } catch (error) {
         results.failed++;
         logger.error('build', 'failure', `Failed to build ${markdownFile}: ${error.message}`, {
           file: markdownFile,
           error: error.message
         });
+        // Errors always go to stderr (even in stdout mode)
         console.error(`  ✗ Failed: ${error.message}`);
       }
     }
 
-    // Step 7: Summary
+    // Write HTML to stdout if in stdout mode
+    if (stdout && stdoutContent) {
+      process.stdout.write(stdoutContent);
+    }
+
+    // Step 7: Summary (suppressed in stdout mode)
     const duration = ((Date.now() - startTime) / 1000).toFixed(2);
 
-    // Display unified debug summary if debug mode is active
-    if (debugMetadata) {
-      // Collect active overrides (only show non-default values)
-      const overrides = {};
+    if (!stdout) {
+      // Display unified debug summary if debug mode is active
+      if (debugMetadata) {
+        // Collect active overrides (only show non-default values)
+        const overrides = {};
 
-      // Detect explicit CLI flags by checking process.argv
-      const cliArgs = process.argv.slice(2);
-      const hasCliDebug = cliArgs.includes('--debug');
-      const hasCliProfile = cliArgs.some(arg => arg === '-p' || arg === '--profile' || arg.startsWith('-p=') || arg.startsWith('--profile='));
-      const hasCliOutputDir = cliArgs.some(arg => arg === '-d' || arg === '--output-dir' || arg.startsWith('-d=') || arg.startsWith('--output-dir='));
-      const hasCliOutput = cliArgs.some(arg => arg === '-o' || arg === '--output' || arg.startsWith('-o=') || arg.startsWith('--output='));
-      const hasCliPagedjs = cliArgs.some(arg => arg === '--pagedjs' || arg.startsWith('--pagedjs='));
+        // Detect explicit CLI flags by checking process.argv
+        const cliArgs = process.argv.slice(2);
+        const hasCliDebug = cliArgs.includes('--debug');
+        const hasCliProfile = cliArgs.some(arg => arg === '-p' || arg === '--profile' || arg.startsWith('-p=') || arg.startsWith('--profile='));
+        const hasCliOutputDir = cliArgs.some(arg => arg === '-d' || arg === '--output-dir' || arg.startsWith('-d=') || arg.startsWith('--output-dir='));
+        const hasCliOutput = cliArgs.some(arg => arg === '-o' || arg === '--output' || arg.startsWith('-o=') || arg.startsWith('--output='));
+        const hasCliPagedjs = cliArgs.some(arg => arg === '--pagedjs' || arg.startsWith('--pagedjs='));
 
-      // PAGEMD_DEBUG: CLI takes precedence over env
-      if (hasCliDebug) {
-        overrides['PAGEMD_DEBUG'] = 'true (cli)';
-      } else if (envDebug === true) {
-        overrides['PAGEMD_DEBUG'] = 'true (env)';
+        // PAGEMD_DEBUG: CLI takes precedence over env
+        if (hasCliDebug) {
+          overrides['PAGEMD_DEBUG'] = 'true (cli)';
+        } else if (envDebug === true) {
+          overrides['PAGEMD_DEBUG'] = 'true (env)';
+        }
+
+        // PAGEMD_PROFILE: CLI takes precedence over env
+        if (hasCliProfile && argv.profile) {
+          overrides['PAGEMD_PROFILE'] = `${argv.profile} (cli)`;
+        } else if (envProfile !== 'standard_letter') {
+          overrides['PAGEMD_PROFILE'] = `${envProfile} (env)`;
+        }
+
+        // PAGEMD_OUTPUT_DIR: CLI takes precedence over env
+        if (hasCliOutputDir && argv['output-dir']) {
+          overrides['PAGEMD_OUTPUT_DIR'] = `${argv['output-dir']} (cli)`;
+        } else if (envOutputDir) {
+          overrides['PAGEMD_OUTPUT_DIR'] = `${envOutputDir} (env)`;
+        }
+
+        // PAGEMD_OUTPUT_FORMAT: CLI takes precedence over env
+        if (hasCliOutput && argv.output) {
+          overrides['PAGEMD_OUTPUT_FORMAT'] = `${argv.output} (cli)`;
+        } else if (envOutputFormat) {
+          overrides['PAGEMD_OUTPUT_FORMAT'] = `${Array.isArray(envOutputFormat) ? envOutputFormat.join(',') : envOutputFormat} (env)`;
+        }
+
+        // PAGEMD_PAGEDJS_MODE: CLI takes precedence over env
+        if (hasCliPagedjs && argv.pagedjs) {
+          overrides['PAGEMD_PAGEDJS_MODE'] = `${argv.pagedjs} (cli)`;
+        } else if (envPagedjsMode !== 'browser') {
+          overrides['PAGEMD_PAGEDJS_MODE'] = `${envPagedjsMode} (env)`;
+        }
+
+        // Build results with totalFiles
+        const buildResults = {
+          ...results,
+          totalFiles: markdownFiles.length
+        };
+
+        const debugSummary = formatDebugSummary(debugMetadata, buildResults, `${duration}s`, overrides);
+        console.log(debugSummary);
+      } else {
+        // Standard summary (only shown when debug mode is OFF)
+        console.log(`\n${'='.repeat(60)}`);
+        console.log(`Build Summary:`);
+        console.log(`  Total files: ${markdownFiles.length}`);
+        console.log(`  Successful: ${results.success}`);
+        console.log(`  Failed: ${results.failed}`);
+        console.log(`  Total outputs: ${results.outputs.length}`);
+        console.log(`  Duration: ${duration}s`);
+        console.log(`${'='.repeat(60)}\n`);
       }
-
-      // PAGEMD_PROFILE: CLI takes precedence over env
-      if (hasCliProfile && argv.profile) {
-        overrides['PAGEMD_PROFILE'] = `${argv.profile} (cli)`;
-      } else if (envProfile !== 'standard_letter') {
-        overrides['PAGEMD_PROFILE'] = `${envProfile} (env)`;
-      }
-
-      // PAGEMD_OUTPUT_DIR: CLI takes precedence over env
-      if (hasCliOutputDir && argv['output-dir']) {
-        overrides['PAGEMD_OUTPUT_DIR'] = `${argv['output-dir']} (cli)`;
-      } else if (envOutputDir) {
-        overrides['PAGEMD_OUTPUT_DIR'] = `${envOutputDir} (env)`;
-      }
-
-      // PAGEMD_OUTPUT_FORMAT: CLI takes precedence over env
-      if (hasCliOutput && argv.output) {
-        overrides['PAGEMD_OUTPUT_FORMAT'] = `${argv.output} (cli)`;
-      } else if (envOutputFormat) {
-        overrides['PAGEMD_OUTPUT_FORMAT'] = `${Array.isArray(envOutputFormat) ? envOutputFormat.join(',') : envOutputFormat} (env)`;
-      }
-
-      // PAGEMD_PAGEDJS_MODE: CLI takes precedence over env
-      if (hasCliPagedjs && argv.pagedjs) {
-        overrides['PAGEMD_PAGEDJS_MODE'] = `${argv.pagedjs} (cli)`;
-      } else if (envPagedjsMode !== 'browser') {
-        overrides['PAGEMD_PAGEDJS_MODE'] = `${envPagedjsMode} (env)`;
-      }
-
-      // Build results with totalFiles
-      const buildResults = {
-        ...results,
-        totalFiles: markdownFiles.length
-      };
-
-      const debugSummary = formatDebugSummary(debugMetadata, buildResults, `${duration}s`, overrides);
-      console.log(debugSummary);
-    } else {
-      // Standard summary (only shown when debug mode is OFF)
-      console.log(`\n${'='.repeat(60)}`);
-      console.log(`Build Summary:`);
-      console.log(`  Total files: ${markdownFiles.length}`);
-      console.log(`  Successful: ${results.success}`);
-      console.log(`  Failed: ${results.failed}`);
-      console.log(`  Total outputs: ${results.outputs.length}`);
-      console.log(`  Duration: ${duration}s`);
-      console.log(`${'='.repeat(60)}\n`);
     }
 
     logger.info('build', 'success', `Build complete: ${results.success}/${markdownFiles.length} successful`, {
@@ -362,12 +411,13 @@ async function findMarkdownFiles(dirPath) {
  * @param {string} options.outputDir - Output directory override
  * @param {boolean} options.debug - Enable debug mode
  * @param {string} options.pagedjs - Paged.js mode
+ * @param {boolean} options.stdout - Output HTML to stdout instead of file
  * @param {string} options.projectRoot - Project root directory
  * @param {object} options.debugMetadata - Debug metadata collector (optional)
- * @returns {Promise<{outputs: object[], profileId: string, profilePath?: string, debugArtifacts: string[]}>}
+ * @returns {Promise<{outputs: object[], profileId: string, profilePath?: string, debugArtifacts: string[], htmlContent?: string}>}
  */
 async function buildDocument(markdownPath, options) {
-  const { formats, profile, outputDir, debug, pagedjs, projectRoot, debugMetadata } = options;
+  const { formats, profile, outputDir, debug, pagedjs, stdout, projectRoot, debugMetadata } = options;
 
   const baseOutputPath = outputDir
     ? path.join(outputDir, path.basename(markdownPath, '.md'))
@@ -378,12 +428,13 @@ async function buildDocument(markdownPath, options) {
   let browser = null;
   let resolvedProfileId = profile;
   let resolvedProfilePath = null;
+  let htmlContent = null; // For stdout mode
 
   try {
     // HTML output
     if (formats.includes('html')) {
       const htmlPath = `${baseOutputPath}.html`;
-      logger.debug('build.html', 'start', `Generating HTML: ${htmlPath}`);
+      logger.debug('build.html', 'start', `Generating HTML: ${stdout ? 'stdout' : htmlPath}`);
 
       const result = await renderDocument(markdownPath, {
         profile,
@@ -399,18 +450,26 @@ async function buildDocument(markdownPath, options) {
           : null;
       }
 
-      // Ensure output directory exists
-      await fs.mkdir(path.dirname(htmlPath), { recursive: true });
-
-      await fs.writeFile(htmlPath, result.html, 'utf-8');
-
-      outputs.push({
-        format: 'html',
-        path: htmlPath,
-        size: result.html.length
-      });
-
-      logger.info('build.html', 'success', `HTML generated: ${htmlPath}`);
+      if (stdout) {
+        // Stdout mode: capture HTML content, skip file write
+        htmlContent = result.html;
+        outputs.push({
+          format: 'html',
+          path: 'stdout',
+          size: result.html.length
+        });
+        logger.info('build.html', 'success', 'HTML generated to stdout');
+      } else {
+        // Normal mode: write to file
+        await fs.mkdir(path.dirname(htmlPath), { recursive: true });
+        await fs.writeFile(htmlPath, result.html, 'utf-8');
+        outputs.push({
+          format: 'html',
+          path: htmlPath,
+          size: result.html.length
+        });
+        logger.info('build.html', 'success', `HTML generated: ${htmlPath}`);
+      }
     }
 
     // PDF output
@@ -503,7 +562,8 @@ async function buildDocument(markdownPath, options) {
       outputs,
       profileId: resolvedProfileId,
       profilePath: resolvedProfilePath,
-      debugArtifacts
+      debugArtifacts,
+      htmlContent // For stdout mode
     };
 
   } catch (error) {

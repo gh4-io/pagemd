@@ -1,0 +1,80 @@
+/* PageMD Layout - {{name}}.css
+ * Uncomment sections to activate. No effect until uncommented.
+ *
+ * This file contains @page rules for Paged.js print layout.
+ * CSS Layer: layout (3 of 6)
+ */
+
+/* --- Page Size and Margins ---
+@page {
+  size: letter portrait;
+  margin: 1in;
+}
+*/
+
+/* --- First Page (Cover) ---
+@page :first {
+  margin-top: 2in;
+}
+*/
+
+/* --- Headers and Footers ---
+@page {
+  @top-center {
+    content: string(title);
+    font-size: 10pt;
+    color: #666;
+  }
+
+  @bottom-center {
+    content: counter(page) " of " counter(pages);
+    font-size: 9pt;
+  }
+
+  @bottom-right {
+    content: string(document-id);
+    font-size: 9pt;
+  }
+}
+*/
+
+/* --- String Sets (for headers/footers) ---
+h1 {
+  string-set: title content(text);
+}
+
+.document-id {
+  string-set: document-id content(text);
+}
+*/
+
+/* --- Page Breaks ---
+h1 {
+  break-before: page;
+}
+
+h1:first-of-type {
+  break-before: auto;
+}
+
+table, figure {
+  break-inside: avoid;
+}
+*/
+
+/* --- Two-Column Layout ---
+.two-column {
+  column-count: 2;
+  column-gap: 2rem;
+}
+*/
+
+/* --- Landscape Pages ---
+@page landscape {
+  size: letter landscape;
+}
+
+.landscape {
+  page: landscape;
+}
+*/

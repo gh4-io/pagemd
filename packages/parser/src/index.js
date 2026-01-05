@@ -1,11 +1,15 @@
 import MarkdownIt from 'markdown-it';
 import markdownItAttrs from 'markdown-it-attrs';
+import markdownItGithubAlerts from 'markdown-it-github-alerts';
+import markdownItInclude from 'markdown-it-include';
+import markdownItContainer from 'markdown-it-container';
 import { createHighlighter } from 'shiki';
 import { readFile } from 'fs/promises';
 import { extractFrontmatter } from './frontmatter.js';
 import { wikilinkPlugin } from './wikilinks.js';
 import { normalizeMetadata } from './metadata.js';
 import { registerExtensions } from './extensions.js';
+import { directivesPlugin } from './directives.js';
 
 // Singleton highlighter - initialized once, reused for all renders
 let highlighter = null;
@@ -20,6 +24,31 @@ const DEFAULT_LANGS = [
 
 // Default themes to load
 const DEFAULT_THEMES = ['github-light', 'github-dark'];
+
+// Container types for markdown-it-container (:::name blocks)
+// These complement GFM alerts with additional container types
+const CONTAINER_TYPES = ['details', 'summary', 'aside', 'columns', 'spoiler'];
+
+/**
+ * Create a container renderer for markdown-it-container
+ * @param {string} name - Container type name
+ * @returns {object} Container configuration
+ */
+function createContainerConfig(name) {
+  return {
+    validate: (params) => params.trim().split(/\s+/)[0] === name,
+    render: (tokens, idx) => {
+      const token = tokens[idx];
+      if (token.nesting === 1) {
+        // Extract title if provided (:::name Title here)
+        const params = token.info.trim().slice(name.length).trim();
+        const title = params ? ` data-title="${params.replace(/"/g, '&quot;')}"` : '';
+        return `<div class="container container-${name}"${title}>\n`;
+      }
+      return '</div>\n';
+    }
+  };
+}
 
 /**
  * Initialize the shiki syntax highlighter (async, called once at startup)
@@ -63,6 +92,7 @@ export function isSyntaxHighlightingEnabled() {
  * @param {boolean} options.typographer - Enable smart quotes and typography (default: true)
  * @param {string} options.highlightTheme - Shiki theme for syntax highlighting (default: github-light)
  * @param {object} options.wikilinks - Wikilink plugin options (baseUrl, imageBaseUrl, linkClass, imageClass)
+ * @param {string} options.includeRoot - Root path for markdown-it-include (default: '.')
  * @returns {MarkdownIt} Configured markdown-it instance
  */
 export function createParser(options = {}) {
@@ -73,6 +103,7 @@ export function createParser(options = {}) {
   };
 
   const highlightTheme = options.highlightTheme || 'github-light';
+  const includeRoot = options.includeRoot || '.';
 
   // Build markdown-it options including syntax highlighting if available
   const mdOptions = { ...defaultOptions, ...options };
@@ -92,13 +123,29 @@ export function createParser(options = {}) {
 
   const md = new MarkdownIt(mdOptions);
 
-  // Add attribute syntax support {.class #id attr=value}
+  // Plugin registration order is important:
+  // 1. markdown-it-attrs - Adds {.class #id} attribute syntax
   md.use(markdownItAttrs);
 
-  // Register PageMD custom extensions BEFORE wikilinks (callouts use [[...]] syntax too)
+  // 2. markdown-it-github-alerts - GFM alert syntax > [!NOTE]
+  md.use(markdownItGithubAlerts);
+
+  // 3. markdown-it-include - File inclusion !!!include(path)!!!
+  md.use(markdownItInclude, { root: includeRoot });
+
+  // 3.5. markdown-it-container - Custom :::name blocks
+  // Register each container type (details, aside, columns, spoiler, etc.)
+  for (const type of CONTAINER_TYPES) {
+    md.use(markdownItContainer, type, createContainerConfig(type));
+  }
+
+  // 4. PageMD extensions - Custom callouts [[WARNING]] and figures <!-- ::FIGURE -->
   registerExtensions(md);
 
-  // Add Obsidian-style wiki links [[Page]] and ![[image.png]]
+  // 5. PageMD directives - Comment directives <!-- ::PAGEBREAK --> etc.
+  md.use(directivesPlugin);
+
+  // 6. Wikilinks LAST - Uses [[...]] syntax which conflicts with callouts
   md.use(wikilinkPlugin, options.wikilinks);
 
   return md;
@@ -164,3 +211,4 @@ export {
   figurePlugin,
   registerExtensions
 } from './extensions.js';
+export { directivesPlugin, registerDirectives } from './directives.js';

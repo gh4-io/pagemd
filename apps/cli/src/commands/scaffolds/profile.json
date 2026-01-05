@@ -1,0 +1,37 @@
+{
+  "id": "{{name}}",
+  "description": "Custom PageMD profile",
+  "extends": "standard_letter",
+
+  "layout": {
+    "type": "letter",
+    "css": "${projectRoot}/layouts/letter.css"
+  },
+
+  "resources": {
+    "template": "${projectRoot}/templates/standard_letter.html",
+    "css": [
+      "${projectRoot}/styles/primary.css"
+    ]
+  },
+
+  "outputs": {
+    "pdf": {
+      "enabled": true,
+      "mode": "ACTIVE_ONLY"
+    },
+    "html": {
+      "enabled": false
+    },
+    "png": {
+      "enabled": false
+    },
+    "jpeg": {
+      "enabled": false
+    }
+  },
+
+  "validation": {
+    "required_fields": ["document_id", "title"]
+  }
+}

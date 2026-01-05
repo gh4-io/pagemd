@@ -369,3 +369,246 @@ body:not(.vscode-light):not(.vscode-dark):not(.vscode-high-contrast) blockquote 
 	border-color: #007acc;
 	background-color: rgba(0, 122, 204, 0.05);
 }
+
+/* ==========================================================================
+   PageMD Extended Syntax - Page Breaks
+   ========================================================================== */
+
+.break-page {
+	display: block;
+	height: 0;
+	margin: 0;
+	padding: 0;
+	border: none;
+	break-after: always;
+	page-break-after: always; /* Legacy fallback */
+}
+
+/* Alternative: Apply break-before to next sibling */
+.break-page + * {
+	break-before: page;
+	page-break-before: always;
+}
+
+/* ==========================================================================
+   PageMD Extended Syntax - TOC Placeholder
+   ========================================================================== */
+
+.toc-placeholder {
+	padding: 1rem;
+	border: 1px dashed #9ca3af;
+	border-radius: 4px;
+	background: #f9fafb;
+	color: #6b7280;
+	text-align: center;
+	margin: 1.5rem 0;
+}
+
+.toc-placeholder::before {
+	content: "Table of Contents will be generated here";
+	font-style: italic;
+}
+
+/* ==========================================================================
+   PageMD Extended Syntax - GFM Alerts (markdown-it-github-alerts)
+   ========================================================================== */
+
+.markdown-alert {
+	padding: 1rem 1.25rem;
+	margin: 1rem 0;
+	border-left: 4px solid;
+	border-radius: 0 6px 6px 0;
+	background: #f6f8fa;
+}
+
+.markdown-alert-title {
+	display: flex;
+	align-items: center;
+	font-weight: 600;
+	margin-bottom: 0.5rem;
+}
+
+.markdown-alert-title svg {
+	margin-right: 0.5rem;
+}
+
+.markdown-alert-note {
+	border-color: #0969da;
+}
+.markdown-alert-note .markdown-alert-title {
+	color: #0969da;
+}
+
+.markdown-alert-tip {
+	border-color: #1a7f37;
+}
+.markdown-alert-tip .markdown-alert-title {
+	color: #1a7f37;
+}
+
+.markdown-alert-important {
+	border-color: #8250df;
+}
+.markdown-alert-important .markdown-alert-title {
+	color: #8250df;
+}
+
+.markdown-alert-warning {
+	border-color: #9a6700;
+}
+.markdown-alert-warning .markdown-alert-title {
+	color: #9a6700;
+}
+
+.markdown-alert-caution {
+	border-color: #cf222e;
+}
+.markdown-alert-caution .markdown-alert-title {
+	color: #cf222e;
+}
+
+/* ==========================================================================
+   PageMD Extended Syntax - Figures
+   ========================================================================== */
+
+figure {
+	margin: 1.5rem 0;
+	text-align: center;
+	break-inside: avoid;
+	page-break-inside: avoid;
+}
+
+figure img {
+	max-width: 100%;
+	height: auto;
+}
+
+figcaption {
+	margin-top: 0.5rem;
+	font-size: 0.875rem;
+	color: #6b7280;
+	font-style: italic;
+}
+
+.fig-num {
+	font-weight: 600;
+}
+
+/* Figure width variants */
+.width-full {
+	width: 100%;
+}
+
+.width-half {
+	width: 50%;
+	margin-left: auto;
+	margin-right: auto;
+}
+
+.width-third {
+	width: 33.333%;
+	margin-left: auto;
+	margin-right: auto;
+}
+
+.width-quarter {
+	width: 25%;
+	margin-left: auto;
+	margin-right: auto;
+}
+
+/* ==========================================================================
+   PageMD Extended Syntax - Custom Callouts ([[WARNING]]/[[DANGER]])
+   ========================================================================== */
+
+.callout {
+	padding: 1rem;
+	margin: 1rem 0;
+	border-radius: 6px;
+	border-left: 4px solid;
+}
+
+.callout-label {
+	font-weight: 700;
+	text-transform: uppercase;
+	font-size: 0.75rem;
+	letter-spacing: 0.05em;
+	display: block;
+	margin-bottom: 0.5rem;
+}
+
+.callout-content {
+	line-height: 1.5;
+}
+
+.callout-warning {
+	background: #fff8e6;
+	border-color: #f59e0b;
+}
+.callout-warning .callout-label {
+	color: #b45309;
+}
+
+.callout-danger {
+	background: #fef2f2;
+	border-color: #ef4444;
+}
+.callout-danger .callout-label {
+	color: #b91c1c;
+}
+
+/* Inline callouts */
+.callout-inline {
+	display: inline-flex;
+	align-items: center;
+	padding: 0.125rem 0.5rem;
+	margin: 0 0.25rem;
+	border-radius: 4px;
+	border-left: none;
+	font-size: 0.75rem;
+}
+
+.callout-inline .callout-label {
+	margin-bottom: 0;
+}
+
+/* ==========================================================================
+   PageMD Extended Syntax - Custom Containers (:::name blocks)
+   ========================================================================== */
+
+.container {
+	padding: 1rem;
+	margin: 1rem 0;
+	border-radius: 6px;
+	background: #f9fafb;
+	border: 1px solid #e5e7eb;
+}
+
+.container-details {
+	background: #f0f9ff;
+	border-color: #bfdbfe;
+}
+
+.container-aside {
+	background: #fefce8;
+	border-color: #fde68a;
+	border-left: 4px solid #f59e0b;
+}
+
+.container-columns {
+	column-count: 2;
+	column-gap: 2rem;
+}
+
+.container-spoiler {
+	background: #f3f4f6;
+	border-color: #d1d5db;
+}
+
+.container-spoiler::before {
+	content: "Spoiler: " attr(data-title);
+	display: block;
+	font-weight: 600;
+	margin-bottom: 0.5rem;
+	color: #6b7280;
+}

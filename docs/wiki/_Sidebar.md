@@ -10,6 +10,7 @@
 - [[Configuration]]
 - [[Profiles]]
 - [[Settings]]
+- [[Extended-Syntax]]
 
 ## Operations
 - [[Normal-Operations]]
@@ -25,6 +26,9 @@
 - [[Appendix]]
 
 ---
+
+**Related**
+- [VS Code Extension Wiki](https://github.com/gh4-io/pagemd-vscode/wiki)
 
 **API Reference**
 - [Core](../api/core.md)

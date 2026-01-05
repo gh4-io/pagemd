@@ -526,6 +526,10 @@ export async function parseProfile(filePath) {
 }
 ```
 
+## VS Code Extension Development
+
+For VS Code extension development, see the [PageMD VS Code Wiki](https://github.com/gh4-io/pagemd-vscode/wiki/Developer-Guide).
+
 ## See Also
 
 - [[Quick-Start]] - Quick start guide

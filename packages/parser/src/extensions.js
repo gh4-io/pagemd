@@ -148,8 +148,39 @@ export function calloutPlugin(md) {
 }
 
 /**
- * Figure plugin for <!-- ::FIGURE caption="..." --> syntax
+ * Parse figure directive attributes
+ * Handles: key="value with spaces" key='value' key=value
+ * @param {string} attrString - The attribute string to parse
+ * @returns {Object} Parsed attributes
+ */
+function parseFigureAttributes(attrString) {
+  const attrs = {};
+  if (!attrString) return attrs;
+
+  // Match key="value" (double quotes) or key='value' (single quotes) or key=value (no quotes)
+  // Order matters: try quoted patterns first, then unquoted
+  const attrRegex = /(\w+)=(?:"([^"]+)"|'([^']+)'|(\S+))/g;
+  let match;
+
+  while ((match = attrRegex.exec(attrString)) !== null) {
+    // match[2] = double-quoted, match[3] = single-quoted, match[4] = unquoted
+    attrs[match[1]] = match[2] || match[3] || match[4];
+  }
+
+  return attrs;
+}
+
+/**
+ * Figure plugin for <!-- ::FIGURE ... --> syntax
+ * Supports: caption, src, id, width attributes
  * Auto-numbers figures sequentially within each parse run
+ *
+ * Usage:
+ *   <!-- ::FIGURE src="image.png" caption="Description" id="fig-1" width="full" -->
+ *   OR (legacy, backward compatible):
+ *   <!-- ::FIGURE caption="Description" -->
+ *   ![Alt](image.png)
+ *
  * @param {MarkdownIt} md - Markdown-it instance
  */
 export function figurePlugin(md) {
@@ -157,7 +188,7 @@ export function figurePlugin(md) {
 
   // Reset counter on each render
   const originalRender = md.render.bind(md);
-  md.render = function(...args) {
+  md.render = function (...args) {
     figureCounter = 0;
     return originalRender(...args);
   };
@@ -168,20 +199,25 @@ export function figurePlugin(md) {
     const max = state.eMarks[startLine];
     const lineText = state.src.slice(pos, max);
 
-    // Match <!-- ::FIGURE ... -->
-    const match = lineText.match(/^<!--\s*::FIGURE\s+caption=["']([^"']+)["']\s*-->$/);
-    if (!match) return false;
+    // Match <!-- ::FIGURE ... --> (flexible attribute order)
+    const directiveMatch = lineText.match(/^<!--\s*::FIGURE\s+(.+?)\s*-->$/);
+    if (!directiveMatch) return false;
 
     if (silent) return true;
 
-    const caption = match[1];
+    const attrs = parseFigureAttributes(directiveMatch[1]);
+    const caption = attrs.caption || '';
+    const src = attrs.src || '';
+    const figId = attrs.id || '';
+    const width = attrs.width || '';
+
     figureCounter++;
 
-    // Look ahead for the next line (should be image)
+    // Look ahead for the next line (legacy: image on next line if no src)
     let nextLine = startLine + 1;
     let imageMarkdown = '';
 
-    if (nextLine < endLine) {
+    if (!src && nextLine < endLine) {
       const nextPos = state.bMarks[nextLine] + state.tShift[nextLine];
       const nextMax = state.eMarks[nextLine];
       imageMarkdown = state.src.slice(nextPos, nextMax).trim();
@@ -190,9 +226,14 @@ export function figurePlugin(md) {
     // Create tokens
     const token_open = state.push('figure_open', 'figure', 1);
     token_open.markup = '<!-- ::FIGURE -->';
+    token_open.meta = { id: figId, width: width };
 
-    // If we found an image on the next line, parse it
-    if (imageMarkdown && (imageMarkdown.startsWith('![[') || imageMarkdown.startsWith('!['))) {
+    // If src is provided in directive, create image token
+    if (src) {
+      const img_token = state.push('figure_image', 'img', 0);
+      img_token.meta = { src: src, alt: caption };
+    } else if (imageMarkdown && (imageMarkdown.startsWith('![[') || imageMarkdown.startsWith('!['))) {
+      // Legacy: image on next line
       const inline_token = state.push('inline', '', 0);
       inline_token.content = imageMarkdown;
       inline_token.children = [];
@@ -209,10 +250,31 @@ export function figurePlugin(md) {
   });
 
   // Renderers
-  md.renderer.rules.figure_open = () => '<figure>';
+  md.renderer.rules.figure_open = (tokens, idx) => {
+    const meta = tokens[idx].meta || {};
+    const attrs = [];
+    if (meta.id) attrs.push(`id="${md.utils.escapeHtml(meta.id)}"`);
+    if (meta.width) attrs.push(`class="width-${md.utils.escapeHtml(meta.width)}"`);
+    const attrStr = attrs.length > 0 ? ' ' + attrs.join(' ') : '';
+    return `<figure${attrStr}>`;
+  };
+
   md.renderer.rules.figure_close = () => '</figure>';
+
+  md.renderer.rules.figure_image = (tokens, idx) => {
+    const meta = tokens[idx].meta || {};
+    const src = md.utils.escapeHtml(meta.src || '');
+    const alt = md.utils.escapeHtml(meta.alt || '');
+    return `<img src="${src}" alt="${alt}">`;
+  };
+
   md.renderer.rules.figcaption = (tokens, idx) => {
-    return `<figcaption>${md.utils.escapeHtml(tokens[idx].content)}</figcaption>`;
+    const content = tokens[idx].content;
+    // Extract figure number from content (e.g., "Figure 1: Caption")
+    const numMatch = content.match(/^Figure (\d+):/);
+    const num = numMatch ? numMatch[1] : '';
+    const captionText = content.replace(/^Figure \d+:\s*/, '');
+    return `<figcaption>Figure <span class="fig-num">${num}</span>: ${md.utils.escapeHtml(captionText)}</figcaption>`;
   };
 }
 

@@ -5,6 +5,7 @@ Complete reference for PageMD CLI flags, config options, profile fields, and pat
 ## Contents
 
 - [CLI Flags](#cli-flags)
+  - [Default Command](#default-command)
 - [Config File Options](#config-file-options)
 - [Profile Fields Quick Reference](#profile-fields-quick-reference)
 - [Path Resolution Rules](#path-resolution-rules)
@@ -15,6 +16,22 @@ Complete reference for PageMD CLI flags, config options, profile fields, and pat
 ---
 
 ## CLI Flags
+
+### Default Command
+
+When no command is specified and the first argument is a file path, `build` is inferred automatically:
+
+```bash
+# These are equivalent:
+pagemd document.md
+pagemd build document.md
+
+# File paths that look like commands are handled correctly:
+pagemd ./build/output.md           # Infers build (path contains "build" but is a path)
+pagemd ../docs/validate-me.md      # Infers build (path contains "validate" but is a path)
+```
+
+**Detection logic:** If the first argument is not a known command (`build`, `validate`, `list`, `ls`, `inspect`, `init`, `create`) and doesn't start with `-`, it's treated as a file path and `build` is assumed.
 
 ### Global Options
 
@@ -37,12 +54,41 @@ Available for all commands:
 | `--output-dir` | `-d` | string | Directory path | Same as input | Output directory for generated files |
 | `--debug` | - | boolean | - | false | Emit debug artifacts (HTML, CSS, logs) and enhanced build summary |
 | `--pagedjs` | - | string | browser, cli | browser | Paged.js rendering mode |
+| `--stdout` | - | boolean | - | false | Output HTML to stdout instead of file |
 
 **Notes:**
 - `--output` accepts comma-separated list: `--output html,pdf,png,jpeg`
 - Output format validation prevents invalid values (fails with error)
 - `--pagedjs cli` runs Paged.js preprocessing via pagedjs-cli before Puppeteer
 - `--pagedjs browser` uses in-browser Paged.js polyfill (default)
+
+#### --stdout Flag
+
+Outputs HTML directly to stdout instead of writing to disk. Useful for piping to other tools or for VS Code extension integration.
+
+**Constraints:**
+- Single file input only (directories not supported)
+- HTML format only (`-o html` implicit or explicit)
+- Console messages suppressed (only HTML on stdout, errors to stderr)
+
+**Usage:**
+```bash
+# Output HTML to stdout
+pagemd build document.md -o html --stdout
+
+# Pipe to file
+pagemd build document.md --stdout > output.html
+
+# Pipe to another tool
+pagemd build document.md --stdout | html-minifier
+```
+
+**Behavior:**
+- Generates HTML via renderer-web pipeline
+- Writes HTML content to `process.stdout`
+- Suppresses "Processing:", success/fail markers, and summary output
+- Errors and fatals still written to stderr
+- Exit code: 0 on success, non-zero on error
 
 #### Debug Summary Output
 
@@ -109,14 +155,23 @@ This integrated summary helps diagnose path resolution, active configuration ove
 - Strict mode: Warnings fail with exit code 1
 - Normal mode: Only errors fail
 
-### list-profiles Command
+### list Command
+
+Lists available resources (profiles, templates, layouts, styles).
+
+```bash
+pagemd list <resource> [options]
+```
 
 | Flag | Alias | Type | Values | Default | Description |
 |------|-------|------|--------|---------|-------------|
-| `--json` | - | boolean | - | false | Output as JSON array |
-| `--verbose` | `-v` | boolean | - | false | Show full profile details |
+| `--json` | `-j` | boolean | - | false | Output as JSON array |
+| `--verbose` | - | boolean | - | false | Show full resource details |
+| `--all` | `-a` | boolean | - | false | Include workspace resources |
 
-**Aliases:** `profiles`, `lp`
+**Resource types:** `profiles`, `templates`, `layouts`, `styles`
+
+**Alias:** `ls`
 
 ---
 

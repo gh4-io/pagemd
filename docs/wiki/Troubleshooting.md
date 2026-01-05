@@ -12,6 +12,7 @@ Common issues, error messages, and solutions for PageMD.
 - [Path Resolution Errors](#path-resolution-errors)
 - [PDF Rendering Issues](#pdf-rendering-issues)
   - [Browser Persistence](#browser-persistence)
+  - [Images Not Displaying in PDF](#images-not-displaying-in-pdf)
 - [Debug Mode](#debug-mode)
 - [Log Levels](#log-levels)
 - [Common Error Messages](#common-error-messages)
@@ -535,6 +536,60 @@ $env:PAGEMD_KEEP_CHROME="1"
    /* Good - visible */
    body { display: block; }
    ```
+
+---
+
+### Images Not Displaying in PDF
+
+**Symptom:** Images appear in HTML output but are missing or broken in PDF.
+
+**Causes:**
+- Relative image paths not resolving
+- Browser can't find local images
+- Content Security Policy blocking
+
+**Solutions:**
+
+1. **Verify paths work in HTML first:**
+   ```bash
+   pagemd build document.md -o html
+   # Open document.html in browser and check images
+   ```
+
+2. **Use debug mode to inspect:**
+   ```bash
+   pagemd build document.md --debug --log-level DEBUG
+   # Check debug/*.paged.html for base href injection
+   # Look for: [DEBUG] renderer.pdf:base-href:success
+   ```
+
+3. **Check image path types:**
+   ```markdown
+   # Supported
+   ![](./local-image.png)         # Relative to markdown file
+   ![](../assets/image.jpg)       # Parent directory
+   ![](https://example.com/img)   # Remote URL
+
+   # Not supported without FIGURE directive
+   ![](/absolute/path/image.png) # Root paths may fail
+   ```
+
+4. **Use FIGURE directive for reliable images:**
+   ```markdown
+   <!-- ::FIGURE src="./diagram.png" caption="Architecture" -->
+   ```
+
+**Technical Details:**
+- PageMD injects `<base href="file:///path/to/markdown/dir/">` into HTML
+- This allows relative paths to resolve from the markdown file's directory
+- Remote HTTPS images always work
+- Data URIs (`data:image/...`) always work
+
+**Workaround for problematic images:**
+```markdown
+<!-- Convert to data URI for guaranteed rendering -->
+![](data:image/png;base64,iVBORw0KGgo...)
+```
 
 ---
 

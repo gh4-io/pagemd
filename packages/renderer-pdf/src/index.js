@@ -16,6 +16,12 @@ import {
   saveDebugScreenshot,
   cleanupDebugArtifacts
 } from './debug.js';
+import {
+  prepareHtmlForRendering,
+  injectBaseHref,
+  rewriteRelativePaths,
+  buildBaseUrl
+} from './image-paths.js';
 
 const logger = createLogger('renderer.pdf');
 
@@ -127,9 +133,19 @@ export async function renderPdf(markdownPath, options = {}) {
       deviceScaleFactor: 1
     });
 
-    // Set content with base URL for relative paths
-    const baseUrl = `file://${path.dirname(path.resolve(markdownPath))}/`;
-    await page.setContent(injectedHtml, {
+    // Prepare HTML for rendering with proper image path resolution
+    // Primary: inject <base href> for relative paths
+    // Fallback: rewrite paths to absolute file:// URLs if base href fails
+    const preparedHtml = prepareHtmlForRendering(injectedHtml, markdownPath, {
+      useBaseHref: true,
+      rewritePaths: false // Enable as fallback if base href causes issues
+    });
+
+    logger.debug('render.paths', 'success', 'HTML prepared for rendering', {
+      baseUrl: buildBaseUrl(markdownPath)
+    });
+
+    await page.setContent(preparedHtml, {
       waitUntil: 'networkidle0',
       timeout: 30000
     });
@@ -171,8 +187,8 @@ export async function renderPdf(markdownPath, options = {}) {
     if (debugDir) {
       logger.debug('render.debug', 'started', 'Saving debug artifacts');
 
-      // Save injected HTML
-      const htmlArtifact = await saveDebugHtml(injectedHtml, absolutePdfPath, {
+      // Save prepared HTML (with base href and any path rewrites)
+      const htmlArtifact = await saveDebugHtml(preparedHtml, absolutePdfPath, {
         debugDir,
         suffix: '.paged'
       });
@@ -297,5 +313,10 @@ export {
   shouldSaveDebug,
   saveDebugHtml,
   saveDebugScreenshot,
-  cleanupDebugArtifacts
+  cleanupDebugArtifacts,
+  // Image path utilities
+  prepareHtmlForRendering,
+  injectBaseHref,
+  rewriteRelativePaths,
+  buildBaseUrl
 };

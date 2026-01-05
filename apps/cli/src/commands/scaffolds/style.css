@@ -1,0 +1,82 @@
+/* PageMD Custom Style - {{name}}.css
+ * Uncomment sections to activate. No effect until uncommented.
+ *
+ * This file is loaded AFTER profile styles but BEFORE frontmatter styles.
+ * CSS Layer: profile (5 of 6)
+ */
+
+/* --- Typography ---
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+  line-height: 1.6;
+}
+
+h1 { font-size: 2rem; font-weight: 700; }
+h2 { font-size: 1.5rem; font-weight: 600; }
+h3 { font-size: 1.25rem; font-weight: 600; }
+*/
+
+/* --- Tables ---
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1rem 0;
+}
+
+th, td {
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  text-align: left;
+}
+
+th {
+  background-color: #f5f5f5;
+  font-weight: 600;
+}
+*/
+
+/* --- Code Blocks ---
+pre {
+  background-color: #f8f9fa;
+  padding: 1rem;
+  border-radius: 4px;
+  overflow-x: auto;
+}
+
+code {
+  font-family: 'Fira Code', 'Consolas', monospace;
+  font-size: 0.9em;
+}
+*/
+
+/* --- Lists ---
+ul, ol {
+  padding-left: 2rem;
+  margin: 1rem 0;
+}
+
+li {
+  margin: 0.25rem 0;
+}
+*/
+
+/* --- Links ---
+a {
+  color: #0066cc;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+*/
+
+/* --- Blockquotes ---
+blockquote {
+  border-left: 4px solid #ddd;
+  margin: 1rem 0;
+  padding: 0.5rem 1rem;
+  color: #666;
+  background-color: #f9f9f9;
+}
+*/

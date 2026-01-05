@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{title}}</title>
+  <!-- PageMD styles will be injected here -->
+  {{styles}}
+</head>
+<body>
+  <!-- Document Header (optional) -->
+  <!--
+  <header class="document-header">
+    <div class="document-id">{{document_id}}</div>
+    <div class="revision">Rev. {{revision}}</div>
+  </header>
+  -->
+
+  <!-- Main Content -->
+  <main class="content">
+    {{content}}
+  </main>
+
+  <!-- Document Footer (optional) -->
+  <!--
+  <footer class="document-footer">
+    <div class="owner">Owner: {{owner}}</div>
+    <div class="date">Effective: {{effective_date}}</div>
+  </footer>
+  -->
+
+  <!-- Paged.js will be injected here for PDF rendering -->
+  {{scripts}}
+</body>
+</html>

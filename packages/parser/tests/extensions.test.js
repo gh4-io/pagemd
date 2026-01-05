@@ -220,7 +220,7 @@ describe('figurePlugin', () => {
     const html = md.render(input);
 
     expect(html).toContain('<figure>');
-    expect(html).toContain('<figcaption>Figure 1: Test Image</figcaption>');
+    expect(html).toContain('<figcaption>Figure <span class="fig-num">1</span>: Test Image</figcaption>');
     expect(html).toContain('<img');
     expect(html).toContain('src="image.png"');
     expect(html).toContain('</figure>');
@@ -238,9 +238,10 @@ describe('figurePlugin', () => {
 
     const html = md.render(input);
 
-    expect(html).toContain('Figure 1: First');
-    expect(html).toContain('Figure 2: Second');
-    expect(html).toContain('Figure 3: Third');
+    // Figure numbers now wrapped in span for styling
+    expect(html).toContain('Figure <span class="fig-num">1</span>: First');
+    expect(html).toContain('Figure <span class="fig-num">2</span>: Second');
+    expect(html).toContain('Figure <span class="fig-num">3</span>: Third');
   });
 
   it('should reset figure counter on each render', () => {
@@ -250,8 +251,8 @@ describe('figurePlugin', () => {
     const html1 = md.render(input);
     const html2 = md.render(input);
 
-    expect(html1).toContain('Figure 1: Test');
-    expect(html2).toContain('Figure 1: Test');
+    expect(html1).toContain('Figure <span class="fig-num">1</span>: Test');
+    expect(html2).toContain('Figure <span class="fig-num">1</span>: Test');
   });
 
   it('should handle captions with single quotes', () => {
@@ -260,7 +261,7 @@ describe('figurePlugin', () => {
 
     const html = md.render(input);
 
-    expect(html).toContain('Figure 1: Single quote caption');
+    expect(html).toContain('Figure <span class="fig-num">1</span>: Single quote caption');
   });
 
   it('should handle captions with double quotes', () => {
@@ -269,7 +270,7 @@ describe('figurePlugin', () => {
 
     const html = md.render(input);
 
-    expect(html).toContain('Figure 1: Double quote caption');
+    expect(html).toContain('Figure <span class="fig-num">1</span>: Double quote caption');
   });
 
   it('should handle captions with special characters', () => {
@@ -278,7 +279,7 @@ describe('figurePlugin', () => {
 
     const html = md.render(input);
 
-    expect(html).toContain('Figure 1: Test: A Caption (v1.0)');
+    expect(html).toContain('Figure <span class="fig-num">1</span>: Test: A Caption (v1.0)');
   });
 
   it('should work without image on next line', () => {
@@ -287,7 +288,7 @@ describe('figurePlugin', () => {
     const html = md.render(input);
 
     expect(html).toContain('<figure>');
-    expect(html).toContain('Figure 1: No image');
+    expect(html).toContain('Figure <span class="fig-num">1</span>: No image');
     expect(html).toContain('</figure>');
   });
 
@@ -299,7 +300,7 @@ More content here`;
 
     const html = md.render(input);
 
-    expect(html).toContain('Figure 1: Test');
+    expect(html).toContain('Figure <span class="fig-num">1</span>: Test');
     expect(html).toContain('More content here');
   });
 
@@ -336,8 +337,8 @@ End text`;
 
     const html = md.render(input);
 
-    expect(html).toContain('Figure 1: First figure');
-    expect(html).toContain('Figure 2: Second figure');
+    expect(html).toContain('Figure <span class="fig-num">1</span>: First figure');
+    expect(html).toContain('Figure <span class="fig-num">2</span>: Second figure');
     expect(html).toContain('Middle paragraph');
   });
 
@@ -389,7 +390,7 @@ describe('registerExtensions', () => {
     const html = md.render(input);
 
     expect(html).toContain('callout-warning');
-    expect(html).toContain('Figure 1: Important diagram');
+    expect(html).toContain('Figure <span class="fig-num">1</span>: Important diagram');
     expect(html).toContain('callout-danger');
   });
 });

@@ -5,9 +5,12 @@
   "main": "src/index.js",
   "dependencies": {
     "@pagemd/core": "*",
+    "gray-matter": "^4.0.3",
     "markdown-it": "^14.0.0",
     "markdown-it-attrs": "^4.1.6",
-    "gray-matter": "^4.0.3",
+    "markdown-it-container": "^4.0.0",
+    "markdown-it-github-alerts": "^1.0.0",
+    "markdown-it-include": "^2.0.0",
     "shiki": "^3.20.0"
   }
 }

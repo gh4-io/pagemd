@@ -12,6 +12,46 @@ import { createLogger } from '@pagemd/core';
 
 const logger = createLogger('renderer.pdf');
 
+/**
+ * Check for missing shared libraries and return helpful error message
+ * @param {string} errorMessage - Original error message from Puppeteer
+ * @returns {string} Enhanced error message with fix instructions, or original if not a library issue
+ */
+function enhanceLibraryError(errorMessage) {
+  // Only enhance on Linux
+  if (process.platform !== 'linux') {
+    return errorMessage;
+  }
+
+  // Check if this is a shared library error
+  const libMatch = errorMessage.match(/error while loading shared libraries: ([^:]+)/);
+  if (libMatch) {
+    const missingLib = libMatch[1];
+    return `Missing system library: ${missingLib}
+
+Chrome requires system libraries that are not installed.
+
+To fix, run:
+  sudo apt install -y libnss3 libnspr4 libasound2 libatk-bridge2.0-0 libdrm2 libgbm1 libxkbcommon0
+
+Then try again.`;
+  }
+
+  // Check for other common Chrome launch failures on Linux
+  if (errorMessage.includes('No usable sandbox') || errorMessage.includes('SUID sandbox')) {
+    return `Chrome sandbox error.
+
+To fix, either:
+1. Run with --no-sandbox (less secure, already attempted)
+2. Set up kernel unprivileged user namespaces:
+   echo 1 | sudo tee /proc/sys/kernel/unprivileged_userns_clone
+
+Original error: ${errorMessage}`;
+  }
+
+  return errorMessage;
+}
+
 // Cached browser instance for PAGEMD_KEEP_CHROME mode
 let cachedBrowser = null;
 let browserPersistenceEnabled = null;
@@ -203,8 +243,9 @@ export async function launchBrowser(options = {}) {
       browser = await puppeteer.launch(baseConfig);
       logger.info('browser_launch', 'ok', `Bundled Chromium launched successfully`);
     } catch (err) {
+      const enhancedMessage = enhanceLibraryError(err.message);
       logger.error('browser_launch', 'fail', `Failed to launch bundled Chromium: ${err.message}`);
-      throw new Error(`Failed to launch browser: ${err.message}`);
+      throw new Error(`Failed to launch browser: ${enhancedMessage}`);
     }
   }
 

@@ -7,6 +7,7 @@ PageMD is a Node.js-based pipeline for converting Markdown to HTML, PDF, PNG, an
 - [System Requirements](#system-requirements)
 - [Package Installation](#package-installation)
 - [Browser Setup](#browser-setup)
+- [Uninstall](#uninstall)
 - [Verification](#verification)
 - [Troubleshooting](#troubleshooting)
 - [See Also](#see-also)
@@ -114,6 +115,28 @@ If Chrome is not available, Puppeteer downloads bundled Chromium during `npm ins
 
 **Note:** Bundled Chromium is ~170MB and downloads to `node_modules/puppeteer/.local-chromium/`
 
+## Uninstall
+
+### Uninstall CLI
+
+```bash
+# Global install
+npm uninstall -g @pagemd/cli
+
+# Workspace install
+npm uninstall @pagemd/cli
+
+# From cloned repo
+rm -rf /path/to/pagemd
+```
+
+### Clean Up Generated Files (Optional)
+
+PageMD may have created these files/folders:
+- Output files (`.pdf`, `.html`, `.png`, `.jpeg`) in your output directory
+- Debug artifacts (`*-debug.html`, `*-debug.css`) if debug mode was used
+- `.pagemd/` folder in your workspace (local profiles/overrides)
+
 ## Verification
 
 ### Test Dependencies
@@ -192,6 +215,10 @@ cd project
 rm -rf node_modules package-lock.json
 npm install
 ```
+
+## VS Code Extension
+
+For VS Code extension installation, see the [PageMD VS Code Wiki](https://github.com/gh4-io/pagemd-vscode/wiki/Installation).
 
 ## See Also
 
