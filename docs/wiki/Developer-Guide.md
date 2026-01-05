@@ -316,12 +316,22 @@ PageMD uses a 4-layer additive CSS system for styling consistency and extensibil
    - Page layout defaults
    - Always loaded second
 
-3. **Profile CSS** - Profile-specific styles
+3. **Layout CSS** - Paged.js structure (optional)
+   - From `profile.resources.layout` or `profile.layout.css`
+   - @page rules, margins, page size
+   - Loaded third when profile specifies layout
+
+4. **Syntax CSS** (`project/styles/syntax/shiki-base.css`) - Code block styling
+   - Shiki syntax highlighter structural styles
+   - Only loaded when `PAGEMD_SYNTAX_HIGHLIGHT` enabled (default: true)
+   - Loaded fourth
+
+5. **Profile CSS** - Profile-specific styles
    - From `profile.resources.css[]` or `profile.styles.profile`
    - Layout-specific overrides
-   - Loaded third
+   - Loaded fifth
 
-4. **Frontmatter CSS** - Document-level overrides
+6. **Frontmatter CSS** - Document-level overrides
    - From markdown frontmatter `styles: [...]`
    - Document-specific styling
    - Loaded last (highest priority)

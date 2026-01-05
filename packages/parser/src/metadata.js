@@ -39,7 +39,17 @@ export const FIELD_ALIASES = {
   style: 'styles',
   css: 'styles',
   stylesheet: 'styles',
-  stylesheets: 'styles'
+  stylesheets: 'styles',
+
+  // Syntax highlighting theme aliases
+  syntax_theme: 'highlight_theme',
+  syntaxTheme: 'highlight_theme',
+  'syntax-theme': 'highlight_theme',
+  code_theme: 'highlight_theme',
+  codeTheme: 'highlight_theme',
+  'code-theme': 'highlight_theme',
+  highlightTheme: 'highlight_theme',
+  'highlight-theme': 'highlight_theme'
 };
 
 // Default values (loaded from metadata.defaults.json)
@@ -54,7 +64,8 @@ const DEFAULT_VALUES = {
   category: '',
   tags: [],
   styles: [],
-  pipeline_profile: 'standard_letter'
+  pipeline_profile: 'standard_letter',
+  highlight_theme: 'github-light'
 };
 
 // Field type definitions (loaded from metadata.defaults.json)
@@ -69,7 +80,8 @@ const FIELD_DEFINITIONS = {
   category: { type: 'string', trim: true },
   tags: { type: 'array', items: 'string' },
   styles: { type: 'array', items: 'string' },
-  pipeline_profile: { type: 'string', trim: true }
+  pipeline_profile: { type: 'string', trim: true },
+  highlight_theme: { type: 'string', trim: true }
 };
 
 /**

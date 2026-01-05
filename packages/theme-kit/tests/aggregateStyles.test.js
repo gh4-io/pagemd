@@ -53,23 +53,23 @@ describe('theme-kit CSS aggregation', () => {
 
   describe('CSS_LAYER_ORDER', () => {
     it('should include all required layers in correct order', () => {
-      expect(CSS_LAYER_ORDER).toEqual(['base', 'primary', 'layout', 'profile', 'frontmatter']);
+      expect(CSS_LAYER_ORDER).toEqual(['base', 'primary', 'layout', 'syntax', 'profile', 'frontmatter']);
     });
 
     it('should have layout layer in position 3 (after base and primary)', () => {
       const layoutIndex = CSS_LAYER_ORDER.indexOf('layout');
       const baseIndex = CSS_LAYER_ORDER.indexOf('base');
       const primaryIndex = CSS_LAYER_ORDER.indexOf('primary');
-      const profileIndex = CSS_LAYER_ORDER.indexOf('profile');
+      const syntaxIndex = CSS_LAYER_ORDER.indexOf('syntax');
 
       expect(layoutIndex).toBe(2);
       expect(layoutIndex).toBeGreaterThan(baseIndex);
       expect(layoutIndex).toBeGreaterThan(primaryIndex);
-      expect(layoutIndex).toBeLessThan(profileIndex);
+      expect(layoutIndex).toBeLessThan(syntaxIndex);
     });
 
-    it('should have exactly 5 layers', () => {
-      expect(CSS_LAYER_ORDER).toHaveLength(5);
+    it('should have exactly 6 layers', () => {
+      expect(CSS_LAYER_ORDER).toHaveLength(6);
     });
   });
 

@@ -10,6 +10,7 @@ import { hideBin } from 'yargs/helpers';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import { createLogger, setLogLevel, getPackageRootFromCli, loadEnvConfig, getEnv, getEnvWarnings } from '@pagemd/core';
+import { initHighlighter } from '@pagemd/parser';
 
 // Import commands
 import * as buildCommand from './commands/build.js';
@@ -39,6 +40,17 @@ if (envWarnings.length > 0) {
 }
 
 logger.debug('init', 'start', 'PageMD CLI starting', { version: '0.1.0' });
+
+// Initialize syntax highlighter (async, but only once at startup)
+// This enables shiki's sync codeToHtml() in the render loop
+if (getEnv('syntaxHighlight') !== false) {
+  try {
+    await initHighlighter();
+    logger.debug('init', 'highlighter', 'Shiki syntax highlighter initialized');
+  } catch (err) {
+    logger.warn('init', 'highlighter', `Syntax highlighting unavailable: ${err.message}`);
+  }
+}
 
 yargs(hideBin(process.argv))
   .scriptName('pagemd')

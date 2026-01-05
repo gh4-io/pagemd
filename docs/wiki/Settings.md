@@ -364,6 +364,7 @@ PageMD supports universal environment variables (Linux/Windows) prefixed with `P
 | Variable | Type | Default | Description |
 |----------|------|---------|-------------|
 | `PAGEMD_JPEG_QUALITY` | number | `90` | JPEG output quality (1-100) |
+| `PAGEMD_SYNTAX_HIGHLIGHT` | boolean | `true` | Enable syntax highlighting for code blocks |
 
 #### Path Configuration
 

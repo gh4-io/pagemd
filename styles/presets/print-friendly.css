@@ -1,0 +1,113 @@
+/**
+ * Print-Friendly Preset
+ * Optimized for black & white printing with maximum readability
+ *
+ * Usage in frontmatter:
+ * ---
+ * styles: styles/presets/print-friendly.css
+ * ---
+ */
+
+/* Force grayscale for all elements */
+* {
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+/* High contrast text */
+body {
+  color: #000;
+  background: #fff;
+}
+
+/* Headers with clear visual hierarchy */
+h1, h2, h3, h4, h5, h6 {
+  color: #000;
+  font-weight: bold;
+  page-break-after: avoid;
+}
+
+h1 {
+  border-bottom: 2px solid #000;
+  padding-bottom: 0.3em;
+}
+
+h2 {
+  border-bottom: 1px solid #666;
+  padding-bottom: 0.2em;
+}
+
+/* Links styled for print (no color, show URL) */
+a {
+  color: #000;
+  text-decoration: underline;
+}
+
+@media print {
+  a[href^="http"]:after {
+    content: " (" attr(href) ")";
+    font-size: 0.8em;
+    color: #666;
+  }
+}
+
+/* Code blocks with border (no background color) */
+pre, code {
+  background: transparent;
+  border: 1px solid #999;
+}
+
+pre {
+  padding: 0.75rem;
+  page-break-inside: avoid;
+}
+
+/* Tables with solid borders */
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+th, td {
+  border: 1px solid #000;
+  padding: 0.5rem;
+  text-align: left;
+}
+
+th {
+  background: #eee;
+  font-weight: bold;
+}
+
+/* Blockquotes with left border */
+blockquote {
+  border-left: 3px solid #000;
+  margin-left: 0;
+  padding-left: 1rem;
+  font-style: italic;
+  background: transparent;
+}
+
+/* Images at reasonable size */
+img {
+  max-width: 100%;
+  height: auto;
+  page-break-inside: avoid;
+}
+
+/* Lists with proper spacing */
+ul, ol {
+  margin-left: 1.5rem;
+  padding-left: 0;
+}
+
+li {
+  margin-bottom: 0.25rem;
+}
+
+/* Horizontal rules */
+hr {
+  border: none;
+  border-top: 1px solid #000;
+  margin: 1.5rem 0;
+}

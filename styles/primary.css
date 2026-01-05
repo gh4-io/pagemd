@@ -15,6 +15,15 @@ body {
   color: var(--color-text);
 }
 
+/* Constrain width for HTML viewing (screen only, not PDF) */
+@media screen {
+  body {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 2rem;
+  }
+}
+
 h1, h2, h3, h4, h5, h6 {
   margin-top: 1.5em;
   margin-bottom: 0.5em;

@@ -115,8 +115,9 @@ describe('index.js', () => {
 
       expect(loadProfileSync).toHaveBeenCalledWith('standard_letter', '/custom/root', '/custom/root');
       expect(createPathContext).toHaveBeenCalledWith({
-        markdownPath: '/custom/path/test.md',
-        projectRoot: '/custom/root'
+        markdownDir: '/custom/path',
+        projectRoot: '/custom/root',
+        manifestDir: undefined
       });
     });
 
@@ -143,8 +144,9 @@ describe('index.js', () => {
 
       expect(result.profile).toEqual(mockProfile);
       expect(createPathContext).toHaveBeenCalledWith({
-        markdownPath: undefined,
-        projectRoot: '/project'
+        markdownDir: null,
+        projectRoot: '/project',
+        manifestDir: undefined
       });
     });
 
@@ -405,8 +407,9 @@ describe('index.js', () => {
       await renderMarkdown('# Test', { projectRoot: '/custom/root' });
 
       expect(createPathContext).toHaveBeenCalledWith({
-        markdownPath: undefined,
-        projectRoot: '/custom/root'
+        markdownDir: null,
+        projectRoot: '/custom/root',
+        manifestDir: undefined
       });
     });
 
@@ -453,8 +456,9 @@ describe('index.js', () => {
       await renderMarkdown('# Test');
 
       expect(createPathContext).toHaveBeenCalledWith({
-        markdownPath: undefined,
-        projectRoot: expect.any(String)
+        markdownDir: null,
+        projectRoot: expect.any(String),
+        manifestDir: undefined
       });
     });
   });

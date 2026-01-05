@@ -1,0 +1,71 @@
+/**
+ * Shiki Syntax Highlighting Base Styles
+ *
+ * Base CSS for shiki-generated code blocks.
+ * Shiki outputs: <pre class="shiki [theme]" style="..."><code>...</code></pre>
+ * Theme colors are inline; this CSS provides structural styling.
+ */
+
+/* Code block container */
+pre.shiki {
+  padding: 1rem;
+  overflow-x: auto;
+  border-radius: 4px;
+  margin: 1rem 0;
+  line-height: 1.5;
+  tab-size: 2;
+}
+
+/* Code element within pre */
+pre.shiki code {
+  font-family: 'Menlo', 'Monaco', 'Consolas', 'Liberation Mono', 'Courier New', monospace;
+  font-size: 0.875em;
+  white-space: pre;
+}
+
+/* Inline code (not from shiki, but for consistency) */
+:not(pre) > code {
+  font-family: 'Menlo', 'Monaco', 'Consolas', 'Liberation Mono', 'Courier New', monospace;
+  font-size: 0.875em;
+  padding: 0.2em 0.4em;
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 3px;
+}
+
+/* Line numbers (if enabled) */
+pre.shiki .line {
+  display: inline-block;
+  width: 100%;
+}
+
+pre.shiki .line::before {
+  content: attr(data-line);
+  display: inline-block;
+  width: 2em;
+  margin-right: 1em;
+  text-align: right;
+  color: rgba(0, 0, 0, 0.3);
+  user-select: none;
+}
+
+/* Highlighted lines */
+pre.shiki .line.highlighted {
+  background: rgba(0, 0, 0, 0.1);
+  margin: 0 -1rem;
+  padding: 0 1rem;
+}
+
+/* Print styles */
+@media print {
+  pre.shiki {
+    overflow-x: visible;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    page-break-inside: avoid;
+    border: 1px solid #ddd;
+  }
+
+  pre.shiki code {
+    font-size: 0.8em;
+  }
+}

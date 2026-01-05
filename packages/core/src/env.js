@@ -48,6 +48,9 @@ export const ENV_SCHEMA = {
   // Output configuration
   PAGEMD_JPEG_QUALITY: { type: 'number', default: 90, min: 1, max: 100, description: 'JPEG output quality' },
 
+  // Syntax highlighting
+  PAGEMD_SYNTAX_HIGHLIGHT: { type: 'boolean', default: true, description: 'Enable syntax highlighting for code blocks' },
+
   // Path configuration
   PAGEMD_PROJECT_ROOT: { type: 'path', default: null, description: 'Override project root detection' },
   PAGEMD_CONFIG_DIR: { type: 'path', default: null, description: 'Additional config search path' }
@@ -315,6 +318,9 @@ export function mergeWithEnv(cliOptions = {}) {
     projectRoot: cliOptions.projectRoot || env.projectRoot,
 
     // Log level: CLI > env > default
-    logLevel: cliOptions.logLevel || env.logLevel
+    logLevel: cliOptions.logLevel || env.logLevel,
+
+    // Syntax highlighting: env only (default: enabled)
+    syntaxHighlight: env.syntaxHighlight
   }
 }

@@ -62,9 +62,9 @@ describe('paths.js', () => {
       expect(DEFAULT_FILES.primaryCSS).toBe('styles/primary.css');
     });
 
-    it('should have exactly 2 default files', () => {
+    it('should have exactly 3 default files', () => {
       const keys = Object.keys(DEFAULT_FILES);
-      expect(keys).toHaveLength(2);
+      expect(keys).toHaveLength(3);
     });
 
     it('should have all paths end with .css', () => {

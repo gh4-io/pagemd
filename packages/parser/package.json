@@ -7,6 +7,7 @@
     "@pagemd/core": "*",
     "markdown-it": "^14.0.0",
     "markdown-it-attrs": "^4.1.6",
-    "gray-matter": "^4.0.3"
+    "gray-matter": "^4.0.3",
+    "shiki": "^3.20.0"
   }
 }

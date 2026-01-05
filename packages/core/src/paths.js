@@ -24,6 +24,7 @@ export const RESOURCE_PATHS = {
 export const DEFAULT_FILES = {
   baseCSS: 'styles/base.css',
   primaryCSS: 'styles/primary.css',
+  syntaxCSS: 'styles/syntax/shiki-base.css',
 };
 
 /**

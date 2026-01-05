@@ -6,22 +6,29 @@
  * 1. base - CSS reset/normalize (project/styles/base.css)
  * 2. primary - project overrides (project/styles/primary.css)
  * 3. layout - Paged.js structure (@page rules, margins) - optional
- * 4. profile - visual styling (fonts, colors) from resources.css
- * 5. frontmatter - inline styles from frontmatter
+ * 4. syntax - code block styling (project/styles/syntax/shiki-base.css)
+ * 5. profile - visual styling (fonts, colors) from resources.css
+ * 6. frontmatter - inline styles from frontmatter
  */
 
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { createLogger } from '@pagemd/core';
-import { resolvePath, resolveResourcePath, expandTokens, DEFAULT_FILES } from '@pagemd/core';
+import { resolvePath, resolveResourcePath, expandTokens, DEFAULT_FILES, getEnv } from '@pagemd/core';
 
 const logger = createLogger('assets');
 
 /**
  * CSS Layer Order (priority low to high)
+ * 1. base - CSS reset/normalize
+ * 2. primary - project overrides
+ * 3. layout - Paged.js structure (@page rules)
+ * 4. syntax - code block styling (shiki)
+ * 5. profile - visual styling (fonts, colors)
+ * 6. frontmatter - document-specific overrides
  * @constant {string[]}
  */
-export const CSS_LAYER_ORDER = ['base', 'primary', 'layout', 'profile', 'frontmatter'];
+export const CSS_LAYER_ORDER = ['base', 'primary', 'layout', 'syntax', 'profile', 'frontmatter'];
 
 /**
  * @typedef {Object} StylesheetResult
@@ -163,7 +170,31 @@ export async function aggregateStyles(profile, context) {
   }
 
   // ==========================================================================
-  // Layer 4: Profile-specific styles
+  // Layer 4: Syntax highlighting CSS (shiki base styles) - conditional
+  // Only loaded if syntax highlighting is enabled (PAGEMD_SYNTAX_HIGHLIGHT != 0)
+  // ==========================================================================
+  if (getEnv('syntaxHighlight') !== false) {
+    const syntaxPath = DEFAULT_FILES.syntaxCSS;
+    try {
+      const syntaxResult = await loadStylesheet(syntaxPath, context);
+      styles.push({
+        layer: 'syntax',
+        content: syntaxResult.content,
+        source: syntaxPath,
+        resolvedPath: syntaxResult.resolvedPath,
+        size: syntaxResult.size
+      });
+      logger.debug('aggregate', 'info', 'Loaded syntax stylesheet', { path: syntaxPath });
+    } catch (error) {
+      // Syntax CSS is optional; warn but continue if missing
+      logger.warn('aggregate', 'warning', 'Syntax stylesheet not found, continuing', {
+        path: syntaxPath
+      });
+    }
+  }
+
+  // ==========================================================================
+  // Layer 5: Profile-specific styles
   // Supports both modern (resources.css[]) and legacy (styles.profile) structures
   // ==========================================================================
   const hasResourcesCss = Array.isArray(profile?.resources?.css) && profile.resources.css.length > 0;
@@ -228,7 +259,7 @@ export async function aggregateStyles(profile, context) {
     }
   }
 
-  // Layer 5: Frontmatter inline styles (added by caller if present)
+  // Layer 6: Frontmatter inline styles (added by caller if present)
   // Frontmatter styles are typically added separately by the renderer
 
   logger.info('aggregate', 'success', `Aggregated ${styles.length} stylesheets`, {

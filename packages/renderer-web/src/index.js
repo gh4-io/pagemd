@@ -4,6 +4,7 @@
  */
 
 import { promises as fs } from 'node:fs';
+import path from 'node:path';
 import { parse, parseFile } from '@pagemd/parser';
 import {
   loadProfileSync,
@@ -11,7 +12,8 @@ import {
   findProjectRoot,
   createLogger,
   addResource,
-  resolvePath
+  resolvePath,
+  resolveResourcePath
 } from '@pagemd/core';
 import { loadTemplate, renderTemplate } from './template.js';
 import { buildStyleBlock } from './styles.js';
@@ -34,7 +36,7 @@ async function loadFrontmatterStyles(stylePaths, pathContext) {
 
   for (const stylePath of stylePaths) {
     try {
-      const resolved = resolvePath(stylePath, pathContext);
+      const resolved = resolveResourcePath(stylePath, pathContext);
       const content = await fs.readFile(resolved, 'utf-8');
       cssChunks.push(content);
       resources.push({
@@ -84,7 +86,7 @@ export function createRenderContext(options) {
 
   // Create path context (include manifestDir from profile for ${manifestDir} token)
   const pathContext = createPathContext({
-    markdownPath,
+    markdownDir: markdownPath ? path.dirname(markdownPath) : null,
     projectRoot,
     manifestDir: profile._manifestDir
   });

@@ -5,23 +5,14 @@
   "resources": {
     "template": "${projectRoot}/templates/standard_letter.html",
     "layout": "${projectRoot}/layouts/letter.css",
-    "css": [
-      "${projectRoot}/styles/primary.css",
-      "${projectRoot}/templates/standard_letter.css"
-    ],
+    "css": ["${projectRoot}/styles/primary.css"],
     "fonts": [],
     "assets": []
   },
 
   "pagedjs": {
-    "mode": "browser",
-    "save_paged_html": "debug",
-    "handlers": [],
-    "styles": [],
-    "browser_options": {},
-    "cli_options": {}
+    "mode": "browser"
   },
-
   "outputs": {
     "pdf": {
       "enabled": true,
@@ -44,17 +35,13 @@
       "options": {}
     }
   },
-
   "validation": {
     "required_fields": ["document_id", "title"]
   },
-
   "metadata": {
     "defaults": {
       "status": "Draft",
       "revision": 0
-    },
-    "aliases": {},
-    "date_format": "MM/DD/YYYY"
+    }
   }
 }

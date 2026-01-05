@@ -1,0 +1,200 @@
+/**
+ * Modern Clean Preset
+ * Clean sans-serif aesthetic with generous whitespace and subtle accents
+ *
+ * Usage in frontmatter:
+ * ---
+ * styles: styles/presets/modern-clean.css
+ * ---
+ */
+
+/* Clean sans-serif base */
+body {
+  font-family: 'Inter', 'Segoe UI', 'Roboto', 'Helvetica Neue', sans-serif;
+  font-size: 16px;
+  line-height: 1.7;
+  color: #374151;
+  background: #fff;
+  max-width: 100%;
+}
+
+/* Modern headers with subtle weight */
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Inter', 'Segoe UI', 'Roboto', 'Helvetica Neue', sans-serif;
+  font-weight: 600;
+  color: #111827;
+  margin-top: 2rem;
+  margin-bottom: 0.75rem;
+  letter-spacing: -0.02em;
+}
+
+h1 {
+  font-size: 2.25rem;
+  font-weight: 700;
+  margin-top: 0;
+}
+
+h2 {
+  font-size: 1.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+h3 {
+  font-size: 1.375rem;
+}
+
+h4 {
+  font-size: 1.125rem;
+}
+
+/* Paragraphs with comfortable reading width */
+p {
+  margin-bottom: 1.25rem;
+}
+
+/* Subtle accent color for links */
+a {
+  color: #2563eb;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+a:hover {
+  color: #1d4ed8;
+  text-decoration: underline;
+}
+
+/* Code with rounded corners */
+pre {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 1.25rem;
+  overflow-x: auto;
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+code {
+  font-family: 'JetBrains Mono', 'Fira Code', 'Menlo', monospace;
+  font-size: 0.875em;
+}
+
+:not(pre) > code {
+  background: #f3f4f6;
+  border-radius: 4px;
+  padding: 0.2em 0.4em;
+  color: #dc2626;
+}
+
+/* Clean tables */
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1.5rem 0;
+  font-size: 0.9375rem;
+}
+
+th, td {
+  padding: 0.875rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+th {
+  font-weight: 600;
+  color: #111827;
+  background: #f9fafb;
+}
+
+tr:last-child td {
+  border-bottom: none;
+}
+
+/* Soft blockquotes */
+blockquote {
+  background: #f9fafb;
+  border-left: 4px solid #2563eb;
+  margin: 1.5rem 0;
+  padding: 1rem 1.25rem;
+  border-radius: 0 8px 8px 0;
+  color: #4b5563;
+  font-style: italic;
+}
+
+blockquote p {
+  margin: 0;
+}
+
+/* Lists with subtle bullets */
+ul {
+  list-style: none;
+  padding-left: 1.25rem;
+}
+
+ul > li {
+  position: relative;
+  margin-bottom: 0.5rem;
+}
+
+ul > li::before {
+  content: "";
+  position: absolute;
+  left: -1rem;
+  top: 0.75rem;
+  width: 5px;
+  height: 5px;
+  background: #9ca3af;
+  border-radius: 50%;
+}
+
+ol {
+  padding-left: 1.5rem;
+}
+
+ol > li {
+  margin-bottom: 0.5rem;
+}
+
+/* Images with rounded corners */
+img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+}
+
+/* Soft horizontal rules */
+hr {
+  border: none;
+  height: 1px;
+  background: linear-gradient(to right, transparent, #e5e7eb, transparent);
+  margin: 2.5rem 0;
+}
+
+/* Emphasized text */
+strong {
+  font-weight: 600;
+  color: #111827;
+}
+
+em {
+  font-style: italic;
+  color: #4b5563;
+}
+
+/* Definition lists */
+dl {
+  margin: 1.5rem 0;
+}
+
+dt {
+  font-weight: 600;
+  color: #111827;
+  margin-top: 1rem;
+}
+
+dd {
+  margin-left: 1.25rem;
+  color: #4b5563;
+}
