@@ -11,11 +11,11 @@
   },
   "license": "MIT",
   "dependencies": {
-    "@pagemd/core": "^0.1.0",
-    "@pagemd/parser": "^0.1.0",
-    "@pagemd/renderer-web": "^0.1.0",
-    "@pagemd/renderer-pdf": "^0.1.0",
-    "@pagemd/exporters": "^0.1.0",
+    "@pagemd/core": "*",
+    "@pagemd/parser": "*",
+    "@pagemd/renderer-web": "*",
+    "@pagemd/renderer-pdf": "*",
+    "@pagemd/exporters": "*",
     "yargs": "^17.7.2"
   }
 }

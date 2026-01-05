@@ -65,12 +65,20 @@ function getNestedValue(obj, path) {
  * @returns {string} Processed template
  */
 export function processTokens(template, data, pathContext = null) {
+  // Known path tokens that should be preserved for expandTokens
+  const pathTokens = ['PROJECT_ROOT', 'MARKDOWN_DIR', 'CONFIG_DIR', 'MANIFEST_DIR', 'WORKSPACE_FOLDER'];
+
   // Track missing tokens
   const missingTokens = [];
 
   // Replace {{token}} patterns
   let rendered = template.replace(/\{\{([^}]+)\}\}/g, (match, token) => {
     const trimmed = token.trim();
+
+    // Preserve path tokens for later expansion by expandTokens
+    if (pathTokens.includes(trimmed)) {
+      return match; // Keep original {{TOKEN}} format
+    }
 
     // Handle nested access (e.g., metadata.title, meta.document_id)
     if (trimmed.includes('.')) {
@@ -99,7 +107,7 @@ export function processTokens(template, data, pathContext = null) {
     rendered = expandTokens(rendered, pathContext);
   }
 
-  // Log warnings for missing tokens
+  // Log warnings for missing tokens (excluding path tokens)
   if (missingTokens.length > 0) {
     const uniqueMissing = Array.from(new Set(missingTokens));
     logger.warn(`Missing template tokens: ${uniqueMissing.join(', ')}`);
@@ -137,6 +145,7 @@ export function renderTemplate(template, context) {
     profile
   };
 
+  const result = processTokens(template, tokenData, pathContext);
   logger.debug('Template rendered successfully');
-  return processTokens(template, tokenData, pathContext);
+  return result;
 }

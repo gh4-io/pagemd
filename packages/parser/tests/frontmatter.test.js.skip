@@ -1,0 +1,219 @@
+/**
+ * Tests for frontmatter extraction
+ */
+
+import { describe, it, expect } from 'vitest';
+import { extractFrontmatter } from '../src/index.js';
+
+describe('extractFrontmatter', () => {
+  it('should extract YAML frontmatter', () => {
+    const markdown = `---
+title: Test Document
+author: John Doe
+---
+
+# Content here`;
+
+    const result = extractFrontmatter(markdown);
+
+    expect(result.metadata).toEqual({
+      title: 'Test Document',
+      author: 'John Doe'
+    });
+    expect(result.content).toBe('\n# Content here');
+    expect(result.raw).toBe('title: Test Document\nauthor: John Doe');
+  });
+
+  it('should handle markdown without frontmatter', () => {
+    const markdown = '# Just a heading\n\nSome content.';
+    const result = extractFrontmatter(markdown);
+
+    expect(result.metadata).toEqual({});
+    expect(result.content).toBe(markdown);
+    expect(result.raw).toBe('');
+  });
+
+  it('should handle empty frontmatter', () => {
+    const markdown = `---
+---
+
+# Content`;
+
+    const result = extractFrontmatter(markdown);
+
+    expect(result.metadata).toEqual({});
+    expect(result.content).toBe('\n# Content');
+    expect(result.raw).toBe('');
+  });
+
+  it('should extract complex nested metadata', () => {
+    const markdown = `---
+title: Complex Document
+metadata:
+  author: Jane Smith
+  version: 1.2.3
+tags:
+  - javascript
+  - testing
+  - markdown
+status: draft
+---
+
+Content here`;
+
+    const result = extractFrontmatter(markdown);
+
+    expect(result.metadata.title).toBe('Complex Document');
+    expect(result.metadata.metadata).toEqual({
+      author: 'Jane Smith',
+      version: 1.2.3
+    });
+    expect(result.metadata.tags).toEqual(['javascript', 'testing', 'markdown']);
+    expect(result.metadata.status).toBe('draft');
+  });
+
+  it('should handle numeric values', () => {
+    const markdown = `---
+revision: 5
+count: 42
+price: 19.99
+---
+
+Content`;
+
+    const result = extractFrontmatter(markdown);
+
+    expect(result.metadata.revision).toBe(5);
+    expect(result.metadata.count).toBe(42);
+    expect(result.metadata.price).toBe(19.99);
+  });
+
+  it('should handle boolean values', () => {
+    const markdown = `---
+published: true
+draft: false
+---
+
+Content`;
+
+    const result = extractFrontmatter(markdown);
+
+    expect(result.metadata.published).toBe(true);
+    expect(result.metadata.draft).toBe(false);
+  });
+
+  it('should handle date values', () => {
+    const markdown = `---
+date: 2024-01-15
+created: 2024-01-15T10:30:00Z
+---
+
+Content`;
+
+    const result = extractFrontmatter(markdown);
+
+    expect(result.metadata.date).toBeInstanceOf(Date);
+    expect(result.metadata.created).toBeInstanceOf(Date);
+  });
+
+  it('should handle arrays', () => {
+    const markdown = `---
+tags: [one, two, three]
+numbers: [1, 2, 3]
+---
+
+Content`;
+
+    const result = extractFrontmatter(markdown);
+
+    expect(result.metadata.tags).toEqual(['one', 'two', 'three']);
+    expect(result.metadata.numbers).toEqual([1, 2, 3]);
+  });
+
+  it('should preserve content with triple dashes in body', () => {
+    const markdown = `---
+title: Test
+---
+
+Some text
+
+---
+
+More text with horizontal rule`;
+
+    const result = extractFrontmatter(markdown);
+
+    expect(result.metadata.title).toBe('Test');
+    expect(result.content).toContain('---\n\nMore text with horizontal rule');
+  });
+
+  it('should handle multiline strings', () => {
+    const markdown = `---
+description: |
+  This is a multiline
+  description with
+  several lines
+---
+
+Content`;
+
+    const result = extractFrontmatter(markdown);
+
+    expect(result.metadata.description).toContain('This is a multiline');
+    expect(result.metadata.description).toContain('several lines');
+  });
+
+  it('should handle empty markdown', () => {
+    const result = extractFrontmatter('');
+
+    expect(result.metadata).toEqual({});
+    expect(result.content).toBe('');
+    expect(result.raw).toBe('');
+  });
+
+  it('should handle frontmatter with special characters', () => {
+    const markdown = `---
+title: "Document: A Test (v1.0)"
+path: /docs/test-doc
+email: test@example.com
+---
+
+Content`;
+
+    const result = extractFrontmatter(markdown);
+
+    expect(result.metadata.title).toBe('Document: A Test (v1.0)');
+    expect(result.metadata.path).toBe('/docs/test-doc');
+    expect(result.metadata.email).toBe('test@example.com');
+  });
+
+  it('should handle frontmatter with quotes', () => {
+    const markdown = `---
+title: 'Single quotes'
+subtitle: "Double quotes"
+mixed: "Quote's with apostrophe"
+---
+
+Content`;
+
+    const result = extractFrontmatter(markdown);
+
+    expect(result.metadata.title).toBe('Single quotes');
+    expect(result.metadata.subtitle).toBe('Double quotes');
+    expect(result.metadata.mixed).toBe("Quote's with apostrophe");
+  });
+
+  it('should return raw frontmatter string correctly', () => {
+    const markdown = `---
+key1: value1
+key2: value2
+---
+
+Content`;
+
+    const result = extractFrontmatter(markdown);
+
+    expect(result.raw).toBe('key1: value1\nkey2: value2');
+    expect(result.raw).not.toContain('---');
+  });
+});

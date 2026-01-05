@@ -4,13 +4,13 @@
 
   "layout": {
     "type": "html",
-    "source": "${projectRoot}/project/templates/layouts/standard_letter.html"
+    "source": "${projectRoot}/templates/layouts/standard_letter.html"
   },
 
   "resources": {
     "css": [
-      "${projectRoot}/project/styles/primary.css",
-      "${projectRoot}/project/templates/layouts/standard_letter.css"
+      "${projectRoot}/styles/primary.css",
+      "${projectRoot}/templates/layouts/standard_letter.css"
     ],
     "fonts": [],
     "assets": []

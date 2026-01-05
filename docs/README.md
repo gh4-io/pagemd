@@ -50,11 +50,17 @@ Markdown → Parser → HTML Renderer → PDF Renderer → Output
 
 | Phase | Status |
 |-------|--------|
-| Core infrastructure | ✅ Complete |
-| Parser + HTML | ✅ Complete |
-| PDF rendering | ⏳ In progress |
-| CLI + Exporters | Pending |
-| Testing + Polish | Pending |
+| Phase 1: Core infrastructure | ✅ Complete |
+| Phase 2: Parser + HTML | ✅ Complete |
+| Phase 3: PDF rendering | ✅ Complete |
+| Phase 4: CLI + Exporters | ✅ Complete |
+| Phase 5: Testing + Polish | ✅ Complete |
+
+**Test Coverage:**
+- ~600 total tests across all packages
+- Unit tests for core components (logger, config, parser, renderers)
+- Integration tests for CLI and end-to-end workflows
+- Run tests: `npm test`
 
 ## Requirements
 

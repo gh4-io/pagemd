@@ -5,7 +5,7 @@
 
 import { promises as fs } from 'fs';
 import path from 'path';
-import { createLogger } from '@pagemd/core/logger.js';
+import { createLogger } from '@pagemd/core';
 
 const logger = createLogger('renderer.pdf');
 
@@ -173,7 +173,7 @@ export async function cleanupDebugArtifacts(basePath, options = {}) {
     } else {
       // Remove specific artifacts for this basename
       const files = await fs.readdir(debugDir);
-      const toRemove = files.filter(f => f.startsWith(basename));
+      const toRemove = files.filter(f => f.startsWith(basename + '.'));
 
       for (const file of toRemove) {
         const filePath = path.join(debugDir, file);

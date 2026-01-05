@@ -90,16 +90,17 @@ export async function launchBrowser(options = {}) {
     args = []
   } = options;
 
-  // Build launch config
-  const launchConfig = {
+  // Build base launch config
+  const baseArgs = [
+    '--no-sandbox',
+    '--disable-setuid-sandbox',
+    '--disable-dev-shm-usage',
+    '--disable-web-security',
+    ...args
+  ];
+  const baseConfig = {
     headless: debug ? false : headless,
-    args: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage',
-      '--disable-web-security',
-      ...args
-    ]
+    args: baseArgs
   };
 
   let browser = null;
@@ -109,8 +110,10 @@ export async function launchBrowser(options = {}) {
   if (userExecutablePath) {
     try {
       logger.info('browser_launch', 'start', `Launching browser with user-provided path: ${userExecutablePath}`);
-      launchConfig.executablePath = userExecutablePath;
-      browser = await puppeteer.launch(launchConfig);
+      browser = await puppeteer.launch({
+        ...baseConfig,
+        executablePath: userExecutablePath
+      });
       usedChrome = true;
       logger.info('browser_launch', 'ok', `Browser launched successfully with user path`);
     } catch (err) {
@@ -125,8 +128,10 @@ export async function launchBrowser(options = {}) {
     if (chromePath) {
       try {
         logger.info('browser_launch', 'start', `Attempting to launch system Chrome`);
-        launchConfig.executablePath = chromePath;
-        browser = await puppeteer.launch(launchConfig);
+        browser = await puppeteer.launch({
+          ...baseConfig,
+          executablePath: chromePath
+        });
         usedChrome = true;
         logger.info('browser_launch', 'ok', `System Chrome launched successfully`);
       } catch (err) {
@@ -140,8 +145,7 @@ export async function launchBrowser(options = {}) {
   if (!browser) {
     try {
       logger.info('browser_launch', 'start', `Falling back to bundled Chromium`);
-      delete launchConfig.executablePath;
-      browser = await puppeteer.launch(launchConfig);
+      browser = await puppeteer.launch(baseConfig);
       logger.info('browser_launch', 'ok', `Bundled Chromium launched successfully`);
     } catch (err) {
       logger.error('browser_launch', 'fail', `Failed to launch bundled Chromium: ${err.message}`);
@@ -152,7 +156,7 @@ export async function launchBrowser(options = {}) {
   // Log final browser info
   const browserType = usedChrome ? 'Chrome' : 'Chromium';
   const version = await browser.version();
-  logger.info('browser_ready', 'ok', `${browserType} ${version} ready (headless: ${launchConfig.headless})`);
+  logger.info('browser_ready', 'ok', `${browserType} ${version} ready (headless: ${baseConfig.headless})`);
 
   return browser;
 }

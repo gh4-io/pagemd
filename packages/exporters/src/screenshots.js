@@ -5,7 +5,7 @@
 
 import fs from 'fs/promises';
 import path from 'path';
-import { createLogger } from '@pagemd/core/logger.js';
+import { createLogger } from '@pagemd/core';
 
 const logger = createLogger('exporter');
 

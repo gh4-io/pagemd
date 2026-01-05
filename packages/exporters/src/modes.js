@@ -12,7 +12,7 @@
  */
 
 import path from 'node:path';
-import { createLogger } from '@pagemd/core/logger.js';
+import { createLogger } from '@pagemd/core';
 
 const logger = createLogger('exporter');
 
@@ -104,7 +104,7 @@ export function shouldOutput(format, profile, options = {}) {
 
     case OUTPUT_MODES.ACTIVE_ONLY:
       // Check if explicitly requested
-      const isRequested = options.formats && Array.isArray(options.formats) && options.formats.includes(format);
+      const isRequested = !!(options.formats && Array.isArray(options.formats) && options.formats.includes(format));
       logger.debug('output-decision', isRequested ? 'success' : 'skipped',
         `Format ${format} is ACTIVE_ONLY, requested: ${isRequested}`,
         { format, requested: isRequested });
@@ -159,8 +159,8 @@ export function getOutputDir(markdownPath, profile, options = {}) {
     return resolved;
   }
 
-  // 3. Default: directory of markdown file
-  const markdownDir = path.dirname(markdownPath);
+  // 3. Default: directory of markdown file (resolved to absolute)
+  const markdownDir = path.resolve(path.dirname(markdownPath));
   logger.debug('output-dir', 'success', `Using markdown directory: ${markdownDir}`, { source: 'default', path: markdownDir });
   return markdownDir;
 }

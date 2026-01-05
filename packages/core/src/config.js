@@ -194,21 +194,26 @@ export async function loadProfile(profileName, searchFrom = null, configDir = nu
   // Build search paths in priority order
   const searchPaths = [];
 
-  // 1. Markdown file directory .pagemd/profiles/
+  // 1. Explicit config directory itself (for direct profile loading)
+  if (configDir) {
+    searchPaths.push(configDir);
+  }
+
+  // 2. Markdown file directory .pagemd/profiles/
   if (searchFrom) {
     searchPaths.push(join(searchFrom, '.pagemd', 'profiles'));
   }
 
-  // 2. Explicit config directory profiles/
+  // 3. Explicit config directory profiles/
   if (configDir) {
     searchPaths.push(join(configDir, 'profiles'));
   }
 
-  // 3. Project root .pagemd/profiles/
+  // 4. Project root .pagemd/profiles/
   const projectRoot = process.cwd();
   searchPaths.push(join(projectRoot, '.pagemd', 'profiles'));
 
-  // 4. Project templates profiles/
+  // 5. Project templates profiles/
   searchPaths.push(join(projectRoot, 'templates', 'profiles'));
 
   // Find profile file
@@ -292,21 +297,26 @@ export function loadProfileSync(profileName, searchFrom = null, configDir = null
   // Build search paths in priority order
   const searchPaths = [];
 
-  // 1. Markdown file directory .pagemd/profiles/
+  // 1. Explicit config directory itself (for direct profile loading)
+  if (configDir) {
+    searchPaths.push(configDir);
+  }
+
+  // 2. Markdown file directory .pagemd/profiles/
   if (searchFrom) {
     searchPaths.push(join(searchFrom, '.pagemd', 'profiles'));
   }
 
-  // 2. Explicit config directory profiles/
+  // 3. Explicit config directory profiles/
   if (configDir) {
     searchPaths.push(join(configDir, 'profiles'));
   }
 
-  // 3. Project root .pagemd/profiles/
+  // 4. Project root .pagemd/profiles/
   const projectRoot = process.cwd();
   searchPaths.push(join(projectRoot, '.pagemd', 'profiles'));
 
-  // 4. Project templates profiles/
+  // 5. Project templates profiles/
   searchPaths.push(join(projectRoot, 'templates', 'profiles'));
 
   // Find profile file

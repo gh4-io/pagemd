@@ -113,7 +113,8 @@ export function expandFilename(pattern, context) {
     return sanitizeFilename(context?.basename || 'untitled');
   }
 
-  const { basename = 'untitled', metadata = {}, format = 'pdf' } = context || {};
+  const { basename = 'untitled', metadata: rawMetadata, format = 'pdf' } = context || {};
+  const metadata = rawMetadata || {};
 
   let expanded = pattern;
 
