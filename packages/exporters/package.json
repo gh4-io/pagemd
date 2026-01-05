@@ -1,0 +1,20 @@
+{
+  "name": "@pagemd/exporters",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@pagemd/core": "^0.1.0",
+    "@pagemd/renderer-web": "^0.1.0",
+    "@pagemd/renderer-pdf": "^0.1.0"
+  },
+  "peerDependencies": {
+    "@pagemd/core": "^0.1.0",
+    "@pagemd/renderer-web": "^0.1.0",
+    "@pagemd/renderer-pdf": "^0.1.0"
+  }
+}

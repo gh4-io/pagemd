@@ -1,0 +1,12 @@
+{
+  "name": "@pagemd/parser",
+  "version": "0.0.1",
+  "type": "module",
+  "main": "src/index.js",
+  "dependencies": {
+    "@pagemd/core": "*",
+    "markdown-it": "^14.0.0",
+    "markdown-it-attrs": "^4.1.6",
+    "gray-matter": "^4.0.3"
+  }
+}

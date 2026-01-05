@@ -1,0 +1,213 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://pagemd.io/schemas/profile.schema.json",
+  "title": "PageMD Profile Manifest",
+  "description": "Schema for PageMD profile manifests controlling layouts, validation, and outputs",
+  "type": "object",
+  "required": ["id"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Profile identifier, must match filename (without extension)",
+      "pattern": "^[a-zA-Z0-9_-]+$"
+    },
+    "extends": {
+      "type": "string",
+      "description": "Parent profile ID for inheritance (deep-merge objects, replace arrays)",
+      "pattern": "^[a-zA-Z0-9_-]+$"
+    },
+    "description": {
+      "type": "string",
+      "description": "Human-readable profile description"
+    },
+    "layout": {
+      "type": "object",
+      "description": "Layout configuration",
+      "required": ["type", "source"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["html"],
+          "description": "Layout type (currently only HTML supported)"
+        },
+        "source": {
+          "type": "string",
+          "description": "Path to HTML template file (relative to profile location)"
+        }
+      },
+      "additionalProperties": false
+    },
+    "resources": {
+      "type": "object",
+      "description": "External resources required by the profile",
+      "properties": {
+        "css": {
+          "type": "array",
+          "description": "CSS file paths (relative to profile location)",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "fonts": {
+          "type": "array",
+          "description": "Font file paths (relative to profile location)",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "assets": {
+          "type": "array",
+          "description": "Asset file paths (images, etc., relative to profile location)",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        }
+      },
+      "additionalProperties": false
+    },
+    "pagedjs": {
+      "type": "object",
+      "description": "Paged.js renderer configuration",
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": ["browser", "cli"],
+          "default": "browser",
+          "description": "Paged.js execution mode: browser (default) or CLI prepass"
+        },
+        "save_paged_html": {
+          "type": "string",
+          "enum": ["debug", "always", "never"],
+          "default": "never",
+          "description": "When to save intermediate paged HTML output"
+        },
+        "handlers": {
+          "type": "array",
+          "description": "Custom Paged.js handler script paths",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "styles": {
+          "type": "array",
+          "description": "Additional Paged.js-specific style paths",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "browser_options": {
+          "type": "object",
+          "description": "Puppeteer browser launch options (browser mode)",
+          "additionalProperties": true,
+          "default": {}
+        },
+        "cli_options": {
+          "type": "object",
+          "description": "pagedjs-cli options (CLI mode)",
+          "additionalProperties": true,
+          "default": {}
+        }
+      },
+      "additionalProperties": false
+    },
+    "outputs": {
+      "type": "object",
+      "description": "Output format configurations",
+      "properties": {
+        "pdf": {
+          "$ref": "#/definitions/outputConfig",
+          "description": "PDF output configuration"
+        },
+        "html": {
+          "$ref": "#/definitions/outputConfig",
+          "description": "HTML output configuration"
+        },
+        "png": {
+          "$ref": "#/definitions/outputConfig",
+          "description": "PNG output configuration"
+        },
+        "jpeg": {
+          "$ref": "#/definitions/outputConfig",
+          "description": "JPEG output configuration"
+        }
+      },
+      "additionalProperties": false
+    },
+    "validation": {
+      "type": "object",
+      "description": "Validation rules for input documents",
+      "properties": {
+        "required_fields": {
+          "type": "array",
+          "description": "Required metadata field names in document frontmatter",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "schema": {
+          "type": "string",
+          "description": "Path to custom validation schema file"
+        }
+      },
+      "additionalProperties": false
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Metadata processing configuration",
+      "properties": {
+        "defaults": {
+          "type": "object",
+          "description": "Default metadata values to apply if not present in document",
+          "additionalProperties": true,
+          "default": {}
+        },
+        "aliases": {
+          "type": "object",
+          "description": "Field name aliases (map alternative names to canonical fields)",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {}
+        },
+        "date_format": {
+          "type": "string",
+          "description": "Date format string (e.g., MM/DD/YYYY, ISO, YYYY-MM-DD)",
+          "default": "ISO"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "outputConfig": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether this output format is enabled"
+        },
+        "mode": {
+          "type": "string",
+          "enum": ["ACTIVE_ONLY", "ALWAYS", "DISABLED"],
+          "default": "ACTIVE_ONLY",
+          "description": "Output generation mode: ACTIVE_ONLY (only when requested), ALWAYS (every build), DISABLED (never)"
+        },
+        "options": {
+          "type": "object",
+          "description": "Format-specific output options",
+          "additionalProperties": true,
+          "default": {}
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

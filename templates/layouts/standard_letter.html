@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{metadata.title}}</title>
+  {{styles}}
+</head>
+<body>
+  <header class="running-header">
+    <span class="sop-label">SOP</span>
+    <div class="metadata-box">
+      <div class="meta-row">No. {{metadata.document_id}} | Rev.{{metadata.revision}}</div>
+      <div class="meta-row">{{metadata.status}}</div>
+    </div>
+  </header>
+
+  <main class="content">
+    {{content}}
+  </main>
+
+  <footer class="running-footer">
+    <span class="page-number"></span>
+  </footer>
+</body>
+</html>

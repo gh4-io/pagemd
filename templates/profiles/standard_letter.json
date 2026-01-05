@@ -1,0 +1,63 @@
+{
+  "id": "standard_letter",
+  "description": "Standard US Letter layout for SOPs and documentation",
+
+  "layout": {
+    "type": "html",
+    "source": "${projectRoot}/project/templates/layouts/standard_letter.html"
+  },
+
+  "resources": {
+    "css": [
+      "${projectRoot}/project/styles/primary.css",
+      "${projectRoot}/project/templates/layouts/standard_letter.css"
+    ],
+    "fonts": [],
+    "assets": []
+  },
+
+  "pagedjs": {
+    "mode": "browser",
+    "save_paged_html": "debug",
+    "handlers": [],
+    "styles": [],
+    "browser_options": {},
+    "cli_options": {}
+  },
+
+  "outputs": {
+    "pdf": {
+      "enabled": true,
+      "mode": "ACTIVE_ONLY",
+      "options": {}
+    },
+    "html": {
+      "enabled": false,
+      "mode": "DISABLED",
+      "options": {}
+    },
+    "png": {
+      "enabled": false,
+      "mode": "DISABLED",
+      "options": {}
+    },
+    "jpeg": {
+      "enabled": false,
+      "mode": "DISABLED",
+      "options": {}
+    }
+  },
+
+  "validation": {
+    "required_fields": ["document_id", "title"]
+  },
+
+  "metadata": {
+    "defaults": {
+      "status": "Draft",
+      "revision": 0
+    },
+    "aliases": {},
+    "date_format": "MM/DD/YYYY"
+  }
+}

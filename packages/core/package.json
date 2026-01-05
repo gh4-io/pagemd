@@ -1,0 +1,11 @@
+{
+  "name": "@pagemd/core",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "src/index.js",
+  "license": "MIT",
+  "dependencies": {
+    "cosmiconfig": "^9.0.0",
+    "js-yaml": "^4.1.0"
+  }
+}

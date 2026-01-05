@@ -1,0 +1,212 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "PageMD Metadata Defaults",
+  "description": "Default metadata values, type definitions, aliases, and validation rules for PageMD documents",
+  "version": "1.0.0",
+
+  "defaults": {
+    "document_id": "",
+    "title": "",
+    "revision": 0,
+    "status": "Draft",
+    "effective_date": "",
+    "owner": "",
+    "approver": "",
+    "category": "",
+    "tags": [],
+    "pipeline_profile": "standard_letter"
+  },
+
+  "fieldDefinitions": {
+    "document_id": {
+      "type": "string",
+      "description": "Document identifier (e.g., SOP-200, PROC-100)",
+      "validation": {
+        "pattern": "^[A-Z0-9-]+$",
+        "minLength": 1,
+        "maxLength": 50
+      },
+      "filenameToken": true
+    },
+    "title": {
+      "type": "string",
+      "description": "Document title",
+      "validation": {
+        "minLength": 1,
+        "maxLength": 200
+      },
+      "filenameToken": true,
+      "derivation": {
+        "fallback": "first_h1",
+        "description": "If missing, derive from first H1 heading in markdown"
+      }
+    },
+    "revision": {
+      "type": "number",
+      "description": "Revision number (integer or float)",
+      "coercion": {
+        "enabled": true,
+        "from": ["string"],
+        "description": "Convert numeric strings to numbers (e.g., '1' -> 1, '2.5' -> 2.5)"
+      },
+      "validation": {
+        "minimum": 0
+      },
+      "filenameToken": true
+    },
+    "status": {
+      "type": "string",
+      "description": "Document status",
+      "validation": {
+        "enum": ["Draft", "Review", "Approved", "Superseded", "Obsolete", "Active"]
+      },
+      "filenameToken": true
+    },
+    "effective_date": {
+      "type": "date",
+      "description": "Effective date of the document",
+      "formats": {
+        "input": [
+          "MM/DD/YYYY",
+          "MM/DD/YY",
+          "YYYY-MM-DD",
+          "MM-DD-YYYY",
+          "DD MMM YYYY",
+          "ISO8601"
+        ],
+        "output": "MM/DD/YYYY",
+        "description": "Configurable via profile manifest; supports US and ISO standards"
+      },
+      "filenameToken": true
+    },
+    "owner": {
+      "type": "string",
+      "description": "Document owner (author or responsible party)",
+      "validation": {
+        "minLength": 1,
+        "maxLength": 100
+      },
+      "filenameToken": false
+    },
+    "approver": {
+      "type": "string",
+      "description": "Document approver",
+      "validation": {
+        "minLength": 1,
+        "maxLength": 100
+      },
+      "filenameToken": false
+    },
+    "category": {
+      "type": "string",
+      "description": "Document category or classification",
+      "validation": {
+        "maxLength": 100
+      },
+      "filenameToken": false
+    },
+    "tags": {
+      "type": "array",
+      "description": "Document tags for categorization and search",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 50
+      },
+      "validation": {
+        "maxItems": 20,
+        "uniqueItems": true
+      },
+      "filenameToken": false
+    },
+    "pipeline_profile": {
+      "type": "string",
+      "description": "Profile to use for rendering (ID or path)",
+      "validation": {
+        "minLength": 1,
+        "maxLength": 200
+      },
+      "filenameToken": true
+    },
+    "timestamp": {
+      "type": "string",
+      "description": "Build timestamp (generated at render time, not user-provided)",
+      "format": "YYYYMMDD-HHmmssZ",
+      "generated": true,
+      "filenameToken": true
+    }
+  },
+
+  "aliases": {
+    "doc_id": "document_id",
+    "docId": "document_id",
+    "documentId": "document_id",
+    "document-id": "document_id",
+
+    "rev": "revision",
+    "revisionNumber": "revision",
+    "revision_number": "revision",
+    "revision-number": "revision",
+
+    "layout_template": "pipeline_profile",
+    "layoutTemplate": "pipeline_profile",
+    "layout-template": "pipeline_profile",
+    "profile": "pipeline_profile",
+
+    "effectiveDate": "effective_date",
+    "effective-date": "effective_date",
+
+    "documentStatus": "status",
+    "document_status": "status",
+    "document-status": "status"
+  },
+
+  "normalization": {
+    "keyNormalization": {
+      "enabled": true,
+      "target": "snake_case",
+      "description": "Convert all keys to snake_case before applying aliases"
+    },
+    "numberCoercion": {
+      "enabled": true,
+      "fields": ["revision"],
+      "description": "Coerce numeric strings to numbers for specified fields"
+    },
+    "dateFormatting": {
+      "enabled": true,
+      "fields": ["effective_date"],
+      "defaultOutputFormat": "MM/DD/YYYY",
+      "description": "Parse and format date fields; output format configurable via profile"
+    },
+    "stringTrimming": {
+      "enabled": true,
+      "fields": ["document_id", "title", "owner", "approver", "category", "status"],
+      "description": "Trim leading/trailing whitespace from string fields"
+    },
+    "arrayNormalization": {
+      "enabled": true,
+      "fields": ["tags"],
+      "description": "Ensure array fields are arrays; convert single values to single-element arrays"
+    }
+  },
+
+  "filenameTokens": {
+    "allowlist": [
+      "document_id",
+      "title",
+      "revision",
+      "timestamp",
+      "status",
+      "effective_date",
+      "pipeline_profile"
+    ],
+    "description": "Only these metadata fields can be used in filename patterns"
+  },
+
+  "validation": {
+    "strictMode": false,
+    "description": "When false, unknown fields are allowed; when true, only defined fields are permitted",
+    "profileOverride": true,
+    "description": "Profile manifests can override required fields; base schema does not enforce required fields"
+  }
+}
