@@ -28,7 +28,12 @@ describe('getPagedJsConfig', () => {
       orient: 'portrait',
       before: undefined,
       after: undefined,
-      renderTo: undefined
+      renderTo: undefined,
+      toc: {
+        includePageNumbers: true,
+        levels: 3,
+        pageLevels: 3
+      }
     });
   });
 
@@ -74,6 +79,54 @@ describe('getPagedJsConfig', () => {
     };
     const config = getPagedJsConfig(profile, {});
     expect(config.spread).toBe('right');
+  });
+
+  it('should include TOC config from frontmatter', () => {
+    const frontmatter = {
+      toc_page_numbers: false,
+      toc_levels: 2
+    };
+    const config = getPagedJsConfig({}, frontmatter);
+    expect(config.toc).toEqual({
+      includePageNumbers: false,
+      levels: 2,
+      pageLevels: 2
+    });
+  });
+
+  it('should use default TOC config when frontmatter omits TOC fields', () => {
+    const config = getPagedJsConfig({}, {});
+    expect(config.toc).toEqual({
+      includePageNumbers: true,
+      levels: 3,
+      pageLevels: 3
+    });
+  });
+
+  it('should handle partial TOC config from frontmatter', () => {
+    const frontmatter = {
+      toc_levels: 4
+      // toc_page_numbers omitted, should use default true
+    };
+    const config = getPagedJsConfig({}, frontmatter);
+    expect(config.toc).toEqual({
+      includePageNumbers: true,
+      levels: 4,
+      pageLevels: 4
+    });
+  });
+
+  it('should handle separate toc_page_levels from frontmatter', () => {
+    const frontmatter = {
+      toc_levels: 3,
+      toc_page_levels: 2
+    };
+    const config = getPagedJsConfig({}, frontmatter);
+    expect(config.toc).toEqual({
+      includePageNumbers: true,
+      levels: 3,
+      pageLevels: 2
+    });
   });
 });
 

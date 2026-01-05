@@ -968,9 +968,8 @@ pagemd build document.md --output xml  # Error!
 
 ## See Also
 
-- [CLI API](../api/cli.md) - Command reference
+- [[reference/CLI|CLI Reference]] - Command documentation
 - [[Quick-Start]] - Quick start guide
-- [[Profiles]] - Profile manifest reference
-- [[Appendix]] - FAQs and examples
-- [@pagemd/renderer-pdf](../api/renderer-pdf.md) - PDF rendering internals
-- [@pagemd/core](../api/core.md) - Path resolution
+- [[guides/Profiles|Working with Profiles]] - Profile configuration
+- [[reference/Settings|Settings]] - Environment variables
+- [[reference/Appendix|Appendix]] - Additional reference

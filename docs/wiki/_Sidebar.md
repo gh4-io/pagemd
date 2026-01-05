@@ -1,39 +1,39 @@
-# PageMD Wiki
+**[[Home]]**
 
-## Getting Started
-- [[Home]]
-- [[Introduction]]
+### Getting Started
 - [[Quick-Start]]
-- [[Installation]]
 
-## User Guide
-- [[Configuration]]
-- [[Profiles]]
-- [[Settings]]
-- [[Extended-Syntax]]
+### Understanding PageMD
+- [[general/Overview|Overview]]
+- [[general/Architecture|Architecture]]
+- [[general/Concepts|Key Concepts]]
 
-## Operations
-- [[Normal-Operations]]
+### Usage Guides
+- [[guides/Basic-Usage|Basic Usage]]
+- [[guides/Installation|Installation]]
+- [[guides/Profiles|Working with Profiles]]
+
+### Styling & Syntax
+- [[guides/Extended-Syntax|Extended Syntax]]
+- [[guides/Style-Guide|Style Guide]]
+
+### Reference
+- [[reference/CLI|CLI Commands]]
+- [[reference/Settings|Settings]]
+- [[reference/Profile-Schema|Profile Schema]]
+- [[reference/Glossary|Glossary]]
+- [[reference/Appendix|Appendix]]
+
+### For Developers
+- [[development/Setup|Development Setup]]
+- [[development/Testing|Testing]]
+- [[development/Contributing|Contributing]]
+
+### Help
 - [[Troubleshooting]]
-- [[Operations]]
-
-## Technical
-- [[Architecture]]
-- [[Reference]]
-- [[Developer-Guide]]
-
-## Resources
-- [[Appendix]]
+- [[FAQ]]
 
 ---
 
 **Related**
 - [VS Code Extension Wiki](https://github.com/gh4-io/pagemd-vscode/wiki)
-
-**API Reference**
-- [Core](../api/core.md)
-- [Parser](../api/parser.md)
-- [Renderer-Web](../api/renderer-web.md)
-- [Renderer-PDF](../api/renderer-pdf.md)
-- [Exporters](../api/exporters.md)
-- [CLI](../api/cli.md)

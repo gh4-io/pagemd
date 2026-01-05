@@ -8,9 +8,142 @@
  * - Page break controls
  *
  * Visual styling (colors, fonts) belongs in template CSS.
+ *
+ * RUNNING HEADERS/FOOTERS:
+ * Controlled via CSS custom properties (defaults to hidden).
+ * Enable via frontmatter or profile metadata.defaults.
+ *
+ * POSITIONS:
+ * - left, center, right: Fixed positions
+ * - inside, outside: Book binding positions (flip on left/right pages)
+ *   - inside = binding/gutter side
+ *   - outside = edge side
+ * - span: Full width centered
+ *
+ * CSS Variables:
+ * --page-header-left, --page-header-center, --page-header-right
+ * --page-header-inside, --page-header-outside
+ * --page-footer-left, --page-footer-center, --page-footer-right
+ * --page-footer-inside, --page-footer-outside
+ * --page-margin-font-size (default: 9pt)
+ * --page-first-header, --page-first-footer (first page overrides)
  */
 
 @page {
   size: Letter;
-  margin: 0.5in;
+  margin: 1.0in;
+
+  /* Running header - fixed positions */
+  @top-left {
+    content: var(--page-header-left, none);
+    font-size: var(--page-margin-font-size, 9pt);
+  }
+  @top-center {
+    content: var(--page-header-center, none);
+    font-size: var(--page-margin-font-size, 9pt);
+  }
+  @top-right {
+    content: var(--page-header-right, none);
+    font-size: var(--page-margin-font-size, 9pt);
+  }
+
+  /* Running footer - fixed positions */
+  @bottom-left {
+    content: var(--page-footer-left, none);
+    font-size: var(--page-margin-font-size, 9pt);
+  }
+  @bottom-center {
+    content: var(--page-footer-center, none);
+    font-size: var(--page-margin-font-size, 9pt);
+  }
+  @bottom-right {
+    content: var(--page-footer-right, none);
+    font-size: var(--page-margin-font-size, 9pt);
+  }
+}
+
+/* Book binding positions - inside/outside flip on left vs right pages */
+@page :left {
+  /* Left pages (even): inside=right, outside=left */
+  @top-left {
+    content: var(--page-header-outside, var(--page-header-left, none));
+    font-size: var(--page-margin-font-size, 9pt);
+  }
+  @top-right {
+    content: var(--page-header-inside, var(--page-header-right, none));
+    font-size: var(--page-margin-font-size, 9pt);
+  }
+  @bottom-left {
+    content: var(--page-footer-outside, var(--page-footer-left, none));
+    font-size: var(--page-margin-font-size, 9pt);
+  }
+  @bottom-right {
+    content: var(--page-footer-inside, var(--page-footer-right, none));
+    font-size: var(--page-margin-font-size, 9pt);
+  }
+}
+
+@page :right {
+  /* Right pages (odd): inside=left, outside=right */
+  @top-left {
+    content: var(--page-header-inside, var(--page-header-left, none));
+    font-size: var(--page-margin-font-size, 9pt);
+  }
+  @top-right {
+    content: var(--page-header-outside, var(--page-header-right, none));
+    font-size: var(--page-margin-font-size, 9pt);
+  }
+  @bottom-left {
+    content: var(--page-footer-inside, var(--page-footer-left, none));
+    font-size: var(--page-margin-font-size, 9pt);
+  }
+  @bottom-right {
+    content: var(--page-footer-outside, var(--page-footer-right, none));
+    font-size: var(--page-margin-font-size, 9pt);
+  }
+}
+
+/* First page - optionally suppress or customize header/footer */
+@page :first {
+  @top-left { content: var(--page-first-header-left, var(--page-header-left, none)); }
+  @top-center { content: var(--page-first-header-center, var(--page-header-center, none)); }
+  @top-right { content: var(--page-first-header-right, var(--page-header-right, none)); }
+  @bottom-left { content: var(--page-first-footer-left, var(--page-footer-left, none)); }
+  @bottom-center { content: var(--page-first-footer-center, var(--page-footer-center, none)); }
+  @bottom-right { content: var(--page-first-footer-right, var(--page-footer-right, none)); }
+}
+
+/* Named Pages for LAYOUT directive */
+@page landscape {
+  size: Letter landscape;
+  margin: 1.0in 0.75in;
+
+  /* Inherit running headers/footers */
+  @top-left { content: var(--page-header-left, none); font-size: var(--page-margin-font-size, 9pt); }
+  @top-center { content: var(--page-header-center, none); font-size: var(--page-margin-font-size, 9pt); }
+  @top-right { content: var(--page-header-right, none); font-size: var(--page-margin-font-size, 9pt); }
+  @bottom-left { content: var(--page-footer-left, none); font-size: var(--page-margin-font-size, 9pt); }
+  @bottom-center { content: var(--page-footer-center, none); font-size: var(--page-margin-font-size, 9pt); }
+  @bottom-right { content: var(--page-footer-right, none); font-size: var(--page-margin-font-size, 9pt); }
+}
+
+.page-landscape {
+  page: landscape;
+}
+
+@page default {
+  size: Letter;
+  margin: 1.0in;
+
+  /* Inherit running headers/footers */
+  @top-left { content: var(--page-header-left, none); font-size: var(--page-margin-font-size, 9pt); }
+  @top-center { content: var(--page-header-center, none); font-size: var(--page-margin-font-size, 9pt); }
+  @top-right { content: var(--page-header-right, none); font-size: var(--page-margin-font-size, 9pt); }
+  @bottom-left { content: var(--page-footer-left, none); font-size: var(--page-margin-font-size, 9pt); }
+  @bottom-center { content: var(--page-footer-center, none); font-size: var(--page-margin-font-size, 9pt); }
+  @bottom-right { content: var(--page-footer-right, none); font-size: var(--page-margin-font-size, 9pt); }
+}
+
+.page-default {
+  page: default;
 }

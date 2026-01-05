@@ -41,7 +41,10 @@
   "metadata": {
     "defaults": {
       "status": "Draft",
-      "revision": 0
+      "revision": 0,
+      "page_numbers": false,
+      "running_header": false,
+      "running_footer": false
     }
   }
 }

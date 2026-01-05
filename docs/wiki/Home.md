@@ -1,62 +1,62 @@
 # PageMD
 
-**Profile-driven Markdown to PDF/HTML pipeline for Node.js**
+> Profile-driven Markdown to PDF/HTML pipeline for Node.js
 
-PageMD converts Markdown documents into professionally formatted HTML, PDF, PNG, and JPEG outputs using a hybrid Paged.js + Puppeteer renderer. Configuration is profile-driven with JSON/YAML manifests controlling layouts, validation, and outputs.
+Welcome to the PageMD documentation. This wiki covers everything you need to get started, accomplish common tasks, and understand how PageMD works.
 
----
+## Quick Navigation
 
-## Quick Links
+| I want to... | Go to |
+|--------------|-------|
+| Get started quickly | [[Quick-Start]] |
+| Understand what this does | [[general/Overview\|Overview]] |
+| Do a specific task | [[guides/Basic-Usage\|Usage Guides]] |
+| Look up CLI options | [[reference/CLI\|CLI Reference]] |
+| Customize styling | [[guides/Style-Guide\|Style Guide]] |
+| Set up for development | [[development/Setup\|Development Setup]] |
+| Fix a problem | [[Troubleshooting]] |
 
-| Getting Started | Reference | Operations |
-|-----------------|-----------|------------|
-| [[Installation]] | [[Profiles]] | [[Normal-Operations]] |
-| [[Quick-Start]] | [[Settings]] | [[Troubleshooting]] |
-| [[Configuration]] | [[Reference]] | [[Operations]] |
+## Start Here
 
----
+**New to PageMD?** Start with [[Quick-Start]] to build your first PDF in under 5 minutes.
 
-## What is PageMD?
+**Already familiar?** Jump to [[guides/Basic-Usage|Usage Guides]] for specific tasks, or [[reference/CLI|CLI Reference]] for complete documentation.
 
-PageMD is a JavaScript-only pipeline (Node 20+) designed for:
+## What's in This Wiki
 
-- **Document publishing** - SOPs, reports, technical documentation
-- **Paged media output** - Print-ready PDFs with headers, footers, page numbers
-- **Profile-driven configuration** - Reusable layout templates and validation rules
-- **Multiple output formats** - HTML, PDF, PNG, JPEG from a single source
+### Getting Started
+- [[Quick-Start]] - Installation and first PDF output
 
-See [[Introduction]] for goals, non-goals, and scope.
+### Understanding PageMD
+- [[general/Overview|Overview]] - What it does and why
+- [[general/Architecture|Architecture]] - How components connect
+- [[general/Concepts|Key Concepts]] - Profiles, templates, layouts, CSS layers
 
----
+### Usage Guides
+- [[guides/Basic-Usage|Basic Usage]] - Common workflows
+- [[guides/Installation|Installation]] - Detailed installation options
+- [[guides/Profiles|Working with Profiles]] - Customization and inheritance
 
-## Architecture Overview
+### Styling & Syntax
+- [[guides/Extended-Syntax|Extended Syntax]] - TOC, Mermaid, Index, directives
+- [[guides/Style-Guide|Style Guide]] - CSS customization, fonts, colors, print rules
 
-```
-Markdown → Parser → Renderer-Web → Renderer-PDF → Exporters
-              ↓           ↓              ↓            ↓
-         Frontmatter   HTML+CSS      Paged.js    PDF/PNG/JPEG
-```
+### Reference
+- [[reference/CLI|CLI Commands]] - All commands and options
+- [[reference/Settings|Settings]] - Environment variables, configuration
+- [[reference/Profile-Schema|Profile Schema]] - Complete profile field reference
+- [[reference/Appendix|Appendix]] - Examples, edge cases
 
-See [[Architecture]] for C4 diagrams and detailed data flow.
+### For Developers
+- [[development/Setup|Development Setup]] - Get the dev environment running
+- [[development/Testing|Testing]] - Running and writing tests
+- [[development/Contributing|Contributing]] - How to contribute
 
----
+### Help
+- [[Troubleshooting]] - Common issues and solutions
+- [[FAQ]] - Quick answers
 
-## Current Status
+## Getting Help
 
-| Phase | Component | Status |
-|-------|-----------|--------|
-| 1 | Core (logger, config, profiles) | Complete |
-| 2 | Parser (frontmatter, extensions) | Complete |
-| 3 | Renderer-Web (templates, styles) | Complete |
-| 4 | Renderer-PDF (Puppeteer, Paged.js) | Complete |
-| 5 | Exporters (modes, filenames) | Complete |
-| 6 | CLI (build, validate, list-profiles) | Complete |
-| 7 | Testing (633 tests passing) | Complete |
-
----
-
-## See Also
-
-- [[Developer-Guide]] - Repository layout and contribution
-- [[Appendix]] - Examples, FAQs, edge cases
-- [API Reference](../README.md) - Package documentation
+- **Issues:** [GitHub Issues](https://github.com/gh4-io/pagemd/issues)
+- **VS Code Extension:** [pagemd-vscode wiki](https://github.com/gh4-io/pagemd-vscode/wiki)

@@ -49,7 +49,26 @@ export const FIELD_ALIASES = {
   codeTheme: 'highlight_theme',
   'code-theme': 'highlight_theme',
   highlightTheme: 'highlight_theme',
-  'highlight-theme': 'highlight_theme'
+  'highlight-theme': 'highlight_theme',
+
+  // TOC aliases
+  toc_depth: 'toc_levels',
+  tocDepth: 'toc_levels',
+  'toc-depth': 'toc_levels',
+  tocLevels: 'toc_levels',
+  'toc-levels': 'toc_levels',
+  tocTitle: 'toc_title',
+  'toc-title': 'toc_title',
+  tocPageNumbers: 'toc_page_numbers',
+  'toc-page-numbers': 'toc_page_numbers',
+  toc_pagenumbers: 'toc_page_numbers',
+  tocPageLevels: 'toc_page_levels',
+  'toc-page-levels': 'toc_page_levels',
+  toc_pagelevels: 'toc_page_levels',
+
+  // Index aliases
+  indexTitle: 'index_title',
+  'index-title': 'index_title'
 };
 
 // Default values (loaded from metadata.defaults.json)
@@ -65,7 +84,14 @@ const DEFAULT_VALUES = {
   tags: [],
   styles: [],
   pipeline_profile: 'standard_letter',
-  highlight_theme: 'github-light'
+  highlight_theme: 'github-light',
+  toc: false,
+  toc_levels: 3,
+  toc_title: 'Contents',
+  toc_page_numbers: true,
+  toc_page_levels: 3,
+  index: false,
+  index_title: 'Index'
 };
 
 // Field type definitions (loaded from metadata.defaults.json)
@@ -81,7 +107,14 @@ const FIELD_DEFINITIONS = {
   tags: { type: 'array', items: 'string' },
   styles: { type: 'array', items: 'string' },
   pipeline_profile: { type: 'string', trim: true },
-  highlight_theme: { type: 'string', trim: true }
+  highlight_theme: { type: 'string', trim: true },
+  toc: { type: 'boolean' },
+  toc_levels: { type: 'number', coerce: true },
+  toc_title: { type: 'string', trim: true },
+  toc_page_numbers: { type: 'boolean' },
+  toc_page_levels: { type: 'number', coerce: true },
+  index: { type: 'boolean' },
+  index_title: { type: 'string', trim: true }
 };
 
 /**
@@ -186,6 +219,18 @@ export function normalizeValue(key, value, fieldDefs = FIELD_DEFINITIONS) {
       const num = trimmed.includes('.') ? parseFloat(trimmed) : parseInt(trimmed, 10);
       return isNaN(num) ? value : num;
     }
+  }
+
+  // Boolean normalization
+  if (type === 'boolean') {
+    if (typeof value === 'boolean') return value;
+    if (typeof value === 'string') {
+      const lower = value.toLowerCase().trim();
+      if (lower === 'true' || lower === 'yes' || lower === '1') return true;
+      if (lower === 'false' || lower === 'no' || lower === '0') return false;
+    }
+    if (typeof value === 'number') return value !== 0;
+    return Boolean(value);
   }
 
   // Date normalization

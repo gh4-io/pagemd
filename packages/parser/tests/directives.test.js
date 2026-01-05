@@ -117,11 +117,12 @@ This is section content.
   });
 
   describe('LAYOUT directive', () => {
-    it('should render LAYOUT with parenthesis syntax', () => {
+    it('should render first LAYOUT without closing div', () => {
       const input = '<!-- ::LAYOUT(landscape) -->';
       const html = md.render(input);
 
-      expect(html).toContain('</div>');
+      // First LAYOUT only opens (no previous section to close)
+      expect(html).not.toContain('</div>');
       expect(html).toContain('<div class="page-landscape">');
     });
 
@@ -130,6 +131,21 @@ This is section content.
       const html = md.render(input);
 
       expect(html).toContain('<div class="page-portrait">');
+    });
+
+    it('should close previous layout when switching', () => {
+      const input = `<!-- ::LAYOUT(landscape) -->
+
+Content here
+
+<!-- ::LAYOUT(default) -->`;
+      const html = md.render(input);
+
+      // First LAYOUT opens
+      expect(html).toContain('<div class="page-landscape">');
+      // Second LAYOUT closes previous and opens new
+      expect(html).toContain('</div>');
+      expect(html).toContain('<div class="page-default">');
     });
   });
 
@@ -212,6 +228,82 @@ More content`;
       expect(html).toContain('<div class="break-page">');
       expect(html).toContain('toc-placeholder');
       expect(html).toContain('More content');
+    });
+  });
+
+  describe('INDEX directive', () => {
+    it('should render INDEX with term as invisible marker', () => {
+      const input = '<!-- ::INDEX term="aviation fuel" -->';
+      const html = md.render(input);
+
+      expect(html).toContain('<span class="index-marker"');
+      expect(html).toContain('data-term="aviation fuel"');
+      expect(html).toContain('data-sort="aviation fuel"');
+    });
+
+    it('should use custom sort key when provided', () => {
+      const input = '<!-- ::INDEX term="jet fuel" sort="fuel, jet" -->';
+      const html = md.render(input);
+
+      expect(html).toContain('data-term="jet fuel"');
+      expect(html).toContain('data-sort="fuel, jet"');
+    });
+
+    it('should render INDEX without term as placeholder', () => {
+      const input = '<!-- ::INDEX -->';
+      const html = md.render(input);
+
+      expect(html).toContain('<div class="index-placeholder"></div>');
+    });
+
+    it('should escape HTML in term attribute', () => {
+      const input = '<!-- ::INDEX term="<script>alert(1)</script>" -->';
+      const html = md.render(input);
+
+      expect(html).not.toContain('<script>');
+      expect(html).toContain('&lt;script&gt;');
+    });
+
+    it('should handle multiple index terms in document', () => {
+      const input = `<!-- ::INDEX term="aviation" -->
+
+<!-- ::INDEX term="fuel" -->
+
+<!-- ::INDEX -->`;
+
+      const html = md.render(input);
+
+      const markers = html.match(/index-marker/g) || [];
+      expect(markers.length).toBe(2);
+      expect(html).toContain('index-placeholder');
+    });
+
+    it('should handle inline INDEX markers within text', () => {
+      const input = 'This chapter covers <!-- ::INDEX term="aviation" -->aviation topics and <!-- ::INDEX term="fuel" -->fuel management.';
+      const html = md.render(input);
+
+      expect(html).toContain('<p>This chapter covers');
+      expect(html).toContain('<span class="index-marker" data-term="aviation"');
+      expect(html).toContain('aviation topics');
+      expect(html).toContain('<span class="index-marker" data-term="fuel"');
+      expect(html).toContain('fuel management.</p>');
+      const markers = html.match(/index-marker/g) || [];
+      expect(markers.length).toBe(2);
+    });
+
+    it('should handle INDEX markers in list items', () => {
+      const input = `- <!-- ::INDEX term="turbine" -->Turbine blades
+- <!-- ::INDEX term="compressor" sort="compressor stage" -->Compressor stages
+- Regular item`;
+      const html = md.render(input);
+
+      expect(html).toContain('<span class="index-marker" data-term="turbine"');
+      expect(html).toContain('<span class="index-marker" data-term="compressor"');
+      expect(html).toContain('data-sort="compressor stage"');
+      expect(html).toContain('Turbine blades');
+      expect(html).toContain('Compressor stages');
+      const markers = html.match(/index-marker/g) || [];
+      expect(markers.length).toBe(2);
     });
   });
 });

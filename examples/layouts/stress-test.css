@@ -19,7 +19,7 @@
   margin: 0.5in 0.75in;
 }
 
-.landscape {
+.page-landscape {
   page: landscape;
 }
 
@@ -32,7 +32,7 @@
   }
 }
 
-.appendix {
+.page-appendix {
   page: appendix;
 }
 
@@ -45,8 +45,22 @@
   }
 }
 
-.reference-page {
+.page-reference {
   page: reference;
+}
+
+/* Default Page (for switching back) */
+@page default {
+  size: Letter portrait;
+  margin: 0.75in;
+  @bottom-center {
+    content: counter(page) " of " counter(pages);
+    font-size: 9pt;
+  }
+}
+
+.page-default {
+  page: default;
 }
 
 /* Page Breaks */

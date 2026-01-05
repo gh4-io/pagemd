@@ -5,6 +5,7 @@
   "main": "src/index.js",
   "dependencies": {
     "@pagemd/core": "*",
+    "@mermaid-js/mermaid-cli": "^11.4.0",
     "gray-matter": "^4.0.3",
     "markdown-it": "^14.0.0",
     "markdown-it-attrs": "^4.1.6",

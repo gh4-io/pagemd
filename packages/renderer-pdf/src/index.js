@@ -79,10 +79,10 @@ export async function renderPdf(markdownPath, options = {}) {
       profile: htmlResult.profile?.id || profile
     });
 
-    // Step 2: Build Paged.js config from profile and frontmatter
+    // Step 2: Build Paged.js config from profile and metadata (frontmatter)
     const pagedConfig = getPagedJsConfig(
       htmlResult.profile,
-      htmlResult.frontmatter
+      htmlResult.metadata
     );
 
     // Step 3: Inject Paged.js polyfill into HTML
@@ -125,6 +125,14 @@ export async function renderPdf(markdownPath, options = {}) {
     // Step 7: Create new page and set content
     logger.debug('render.page', 'started', 'Creating page and setting content');
     const page = await browser.newPage();
+
+    // Capture browser console for debugging (Paged.js status messages)
+    page.on('console', msg => {
+      const text = msg.text();
+      if (text.startsWith('Paged.js') || text.startsWith('PDF ')) {
+        logger.trace('browser.console', 'info', text);
+      }
+    });
 
     // Set viewport for consistent rendering
     await page.setViewport({

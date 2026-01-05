@@ -212,3 +212,4 @@ export {
   registerExtensions
 } from './extensions.js';
 export { directivesPlugin, registerDirectives } from './directives.js';
+export { preprocessMermaid, isMermaidEnabled } from './mermaid.js';

@@ -47,16 +47,16 @@ You can style this section independently using CSS.
 
 ### Inline Figure Syntax
 
-<!-- ::FIGURE src="https://via.placeholder.com/400x200" caption="Placeholder Image - Inline Syntax" id="fig-inline" width="half" -->
+<!-- ::FIGURE src="https://placehold.co/400x200" caption="Placeholder Image - Inline Syntax" id="fig-inline" width="half" -->
 
 ### Legacy Figure Syntax
 
 <!-- ::FIGURE caption="Placeholder Image - Legacy Syntax" id="fig-legacy" -->
-![](https://via.placeholder.com/300x150)
+![](https://placehold.co/300x150)
 
 ### Full Width Figure
 
-<!-- ::FIGURE src="https://via.placeholder.com/800x200" caption="Full Width Demonstration" width="full" -->
+<!-- ::FIGURE src="https://placehold.co/800x200" caption="Full Width Demonstration" width="full" -->
 
 <!-- ::PAGEBREAK -->
 
@@ -205,7 +205,7 @@ This paragraph has multiple attributes. {.important .centered #key-point}
 
 ## Images with Attributes
 
-![Styled Image](https://via.placeholder.com/300x100){.rounded .shadow #hero-image}
+![Styled Image](https://placehold.co/300x100){.rounded .shadow #hero-image}
 
 ## Links with Attributes
 
@@ -276,7 +276,7 @@ And this aside is also inside the same section!
 
 ## Figure with Attributes
 
-<!-- ::FIGURE src="https://via.placeholder.com/400x150" caption="Figure with Custom Attributes" id="fig-attrs" -->
+<!-- ::FIGURE src="https://placehold.co/400x150" caption="Figure with Custom Attributes" id="fig-attrs" -->
 
 Reference: See [Figure 1](#fig-inline) and [Figure 2](#fig-legacy) in Chapter 1. {.figure-ref}
 

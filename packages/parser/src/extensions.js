@@ -2,6 +2,8 @@
  * Markdown-it extensions for PageMD custom syntax
  */
 
+import { annotatedImagePlugin } from './plugins/annotated-image.js';
+
 /**
  * Block callout plugin for [[WARNING]]...[[/WARNING]] and [[DANGER]]...[[/DANGER]]
  * @param {MarkdownIt} md - Markdown-it instance
@@ -286,5 +288,6 @@ export function figurePlugin(md) {
 export function registerExtensions(md) {
   md.use(calloutPlugin);
   md.use(figurePlugin);
+  md.use(annotatedImagePlugin);
   return md;
 }

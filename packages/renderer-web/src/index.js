@@ -17,6 +17,9 @@ import {
 } from '@pagemd/core';
 import { loadTemplate, renderTemplate } from './template.js';
 import { buildStyleBlock } from './styles.js';
+import { fillTocPlaceholder } from './toc.js';
+import { generateIndexSkeleton } from './index-skeleton.js';
+import { generatePageLayoutCSS } from './page-layout.js';
 
 const logger = createLogger('renderer.web');
 
@@ -143,15 +146,28 @@ export async function renderDocument(markdownPath, options = {}) {
     template = templateResult;
   }
 
-  // Step 4: Load frontmatter styles (if any specified in metadata.styles)
-  logger.debug('Step 4: Loading frontmatter styles');
-  const frontmatterStyles = await loadFrontmatterStyles(metadata.styles, pathContext);
+  // Step 4: Merge profile defaults with frontmatter metadata
+  logger.debug('Step 4: Merging metadata with profile defaults');
+  const mergedMetadata = {
+    ...(profile.metadata?.defaults || {}),
+    ...metadata
+  };
 
-  // Step 5: Build CSS style block (with metadata if debug mode)
-  logger.debug('Step 5: Building styles');
+  // Step 5: Load frontmatter styles (if any specified in metadata.styles)
+  logger.debug('Step 5: Loading frontmatter styles');
+  const frontmatterStyles = await loadFrontmatterStyles(mergedMetadata.styles, pathContext);
+
+  // Step 5b: Generate page layout CSS (headers, footers, page numbers)
+  const pageLayoutCSS = generatePageLayoutCSS(mergedMetadata);
+  const combinedFrontmatterCSS = [pageLayoutCSS, frontmatterStyles.css]
+    .filter(Boolean)
+    .join('\n');
+
+  // Step 6: Build CSS style block (with metadata if debug mode)
+  logger.debug('Step 6: Building styles');
   const styleResult = await buildStyleBlock(profile, pathContext, {
     returnMetadata: !!debugMetadata,
-    frontmatterCSS: frontmatterStyles.css || undefined
+    frontmatterCSS: combinedFrontmatterCSS || undefined
   });
 
   let styles;
@@ -183,15 +199,27 @@ export async function renderDocument(markdownPath, options = {}) {
     styles = styleResult;
   }
 
-  // Step 6: Render template with content, styles, and metadata
-  logger.debug('Step 6: Rendering template');
-  const finalHtml = renderTemplate(template, {
+  // Step 7: Render template with content, styles, and metadata
+  logger.debug('Step 7: Rendering template');
+  const renderedHtml = renderTemplate(template, {
     content: html,
     styles,
-    metadata,
+    metadata: mergedMetadata,
     profile,
     pathContext
   });
+
+  // Step 8: Fill TOC placeholder if present (using metadata.toc settings)
+  logger.debug('Step 8: Processing TOC placeholder');
+  const tocOptions = {
+    title: mergedMetadata.toc_title || 'Contents',
+    levels: mergedMetadata.toc_levels || 3
+  };
+  const withToc = fillTocPlaceholder(renderedHtml, tocOptions);
+
+  // Step 9: Generate index skeleton if present (for proper pagination in PDF)
+  logger.debug('Step 9: Processing index skeleton');
+  const finalHtml = generateIndexSkeleton(withToc, mergedMetadata);
 
   logger.info('Document rendered successfully');
 
@@ -218,9 +246,6 @@ export async function renderMarkdown(markdown, options = {}) {
   logger.debug('Step 1: Parsing markdown');
   const { content, html, metadata: parsedMetadata } = parse(markdown, options);
 
-  // Merge provided metadata with parsed metadata
-  const metadata = { ...parsedMetadata, ...options.metadata };
-
   // Step 2: Create render context (without markdownPath)
   logger.debug('Step 2: Creating render context');
   const context = createRenderContext(options);
@@ -230,34 +255,63 @@ export async function renderMarkdown(markdown, options = {}) {
   logger.debug('Step 3: Loading template');
   const template = await loadTemplate(profile, pathContext);
 
-  // Step 4: Load frontmatter styles (if any specified in metadata.styles)
-  logger.debug('Step 4: Loading frontmatter styles');
-  const frontmatterStyles = await loadFrontmatterStyles(metadata.styles, pathContext);
+  // Step 4: Merge profile defaults with frontmatter metadata
+  logger.debug('Step 4: Merging metadata with profile defaults');
+  const mergedMetadata = {
+    ...(profile.metadata?.defaults || {}),
+    ...parsedMetadata,
+    ...options.metadata
+  };
 
-  // Step 5: Build CSS style block
-  logger.debug('Step 5: Building styles');
+  // Step 5: Load frontmatter styles (if any specified in metadata.styles)
+  logger.debug('Step 5: Loading frontmatter styles');
+  const frontmatterStyles = await loadFrontmatterStyles(mergedMetadata.styles, pathContext);
+
+  // Step 5b: Generate page layout CSS (headers, footers, page numbers)
+  const pageLayoutCSS = generatePageLayoutCSS(mergedMetadata);
+  const combinedFrontmatterCSS = [pageLayoutCSS, frontmatterStyles.css]
+    .filter(Boolean)
+    .join('\n');
+
+  // Step 6: Build CSS style block
+  logger.debug('Step 6: Building styles');
   const styles = await buildStyleBlock(profile, pathContext, {
-    frontmatterCSS: frontmatterStyles.css || undefined
+    frontmatterCSS: combinedFrontmatterCSS || undefined
   });
 
-  // Step 6: Render template with content, styles, and metadata
-  logger.debug('Step 6: Rendering template');
-  const finalHtml = renderTemplate(template, {
+  // Step 7: Render template with content, styles, and metadata
+  logger.debug('Step 7: Rendering template');
+  const renderedHtml = renderTemplate(template, {
     content: html,
     styles,
-    metadata,
+    metadata: mergedMetadata,
     profile,
     pathContext
   });
+
+  // Step 8: Fill TOC placeholder if present (using metadata.toc settings)
+  logger.debug('Step 8: Processing TOC placeholder');
+  const tocOptions = {
+    title: mergedMetadata.toc_title || 'Contents',
+    levels: mergedMetadata.toc_levels || 3
+  };
+  const withToc = fillTocPlaceholder(renderedHtml, tocOptions);
+
+  // Step 9: Generate index skeleton if present (for proper pagination in PDF)
+  logger.debug('Step 9: Processing index skeleton');
+  const finalHtml = generateIndexSkeleton(withToc, mergedMetadata);
 
   logger.info('Markdown rendered successfully');
 
   return {
     html: finalHtml,
-    metadata
+    metadata: mergedMetadata
   };
 }
 
 // Re-export template and style functions for direct use
 export { loadTemplate, processTokens, renderTemplate } from './template.js';
 export { buildStyleBlock, formatStyleTag, minifyCSS, inlineStyles } from './styles.js';
+export { extractHeadings, generateTocHtml, fillTocPlaceholder } from './toc.js';
+export { generateIndexSkeleton } from './index-skeleton.js';
+export { generatePageLayoutCSS } from './page-layout.js';

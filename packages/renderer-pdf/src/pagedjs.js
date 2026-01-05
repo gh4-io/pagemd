@@ -79,7 +79,13 @@ export function getPagedJsConfig(profile, frontmatter) {
   const config = {
     ...defaults,
     ...profileConfig,
-    ...frontmatterConfig
+    ...frontmatterConfig,
+    // Add TOC configuration from frontmatter
+    toc: {
+      includePageNumbers: frontmatter?.toc_page_numbers ?? true,
+      levels: frontmatter?.toc_levels ?? 3,
+      pageLevels: frontmatter?.toc_page_levels ?? frontmatter?.toc_levels ?? 3
+    }
   };
 
   logger.debug('pagedjs.getConfig', 'merged', 'Built PagedConfig from sources', {
@@ -129,9 +135,189 @@ export function injectPagedJs(html, options = {}) {
   // PagedConfig for Paged.js initialization (must be set before polyfill loads)
   window.PagedConfig = ${configJson};
 
-  // Set completion flag when Paged.js finishes
+  /**
+   * Generate TOC with optional page numbers for PDF output
+   * Updates existing nav.toc or fills .toc-placeholder
+   * Page numbers are added only if config.toc.includePageNumbers is true
+   */
+  function generatePdfToc() {
+    // Check for existing TOC (from HTML renderer) or placeholder
+    const existingToc = document.querySelector('nav.toc');
+    const placeholder = document.querySelector('.toc-placeholder');
+
+    if (!existingToc && !placeholder) return;
+
+    // Read configuration from PagedConfig, with directive attributes as override
+    // Directive attrs may be on nav.toc (after toc.js processing) or .toc-placeholder
+    const config = window.PagedConfig;
+    const tocElement = existingToc || placeholder;
+
+    // Directive data-pages overrides frontmatter toc_page_numbers
+    const directivePages = tocElement?.dataset.pages;
+    const includePageNumbers = directivePages !== undefined
+      ? directivePages === 'true'
+      : (config.toc?.includePageNumbers ?? true);
+    // Directive data-levels overrides frontmatter toc_levels (only on placeholder, nav.toc already has structure)
+    const placeholderLevels = placeholder?.dataset.levels;
+    const maxLevel = placeholderLevels
+      ? parseInt(placeholderLevels)
+      : (config.toc?.levels ?? 3);
+    // Directive data-page-levels overrides frontmatter toc_page_levels (which headings get page numbers)
+    const directivePageLevels = tocElement?.dataset.pageLevels;
+    const pageLevels = directivePageLevels
+      ? parseInt(directivePageLevels)
+      : (config.toc?.pageLevels ?? maxLevel);
+
+    // Build heading-to-page map by walking paginated content
+    // Uses pageLevels to determine which heading levels get page numbers
+    const headingPageMap = new Map();
+    const pages = document.querySelectorAll('.pagedjs_page');
+
+    pages.forEach((page, pageIndex) => {
+      const pageNum = pageIndex + 1;
+      const selector = Array.from({length: pageLevels}, (_, i) => 'h' + (i + 1)).join(',');
+      page.querySelectorAll(selector).forEach(h => {
+        if (h.id) {
+          headingPageMap.set(h.id, pageNum);
+        }
+      });
+    });
+
+    // If existing TOC, just add page numbers to links
+    // Handle fragmented TOC (Paged.js may split across pages)
+    if (existingToc) {
+      const allTocs = document.querySelectorAll('nav.toc');
+      let matched = 0;
+
+      allTocs.forEach(toc => {
+        toc.querySelectorAll('a[href^="#"]').forEach(link => {
+          const targetId = link.getAttribute('href').substring(1);
+          const pageNum = headingPageMap.get(targetId);
+          // Only add page numbers if enabled and not already present
+          if (includePageNumbers && pageNum && !link.querySelector('.toc-page')) {
+            const pageSpan = document.createElement('span');
+            pageSpan.className = 'toc-page';
+            pageSpan.textContent = pageNum;
+            link.appendChild(pageSpan);
+            matched++;
+          }
+        });
+      });
+      console.log('PDF TOC updated with', matched, 'page numbers');
+      return;
+    }
+
+    // Otherwise generate from scratch (placeholder case)
+    const headings = [];
+    document.querySelectorAll('.pagedjs_page').forEach((page, pageIndex) => {
+      const pageNum = pageIndex + 1;
+      const selector = Array.from({length: maxLevel}, (_, i) => 'h' + (i + 1)).join(',');
+      page.querySelectorAll(selector).forEach(h => {
+        const id = h.id || h.textContent.toLowerCase().replace(/\\s+/g, '-').replace(/[^\\w-]/g, '');
+        headings.push({
+          id,
+          text: h.textContent.trim(),
+          level: parseInt(h.tagName.substring(1)),
+          page: pageNum
+        });
+      });
+    });
+
+    if (headings.length === 0) {
+      placeholder.remove();
+      return;
+    }
+
+    // Generate nested TOC with optional page numbers
+    let html = '<nav class="toc"><h2 class="toc-title">Contents</h2><ul>';
+    let currentLevel = 0;
+
+    headings.forEach(h => {
+      while (currentLevel < h.level) {
+        if (currentLevel > 0) html += '<ul>';
+        currentLevel++;
+      }
+      while (currentLevel > h.level) {
+        html += '</ul></li>';
+        currentLevel--;
+      }
+      html += '<li><a href="#' + h.id + '">' + h.text;
+      // Only include page number span if enabled AND heading level is within pageLevels
+      if (includePageNumbers && h.level <= pageLevels) {
+        html += '<span class="toc-page">' + h.page + '</span>';
+      }
+      html += '</a>';
+    });
+
+    while (currentLevel > 0) {
+      html += '</li></ul>';
+      currentLevel--;
+    }
+    html += '</nav>';
+
+    placeholder.outerHTML = html;
+    console.log('PDF TOC generated with', headings.length, 'entries');
+  }
+
+  /**
+   * Fill page numbers in pre-generated index skeleton
+   * The skeleton is generated by renderer-web for proper pagination.
+   * This function fills in the actual page numbers after Paged.js runs.
+   *
+   * Note: Paged.js fragments elements across pages, so .book-index may appear
+   * as multiple fragments. We must search ALL fragments for index entries.
+   */
+  function generatePdfIndex() {
+    // Check if any index structure exists (may be fragmented across pages)
+    const indexEntries = document.querySelectorAll('.book-index .index-pages[data-sort]');
+    if (indexEntries.length === 0) {
+      // No skeleton entries - check for old-style placeholder
+      const placeholder = document.querySelector('.index-placeholder');
+      if (placeholder) {
+        placeholder.remove();
+      }
+      return;
+    }
+
+    const pageNumbers = new Map(); // sortKey -> Set of page numbers
+
+    // Walk all pages to find index markers and collect page numbers
+    document.querySelectorAll('.pagedjs_page').forEach((page, pageIndex) => {
+      const pageNum = pageIndex + 1;
+      page.querySelectorAll('.index-marker').forEach(marker => {
+        const sortKey = marker.dataset.sort || marker.dataset.term?.toLowerCase() || '';
+        if (sortKey) {
+          if (!pageNumbers.has(sortKey)) {
+            pageNumbers.set(sortKey, new Set());
+          }
+          pageNumbers.get(sortKey).add(pageNum);
+        }
+      });
+    });
+
+    // Fill in page numbers for each index entry (across all fragments)
+    let filledCount = 0;
+
+    indexEntries.forEach(dd => {
+      const sortKey = dd.dataset.sort;
+      const pages = pageNumbers.get(sortKey);
+      if (pages && pages.size > 0) {
+        const pageList = [...pages].sort((a, b) => a - b).join(', ');
+        dd.textContent = pageList;
+        filledCount++;
+      } else {
+        dd.textContent = '—'; // Em dash for terms with no page refs
+      }
+    });
+
+    console.log('PDF Index: filled page numbers for', filledCount, 'of', indexEntries.length, 'terms');
+  }
+
+  // Set completion flag when Paged.js finishes, after generating TOC and Index
   window.PagedConfig.after = (flow) => {
     console.log('Paged.js rendering complete:', flow.total, 'pages');
+    generatePdfToc();
+    generatePdfIndex();
     window.__pagedjs_complete = true;
   };
 </script>`);

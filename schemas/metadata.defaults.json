@@ -14,7 +14,11 @@
     "approver": "",
     "category": "",
     "tags": [],
-    "pipeline_profile": "standard_letter"
+    "pipeline_profile": "standard_letter",
+    "toc": false,
+    "toc_levels": 3,
+    "toc_title": "Contents",
+    "toc_page_numbers": true
   },
 
   "fieldDefinitions": {
@@ -127,6 +131,22 @@
         "maxLength": 200
       },
       "filenameToken": true
+    },
+    "toc": {
+      "type": "boolean",
+      "description": "Enable table of contents"
+    },
+    "toc_levels": {
+      "type": "number",
+      "description": "Maximum heading depth to include in TOC (1-6)"
+    },
+    "toc_title": {
+      "type": "string",
+      "description": "TOC heading text"
+    },
+    "toc_page_numbers": {
+      "type": "boolean",
+      "description": "Show page numbers in TOC (PDF only)"
     },
     "timestamp": {
       "type": "string",

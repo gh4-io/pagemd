@@ -51,6 +51,9 @@ export const ENV_SCHEMA = {
   // Syntax highlighting
   PAGEMD_SYNTAX_HIGHLIGHT: { type: 'boolean', default: true, description: 'Enable syntax highlighting for code blocks' },
 
+  // Mermaid diagram rendering
+  PAGEMD_MERMAID: { type: 'boolean', default: true, description: 'Enable mermaid diagram rendering' },
+
   // Path configuration
   PAGEMD_PROJECT_ROOT: { type: 'path', default: null, description: 'Override project root detection' },
   PAGEMD_CONFIG_DIR: { type: 'path', default: null, description: 'Additional config search path' }
