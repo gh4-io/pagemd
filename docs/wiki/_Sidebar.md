@@ -21,6 +21,7 @@
 - [[reference/CLI|CLI Commands]]
 - [[reference/Settings|Settings]]
 - [[reference/Profile-Schema|Profile Schema]]
+- [[reference/Inline-Attributes|Inline Attributes]]
 - [[reference/Glossary|Glossary]]
 - [[reference/Appendix|Appendix]]
 

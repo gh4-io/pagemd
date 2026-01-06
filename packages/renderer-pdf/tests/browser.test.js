@@ -15,7 +15,7 @@ vi.mock('node:fs', () => ({
   existsSync: vi.fn()
 }));
 
-vi.mock('puppeteer', () => ({
+vi.mock('puppeteer-core', () => ({
   default: {
     launch: vi.fn()
   }
@@ -198,7 +198,7 @@ describe('launchBrowser', () => {
       close: vi.fn().mockResolvedValue(undefined)
     };
 
-    puppeteer = await import('puppeteer');
+    puppeteer = await import('puppeteer-core');
   });
 
   it('should launch with user-provided executable path', async () => {
@@ -238,7 +238,7 @@ describe('launchBrowser', () => {
     );
   });
 
-  it('should fallback to bundled Chromium when Chrome fails', async () => {
+  it('should throw error when system Chrome launch fails', async () => {
     const { existsSync } = await import('node:fs');
 
     Object.defineProperty(process, 'platform', {
@@ -248,62 +248,56 @@ describe('launchBrowser', () => {
 
     existsSync.mockReturnValue(true);
 
-    // First call (system Chrome) fails, second call (Chromium) succeeds
-    puppeteer.default.launch
-      .mockRejectedValueOnce(new Error('Chrome launch failed'))
-      .mockResolvedValueOnce(mockBrowser);
+    // System Chrome launch fails
+    puppeteer.default.launch.mockRejectedValueOnce(new Error('Chrome launch failed'));
 
-    const browser = await launchBrowser();
-
-    expect(browser).toBe(mockBrowser);
-    expect(puppeteer.default.launch).toHaveBeenCalledTimes(2);
-
-    // Second call should not have executablePath
-    const secondCall = puppeteer.default.launch.mock.calls[1][0];
-    expect(secondCall.executablePath).toBeUndefined();
+    // With puppeteer-core, no bundled Chromium fallback - should throw
+    await expect(launchBrowser()).rejects.toThrow('Chrome/Chromium not found');
   });
 
-  it('should fallback to bundled Chromium when no system Chrome found', async () => {
+  it('should throw error when no system Chrome found', async () => {
     const { existsSync } = await import('node:fs');
+    const { execSync } = await import('node:child_process');
 
     Object.defineProperty(process, 'platform', {
       value: 'linux',
       writable: true
     });
 
+    execSync.mockImplementation(() => {
+      throw new Error('which command failed');
+    });
     existsSync.mockReturnValue(false);
-    puppeteer.default.launch.mockResolvedValue(mockBrowser);
 
-    const browser = await launchBrowser();
-
-    expect(browser).toBe(mockBrowser);
-    expect(puppeteer.default.launch).toHaveBeenCalledTimes(1);
-
-    const call = puppeteer.default.launch.mock.calls[0][0];
-    expect(call.executablePath).toBeUndefined();
+    // With puppeteer-core, no bundled Chromium - should throw immediately
+    await expect(launchBrowser()).rejects.toThrow('Chrome/Chromium not found');
+    // Should not even try to launch
+    expect(puppeteer.default.launch).not.toHaveBeenCalled();
   });
 
-  it('should throw error when all launch attempts fail', async () => {
+  it('should include helpful error message when Chrome not found', async () => {
     const { existsSync } = await import('node:fs');
+    const { execSync } = await import('node:child_process');
 
     Object.defineProperty(process, 'platform', {
       value: 'linux',
       writable: true
     });
 
+    execSync.mockImplementation(() => {
+      throw new Error('which command failed');
+    });
     existsSync.mockReturnValue(false);
-    puppeteer.default.launch.mockRejectedValue(new Error('Launch failed'));
 
-    await expect(launchBrowser()).rejects.toThrow('Failed to launch browser');
+    await expect(launchBrowser()).rejects.toThrow('PAGEMD_BROWSER_PATH');
   });
 
   it('should pass custom args to browser', async () => {
-    const { existsSync } = await import('node:fs');
-
-    existsSync.mockReturnValue(false);
     puppeteer.default.launch.mockResolvedValue(mockBrowser);
 
+    // Use executablePath to bypass Chrome detection
     await launchBrowser({
+      executablePath: '/usr/bin/chrome',
       args: ['--disable-gpu', '--window-size=1920,1080']
     });
 
@@ -320,12 +314,10 @@ describe('launchBrowser', () => {
   });
 
   it('should disable headless when debug is true', async () => {
-    const { existsSync } = await import('node:fs');
-
-    existsSync.mockReturnValue(false);
     puppeteer.default.launch.mockResolvedValue(mockBrowser);
 
-    await launchBrowser({ debug: true });
+    // Use executablePath to bypass Chrome detection
+    await launchBrowser({ executablePath: '/usr/bin/chrome', debug: true });
 
     expect(puppeteer.default.launch).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -335,12 +327,10 @@ describe('launchBrowser', () => {
   });
 
   it('should respect headless option when debug is false', async () => {
-    const { existsSync } = await import('node:fs');
-
-    existsSync.mockReturnValue(false);
     puppeteer.default.launch.mockResolvedValue(mockBrowser);
 
-    await launchBrowser({ headless: false, debug: false });
+    // Use executablePath to bypass Chrome detection
+    await launchBrowser({ executablePath: '/usr/bin/chrome', headless: false, debug: false });
 
     expect(puppeteer.default.launch).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -350,12 +340,10 @@ describe('launchBrowser', () => {
   });
 
   it('should include security and sandbox args', async () => {
-    const { existsSync } = await import('node:fs');
-
-    existsSync.mockReturnValue(false);
     puppeteer.default.launch.mockResolvedValue(mockBrowser);
 
-    await launchBrowser();
+    // Use executablePath to bypass Chrome detection
+    await launchBrowser({ executablePath: '/usr/bin/chrome' });
 
     expect(puppeteer.default.launch).toHaveBeenCalledWith(
       expect.objectContaining({

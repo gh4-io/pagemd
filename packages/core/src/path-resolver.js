@@ -189,21 +189,38 @@ export function resolveResourcePath(relativePath, context) {
 
 /**
  * Derive package root from CLI's __dirname location.
- * Works for both development and npm-installed CLI.
- * @param {string} cliDirname - __dirname from CLI entry point (apps/cli/src/)
- * @returns {string} Absolute path to package root (project folder)
+ * Works for both development (apps/cli/src/) and bundled CLI (bin/).
+ *
+ * Detection logic:
+ * 1. Check if resources exist at same level as __dirname (bundled mode)
+ * 2. Fall back to 3 levels up (source mode: apps/cli/src/ → project/)
+ *
+ * @param {string} cliDirname - __dirname from CLI entry point
+ * @returns {string} Absolute path to package root (contains profiles/, templates/, etc.)
  */
 export function getPackageRootFromCli(cliDirname) {
-  // From apps/cli/src/ go up 3 levels to project/
+  // Check bundled mode first: resources directly in same directory as CLI
+  const bundledProfilesPath = path.join(cliDirname, RESOURCE_PATHS.profiles);
+  if (fs.existsSync(bundledProfilesPath)) {
+    logger.debug('path-resolver', 'package-root', 'Using bundled mode (resources in CLI directory)', {
+      packageRoot: cliDirname
+    });
+    return cliDirname;
+  }
+
+  // Source mode: from apps/cli/src/ go up 3 levels to project/
   const derived = path.resolve(cliDirname, '../../..');
 
   // Verify structure exists by checking profiles folder
   const profilesPath = path.join(derived, RESOURCE_PATHS.profiles);
   if (!fs.existsSync(profilesPath)) {
-    // Fallback: maybe we're in a different structure, try finding it
     logger.warn('path-resolver', 'package-root', 'Profiles not found at expected location', {
       expected: profilesPath,
       derived
+    });
+  } else {
+    logger.debug('path-resolver', 'package-root', 'Using source mode (3 levels up)', {
+      packageRoot: derived
     });
   }
 

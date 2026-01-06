@@ -329,6 +329,46 @@ options:
 
 ---
 
+## Inline Attributes
+
+Beyond directives, PageMD supports **inline attributes** for applying CSS classes, IDs, and HTML attributes directly to markdown elements.
+
+### Quick Examples
+
+```markdown
+This paragraph is highlighted. {.highlight}
+
+## Section Title {#custom-id .accent}
+
+[Link](url){target="_blank"}
+
+| Table |
+|-------|
+| Data  |
+{.bordered .striped}
+```
+
+### Common Uses
+
+| Purpose | Syntax |
+|---------|--------|
+| Apply CSS class | `{.classname}` |
+| Add HTML ID | `{#element-id}` |
+| Control page breaks | `{style="page-break-inside: avoid;"}` |
+| Multiple attributes | `{.class1 .class2 #id}` |
+
+### Use Cases for Extended Syntax
+
+Inline attributes complement directives:
+
+- **Page breaks:** Use `{style="page-break-inside: avoid;"}` to keep a specific table together; use `<!-- ::BREAK -->` for standalone breaks
+- **Styling:** Use `{.class}` to apply custom CSS to individual elements; use profile CSS for document-wide styling
+- **IDs:** Use `{#section-name}` for TOC anchoring and internal linking
+
+**Full documentation:** See [[reference/Inline-Attributes|Inline Attributes Reference]] for complete syntax, supported elements, and advanced examples.
+
+---
+
 ## Troubleshooting
 
 ### TOC not appearing
@@ -345,6 +385,7 @@ options:
 
 ## See Also
 
+- [[reference/Inline-Attributes|Inline Attributes]] - Apply CSS classes and HTML attributes in markdown
 - [[guides/Style-Guide|Style Guide]] - CSS customization
 - [[guides/Profiles|Working with Profiles]] - Profile configuration
 - [[reference/Settings|Settings]] - Environment variables

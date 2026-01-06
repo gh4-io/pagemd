@@ -138,6 +138,95 @@ Place `special-report.css` in the same directory as your markdown file, or in `.
 
 ---
 
+## Inline Attribute Styling
+
+**Inline attributes** let you apply CSS classes, IDs, and other HTML attributes directly in your markdown without writing raw HTML.
+
+### Quick Overview
+
+Add attributes in curly braces after any markdown element:
+
+```markdown
+This paragraph has custom styling. {.highlight #intro}
+
+## Section Title {.accent-heading}
+
+[External Link](https://example.com){target="_blank" rel="noopener"}
+
+| Data Table |
+|------------|
+| Row 1      |
+{.striped-table}
+```
+
+### Common Use Cases
+
+| Use Case | Example |
+|----------|---------|
+| Apply CSS class | `Text {.highlight}` |
+| Add element ID | `## Heading {#section-1}` |
+| Control page breaks | `Content {style="page-break-inside: avoid;"}` |
+| Multiple classes | `Text {.important .centered}` |
+| Open links in new tab | `[Link](url){target="_blank"}` |
+| Style tables | `\| Table \|{.bordered .striped}` |
+
+### Working with Custom Classes
+
+**Pattern:** Define classes in CSS, apply with inline attributes.
+
+**Example workflow:**
+
+1. **Create CSS file** (`.pagemd/styles/custom.css`):
+   ```css
+   .callout {
+     background: #e7f3ff;
+     border-left: 4px solid #0066cc;
+     padding: 1rem;
+     margin: 1rem 0;
+   }
+
+   .keep-together {
+     page-break-inside: avoid;
+   }
+   ```
+
+2. **Apply via inline attributes:**
+   ```markdown
+   This is a callout box with important information. {.callout}
+
+   | Critical Data |
+   |---------------|
+   | Values...     |
+   {.keep-together}
+   ```
+
+3. **Reference CSS in profile or frontmatter:**
+   ```yaml
+   ---
+   styles:
+     - custom.css
+   ---
+   ```
+
+### Page Break Control
+
+Control PDF page breaks inline without separate directives:
+
+```markdown
+# New Chapter {style="page-break-before: always;"}
+
+Keep this table together on one page:
+
+| Data      |
+|-----------|
+| Important |
+{style="page-break-inside: avoid;"}
+```
+
+**See [[reference/Inline-Attributes|Inline Attributes Reference]]** for complete syntax documentation, element support, and advanced examples.
+
+---
+
 ## Built-In Style Presets
 
 PageMD includes ready-to-use style presets in `styles/presets/`. Use them directly or as starting points.
@@ -648,6 +737,7 @@ Or use traditional `@page` content directly in a layout CSS file.
 
 ## See Also
 
+- [[reference/Inline-Attributes|Inline Attributes]] - Complete attribute syntax reference
 - [[guides/Extended-Syntax|Extended Syntax]] - TOC, callouts, figures, mermaid
 - [[guides/Profiles|Working with Profiles]] - Profile configuration
 - [[reference/Profile-Schema|Profile Schema]] - Full profile options

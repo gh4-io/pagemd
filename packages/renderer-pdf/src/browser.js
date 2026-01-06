@@ -2,10 +2,10 @@
  * @pagemd/renderer-pdf/browser
  * Browser management for PDF rendering with Puppeteer
  *
- * Prefers system Chrome; falls back to bundled Chromium when Chrome unavailable or fails.
+ * Requires system Chrome/Chromium (puppeteer-core has no bundled browser).
  */
 
-import puppeteer from 'puppeteer';
+import puppeteer from 'puppeteer-core';
 import { execSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { createLogger } from '@pagemd/core';
@@ -151,7 +151,7 @@ export function detectChrome() {
     }
   }
 
-  logger.debug('chrome_detection', 'none', 'No system Chrome found, will use bundled Chromium');
+  logger.debug('chrome_detection', 'none', 'No system Chrome found');
   return null;
 }
 
@@ -199,7 +199,6 @@ export async function launchBrowser(options = {}) {
   };
 
   let browser = null;
-  let usedChrome = false;
 
   // 1. Try user-provided executable path
   if (userExecutablePath) {
@@ -209,7 +208,6 @@ export async function launchBrowser(options = {}) {
         ...baseConfig,
         executablePath: userExecutablePath
       });
-      usedChrome = true;
       logger.info('browser_launch', 'ok', `Browser launched successfully with user path`);
     } catch (err) {
       logger.warn('browser_launch', 'fail', `Failed to launch with user path: ${err.message}`);
@@ -222,12 +220,11 @@ export async function launchBrowser(options = {}) {
     const chromePath = detectChrome();
     if (chromePath) {
       try {
-        logger.info('browser_launch', 'start', `Attempting to launch system Chrome`);
+        logger.info('browser_launch', 'start', `Attempting to launch system Chrome at ${chromePath}`);
         browser = await puppeteer.launch({
           ...baseConfig,
           executablePath: chromePath
         });
-        usedChrome = true;
         logger.info('browser_launch', 'ok', `System Chrome launched successfully`);
       } catch (err) {
         logger.warn('browser_launch', 'fail', `Failed to launch system Chrome: ${err.message}`);
@@ -236,23 +233,27 @@ export async function launchBrowser(options = {}) {
     }
   }
 
-  // 3. Fallback to bundled Chromium
+  // 3. No browser found - throw clear error (puppeteer-core has no bundled Chromium)
   if (!browser) {
-    try {
-      logger.info('browser_launch', 'start', `Falling back to bundled Chromium`);
-      browser = await puppeteer.launch(baseConfig);
-      logger.info('browser_launch', 'ok', `Bundled Chromium launched successfully`);
-    } catch (err) {
-      const enhancedMessage = enhanceLibraryError(err.message);
-      logger.error('browser_launch', 'fail', `Failed to launch bundled Chromium: ${err.message}`);
-      throw new Error(`Failed to launch browser: ${enhancedMessage}`);
-    }
+    const errorMessage = `Chrome/Chromium not found.
+
+PageMD requires Chrome or Chromium to generate PDFs.
+
+Install Chrome: https://www.google.com/chrome/
+Or set PAGEMD_BROWSER_PATH environment variable to your browser executable.
+
+On Linux, you can also install Chromium:
+  sudo apt install chromium-browser
+  # or
+  sudo snap install chromium`;
+
+    logger.error('browser_launch', 'fail', 'No browser available');
+    throw new Error(errorMessage);
   }
 
   // Log final browser info
-  const browserType = usedChrome ? 'Chrome' : 'Chromium';
   const version = await browser.version();
-  logger.info('browser_ready', 'ok', `${browserType} ${version} ready (headless: ${baseConfig.headless})`);
+  logger.info('browser_ready', 'ok', `Browser ${version} ready (headless: ${baseConfig.headless})`);
 
   // Cache browser if persistence enabled
   if (isBrowserPersistenceEnabled()) {
