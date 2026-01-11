@@ -8,7 +8,7 @@
 
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { createLogger } from '@pagemd/core';
 
 const logger = createLogger('renderer.pdf');
@@ -17,20 +17,40 @@ const logger = createLogger('renderer.pdf');
 let pagedPolyfillCache = null;
 
 /**
- * Get absolute path to bundled Paged.js polyfill script
+ * Get absolute path to bundled Paged.js polyfill script.
+ *
+ * Supports two modes:
+ * - Bundled mode: Polyfill is at vendor/paged.polyfill.js (VS Code extension bundle)
+ * - Source mode: Polyfill is at node_modules/pagedjs/dist/paged.polyfill.js
+ *
+ * Detection logic:
+ * 1. Check if vendor/paged.polyfill.js exists relative to current file (bundled mode)
+ * 2. Fall back to node_modules path (source mode)
+ *
  * @returns {string} Absolute path to paged.polyfill.js
  */
 export function getPagedJsScript() {
-  // Resolve from node_modules/pagedjs/dist/paged.polyfill.js
   const currentFile = fileURLToPath(import.meta.url);
   const currentDir = dirname(currentFile);
 
-  // Navigate from packages/renderer-pdf/src to project root, then into node_modules
-  const scriptPath = join(currentDir, '../../../node_modules/pagedjs/dist/paged.polyfill.js');
+  // Bundled mode: Check for vendor/paged.polyfill.js at same level as bundled CLI
+  // When bundled, currentDir is the bin/ folder containing pagemd-cli.mjs
+  const bundledPath = join(currentDir, 'vendor/paged.polyfill.js');
+  if (existsSync(bundledPath)) {
+    logger.trace('pagedjs.getScript', 'resolved', 'Located Paged.js polyfill (bundled mode)', {
+      scriptPath: bundledPath
+    });
+    return bundledPath;
+  }
 
-  logger.trace('pagedjs.getScript', 'resolved', 'Located Paged.js polyfill', { scriptPath });
+  // Source mode: Navigate from packages/renderer-pdf/src to project root, then into node_modules
+  const sourcePath = join(currentDir, '../../../node_modules/pagedjs/dist/paged.polyfill.js');
 
-  return scriptPath;
+  logger.trace('pagedjs.getScript', 'resolved', 'Located Paged.js polyfill (source mode)', {
+    scriptPath: sourcePath
+  });
+
+  return sourcePath;
 }
 
 /**

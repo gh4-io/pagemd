@@ -1,0 +1,50 @@
+{
+  "id": "cover-page",
+  "description": "Full cover page setup with styles built into template",
+
+  "resources": {
+    "template": "../templates/cover-page.html",
+    "layout": "../layouts/cover-page.css",
+    "css": [],
+    "fonts": [],
+    "assets": []
+  },
+
+  "pagedjs": {
+    "mode": "browser"
+  },
+  "outputs": {
+    "pdf": {
+      "enabled": true,
+      "mode": "ACTIVE_ONLY",
+      "options": {}
+    },
+    "html": {
+      "enabled": false,
+      "mode": "DISABLED",
+      "options": {}
+    },
+    "png": {
+      "enabled": false,
+      "mode": "DISABLED",
+      "options": {}
+    },
+    "jpeg": {
+      "enabled": false,
+      "mode": "DISABLED",
+      "options": {}
+    }
+  },
+  "validation": {
+    "required_fields": ["title"]
+  },
+  "metadata": {
+    "defaults": {
+      "status": "Draft",
+      "revision": 0,
+      "page_numbers": false,
+      "running_header": false,
+      "running_footer": false
+    }
+  }
+}

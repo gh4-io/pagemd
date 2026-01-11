@@ -6,7 +6,12 @@ import matter from 'gray-matter';
  * @returns {{content: string, metadata: object, raw: string}} Parsed frontmatter and content
  */
 export function extractFrontmatter(markdown) {
-  const result = matter(markdown);
+  let result;
+  try {
+    result = matter(markdown);
+  } catch (error) {
+    throw new Error(`Frontmatter YAML error: ${error.message}`);
+  }
 
   return {
     content: result.content,

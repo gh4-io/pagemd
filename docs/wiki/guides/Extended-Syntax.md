@@ -44,12 +44,14 @@ Set TOC defaults in frontmatter:
 ---
 title: My Document
 toc: true
-toc_levels: "2-4"
+toc_levels: 4
 toc_title: "Contents"
 toc_page_numbers: true
-toc_page_levels: "2-3"
+toc_page_levels: 3
 ---
 ```
+
+**Note:** Frontmatter `toc_levels` and `toc_page_levels` are numbers (max heading depth), while the directive `levels` parameter supports ranges like `"2-4"`.
 
 ### Example Output
 
@@ -63,6 +65,45 @@ toc_page_levels: "2-3"
 ```
 
 **Note:** Page numbers only appear in PDF output. HTML shows links only.
+
+---
+
+## Fancy Lists
+
+Enable advanced list numbering with letters and Roman numerals (opt-in feature).
+
+### Overview
+
+Fancy lists extend standard ordered lists with:
+- Letter numbering (A, B, C or a, b, c)
+- Roman numerals (I, II, III or i, ii, iii)
+- Custom start values
+- Automatic continuation with `#`
+
+**Disabled by default.** Must be enabled via frontmatter, profile, or environment variable.
+
+### Enable via Frontmatter
+
+```yaml
+---
+fancy_lists: true
+---
+```
+
+### Quick Examples
+
+```markdown
+A.  First item (uppercase needs TWO spaces)
+B.  Second item
+
+i. Legal clause one (lowercase needs one space)
+ii. Legal clause two
+
+I.  Introduction (uppercase Roman needs TWO spaces)
+II.  Background
+```
+
+**Full documentation:** See [Fancy Lists](Fancy-Lists.md) for complete syntax reference and use cases.
 
 ---
 

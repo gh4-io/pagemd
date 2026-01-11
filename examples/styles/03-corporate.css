@@ -1,0 +1,234 @@
+/**
+ * Modern Corporate/SaaS Style
+ *
+ * A clean, professional design with blue primary colors,
+ * card-style sections, and friendly rounded corners.
+ * Suitable for business documents, reports, and proposals.
+ */
+
+/* === Color Variables === */
+:root {
+  --corporate-primary: #2563eb;
+  --corporate-primary-dark: #1d4ed8;
+  --corporate-primary-light: #3b82f6;
+  --corporate-accent: #0ea5e9;
+  --corporate-success: #22c55e;
+  --corporate-warning: #f59e0b;
+  --corporate-error: #ef4444;
+  --corporate-info: #06b6d4;
+  --corporate-gray-50: #f8fafc;
+  --corporate-gray-100: #f1f5f9;
+  --corporate-gray-200: #e2e8f0;
+  --corporate-gray-300: #cbd5e1;
+  --corporate-gray-500: #64748b;
+  --corporate-gray-700: #334155;
+  --corporate-gray-900: #0f172a;
+  --corporate-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+  --corporate-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --corporate-radius: 0.5rem;
+  --corporate-radius-lg: 0.75rem;
+}
+
+/* === Base Typography === */
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: var(--corporate-gray-700);
+  line-height: 1.7;
+  background: var(--corporate-gray-50);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  color: var(--corporate-gray-900);
+  font-weight: 600;
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+}
+
+h1 { font-size: 2.25rem; font-weight: 700; color: var(--corporate-primary-dark); }
+h2 { font-size: 1.75rem; border-bottom: 2px solid var(--corporate-primary); padding-bottom: 0.5rem; }
+h3 { font-size: 1.375rem; color: var(--corporate-gray-700); }
+h4 { font-size: 1.125rem; }
+
+a {
+  color: var(--corporate-primary);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+a:hover {
+  color: var(--corporate-primary-dark);
+  text-decoration: underline;
+}
+
+/* === Card-Style Sections === */
+section, article, .card {
+  background: white;
+  border-radius: var(--corporate-radius-lg);
+  box-shadow: var(--corporate-shadow);
+  padding: 1.5rem 2rem;
+  margin: 1.5rem 0;
+}
+
+/* === Tables === */
+table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  margin: 1.5rem 0;
+  background: white;
+  border-radius: var(--corporate-radius);
+  overflow: hidden;
+  box-shadow: var(--corporate-shadow);
+}
+
+thead {
+  background: var(--corporate-primary);
+  color: white;
+}
+
+th {
+  padding: 0.875rem 1rem;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--corporate-gray-200);
+}
+
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover { background: var(--corporate-gray-50); }
+
+/* === Code Blocks === */
+code {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 0.875em;
+  background: var(--corporate-gray-100);
+  padding: 0.2em 0.4em;
+  border-radius: 0.25rem;
+  color: var(--corporate-primary-dark);
+}
+
+pre {
+  background: var(--corporate-gray-900);
+  color: var(--corporate-gray-100);
+  padding: 1.25rem;
+  border-radius: var(--corporate-radius);
+  overflow-x: auto;
+  box-shadow: var(--corporate-shadow-md);
+}
+
+pre code {
+  background: transparent;
+  color: inherit;
+  padding: 0;
+}
+
+/* === Alert/Callout Boxes === */
+blockquote {
+  background: var(--corporate-gray-50);
+  border-left: 4px solid var(--corporate-primary);
+  border-radius: 0 var(--corporate-radius) var(--corporate-radius) 0;
+  padding: 1rem 1.25rem;
+  margin: 1.5rem 0;
+  color: var(--corporate-gray-700);
+}
+
+blockquote > p:first-child { margin-top: 0; }
+blockquote > p:last-child { margin-bottom: 0; }
+
+.callout, .alert {
+  padding: 1rem 1.25rem;
+  border-radius: var(--corporate-radius);
+  margin: 1.5rem 0;
+  border-left: 4px solid;
+}
+
+.callout-info, .alert-info {
+  background: #ecfeff;
+  border-color: var(--corporate-info);
+  color: #0e7490;
+}
+
+.callout-warning, .alert-warning {
+  background: #fffbeb;
+  border-color: var(--corporate-warning);
+  color: #b45309;
+}
+
+.callout-success, .alert-success {
+  background: #f0fdf4;
+  border-color: var(--corporate-success);
+  color: #166534;
+}
+
+.callout-error, .alert-error {
+  background: #fef2f2;
+  border-color: var(--corporate-error);
+  color: #b91c1c;
+}
+
+/* === Lists === */
+ul, ol {
+  padding-left: 1.5rem;
+  margin: 1rem 0;
+}
+
+li { margin: 0.5rem 0; }
+
+li::marker {
+  color: var(--corporate-primary);
+}
+
+/* === Horizontal Rule === */
+hr {
+  border: none;
+  height: 2px;
+  background: linear-gradient(to right, var(--corporate-primary), var(--corporate-accent));
+  margin: 2rem 0;
+  border-radius: 1px;
+}
+
+/* === Buttons (if used) === */
+.button, button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  background: var(--corporate-primary);
+  color: white;
+  border: none;
+  border-radius: var(--corporate-radius);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s ease, box-shadow 0.15s ease;
+}
+
+.button:hover, button:hover {
+  background: var(--corporate-primary-dark);
+  box-shadow: var(--corporate-shadow-md);
+}
+
+/* === Images === */
+img {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--corporate-radius);
+  box-shadow: var(--corporate-shadow);
+}
+
+figure {
+  margin: 1.5rem 0;
+  text-align: center;
+}
+
+figcaption {
+  font-size: 0.875rem;
+  color: var(--corporate-gray-500);
+  margin-top: 0.75rem;
+  font-style: italic;
+}

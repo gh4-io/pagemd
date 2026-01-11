@@ -1,6 +1,7 @@
 ---
 document_id: STRESS-001
 title: PageMD Comprehensive Stress Test
+profile: "../profiles/corporate.json"
 revision: 1
 status: Draft
 effective_date: 2026-01-03

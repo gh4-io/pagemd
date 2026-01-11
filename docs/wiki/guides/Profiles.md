@@ -169,7 +169,7 @@ When PageMD loads a profile with `extends`:
 2. **Deep-merge objects** - Nested object properties are merged recursively
 3. **Replace arrays** - Child arrays completely replace parent arrays (no merging)
 4. **Child wins** - If both define the same field, the child's value is used
-5. **Delete with null** - Set a field to `null` to remove an inherited value
+5. **Null means inherit** - Set a field to `null` to preserve the parent's value (useful for selective inheritance)
 
 **Single parent only:** Each profile can extend at most one parent. Circular inheritance (A extends B extends A) is detected and throws an error.
 

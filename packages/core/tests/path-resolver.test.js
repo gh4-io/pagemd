@@ -11,7 +11,9 @@ import {
   expandTokens,
   findProjectRoot,
   resolveResourcePath,
-  resolvePath
+  resolvePath,
+  buildSearchPaths,
+  RESOURCE_SUBDIRS
 } from '../src/path-resolver.js';
 
 describe('path-resolver', () => {
@@ -377,6 +379,81 @@ describe('path-resolver', () => {
       const relativePath = './current/file.txt';
       const resolved = resolvePath(relativePath, context);
       expect(resolved).toBe(resolve(projectRoot, './current/file.txt'));
+    });
+  });
+
+  describe('buildSearchPaths - subdirectory search', () => {
+    it('should include presets subdirectory for styles resource type', () => {
+      const context = {
+        workspacePath: projectRoot
+      };
+
+      const paths = buildSearchPaths('styles', context);
+
+      // Should include presets, syntax, vendor subdirectories
+      expect(paths).toContain(normalize(join(projectRoot, 'styles', 'presets')));
+      expect(paths).toContain(normalize(join(projectRoot, 'styles', 'syntax')));
+      expect(paths).toContain(normalize(join(projectRoot, 'styles', 'vendor')));
+    });
+
+    it('should include .pagemd subdirectory patterns for styles', () => {
+      const context = {
+        workspacePath: projectRoot
+      };
+
+      const paths = buildSearchPaths('styles', context);
+
+      // Should include .pagemd/styles/presets pattern
+      expect(paths).toContain(normalize(join(projectRoot, '.pagemd', 'styles', 'presets')));
+    });
+
+    it('should NOT include subdirectory patterns for templates resource type', () => {
+      const context = {
+        workspacePath: projectRoot
+      };
+
+      const paths = buildSearchPaths('templates', context);
+
+      // Should NOT have any presets/syntax/vendor subdirectory paths
+      const subdirPaths = paths.filter(p =>
+        p.includes('presets') || p.includes('syntax') || p.includes('vendor')
+      );
+      expect(subdirPaths).toHaveLength(0);
+    });
+
+    it('should NOT include subdirectory patterns for layouts resource type', () => {
+      const context = {
+        workspacePath: projectRoot
+      };
+
+      const paths = buildSearchPaths('layouts', context);
+
+      // Should NOT have any subdirectory paths
+      const subdirPaths = paths.filter(p =>
+        p.includes('presets') || p.includes('syntax') || p.includes('vendor')
+      );
+      expect(subdirPaths).toHaveLength(0);
+    });
+
+    it('should NOT include subdirectory patterns for profiles resource type', () => {
+      const context = {
+        workspacePath: projectRoot
+      };
+
+      const paths = buildSearchPaths('profiles', context);
+
+      // Should NOT have any subdirectory paths
+      const subdirPaths = paths.filter(p =>
+        p.includes('presets') || p.includes('syntax') || p.includes('vendor')
+      );
+      expect(subdirPaths).toHaveLength(0);
+    });
+
+    it('RESOURCE_SUBDIRS should define known subdirectories for styles', () => {
+      expect(RESOURCE_SUBDIRS.styles).toEqual(['presets', 'syntax', 'vendor']);
+      expect(RESOURCE_SUBDIRS.layouts).toEqual([]);
+      expect(RESOURCE_SUBDIRS.templates).toEqual([]);
+      expect(RESOURCE_SUBDIRS.profiles).toEqual([]);
     });
   });
 });

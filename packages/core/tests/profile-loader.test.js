@@ -74,6 +74,49 @@ describe('profile-loader', () => {
       expect(merged.layout.margins.top).toBe('0.5in');
       expect(merged.layout.margins.bottom).toBe('1in');
     });
+
+    it('should preserve parent value when child has null (null means inherit)', () => {
+      const parent = { id: 'parent', template: 'letter.html' };
+      const child = { id: 'child', template: null };
+
+      const merged = mergeProfiles(parent, child);
+
+      expect(merged.template).toBe('letter.html');
+    });
+
+    it('should preserve nested parent value when child has null', () => {
+      const parent = {
+        id: 'parent',
+        resources: { template: 'a.html', layout: 'b.css' }
+      };
+      const child = {
+        id: 'child',
+        resources: { template: null }
+      };
+
+      const merged = mergeProfiles(parent, child);
+
+      expect(merged.resources.template).toBe('a.html');
+      expect(merged.resources.layout).toBe('b.css');
+    });
+
+    it('should preserve parent array when child has null', () => {
+      const parent = { id: 'parent', css: ['base.css', 'theme.css'] };
+      const child = { id: 'child', css: null };
+
+      const merged = mergeProfiles(parent, child);
+
+      expect(merged.css).toEqual(['base.css', 'theme.css']);
+    });
+
+    it('should handle parent null and child with value', () => {
+      const parent = { id: 'parent', value: null };
+      const child = { id: 'child', value: 'child-value' };
+
+      const merged = mergeProfiles(parent, child);
+
+      expect(merged.value).toBe('child-value');
+    });
   });
 
   describe('validateProfile', () => {

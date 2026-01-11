@@ -55,6 +55,7 @@ Original error: ${errorMessage}`;
 // Cached browser instance for PAGEMD_KEEP_CHROME mode
 let cachedBrowser = null;
 let browserPersistenceEnabled = null;
+let browserIsHeadless = true;
 
 /**
  * Check if browser persistence is enabled via env var
@@ -193,15 +194,87 @@ export async function launchBrowser(options = {}) {
     '--disable-web-security',
     ...args
   ];
+  // Note: debug flag no longer forces non-headless mode
+  // Use PAGEMD_HEADLESS=0 or headless:false to show browser for inspection
   const baseConfig = {
-    headless: debug ? false : headless,
+    headless,
     args: baseArgs
   };
 
+  // Track headless state for closeBrowser behavior
+  browserIsHeadless = baseConfig.headless;
+
   let browser = null;
 
-  // 1. Try user-provided executable path
-  if (userExecutablePath) {
+  // Environment variable path (from extension settings or shell)
+  const envBrowserPath = process.env.PAGEMD_BROWSER_PATH;
+
+  // Detect if running in WSL with Windows browser path
+  // WSL paths to Windows start with /mnt/c (or other drive letters)
+  const isWSLWindowsBrowser = (path) => {
+    return process.platform === 'linux' && path && path.startsWith('/mnt/');
+  };
+
+  // 1. Try environment variable path (highest priority - from extension or env)
+  if (envBrowserPath && !userExecutablePath) {
+    // Block WSL + Windows browser combination with helpful error
+    if (isWSLWindowsBrowser(envBrowserPath)) {
+      logger.error('browser_launch', 'fail', 'WSL cannot reliably control Windows Chrome - use Linux Chromium instead');
+      const wslError = new Error(`WSL + Windows Chrome Incompatibility
+
+PageMD is running in WSL but PAGEMD_BROWSER_PATH points to Windows Chrome.
+Due to WSL/Windows network isolation, this configuration is not supported.
+
+Solutions:
+1. Install Chromium in WSL (recommended):
+   sudo apt update && sudo apt install chromium-browser
+
+2. Run PageMD from Windows PowerShell instead of WSL:
+   cd "C:\\Users\\Jason\\Documents\\Git\\pagemd-workspace\\project\\pagemd"
+   node apps/cli/src/index.js build <file.md> -o pdf
+
+3. Use VS Code extension from Windows (not WSL Remote):
+   Open workspace in Windows VS Code, not via WSL Remote
+
+Current browser path: ${envBrowserPath}`);
+      throw wslError;
+    }
+
+    try {
+      logger.info('browser_launch', 'start', `Launching browser from PAGEMD_BROWSER_PATH: ${envBrowserPath}`);
+      browser = await puppeteer.launch({
+        ...baseConfig,
+        executablePath: envBrowserPath
+      });
+      logger.info('browser_launch', 'ok', 'Browser launched successfully from environment variable');
+    } catch (err) {
+      logger.warn('browser_launch', 'fail', `Failed with PAGEMD_BROWSER_PATH: ${err.message}`);
+      browser = null;
+    }
+  }
+
+  // 2. Try user-provided executable path (programmatic override)
+  if (!browser && userExecutablePath) {
+    // Block WSL + Windows browser combination with helpful error
+    if (isWSLWindowsBrowser(userExecutablePath)) {
+      logger.error('browser_launch', 'fail', 'WSL cannot reliably control Windows Chrome - use Linux Chromium instead');
+      const wslError = new Error(`WSL + Windows Chrome Incompatibility
+
+PageMD is running in WSL but the provided browser path points to Windows Chrome.
+Due to WSL/Windows network isolation, this configuration is not supported.
+
+Solutions:
+1. Install Chromium in WSL (recommended):
+   sudo apt update && sudo apt install chromium-browser
+
+2. Run PageMD from Windows PowerShell instead of WSL:
+   cd "C:\\Users\\Jason\\Documents\\Git\\pagemd-workspace\\project\\pagemd"
+   node apps/cli/src/index.js build <file.md> -o pdf
+
+Current browser path: ${userExecutablePath}`);
+      throw wslError;
+    }
+
     try {
       logger.info('browser_launch', 'start', `Launching browser with user-provided path: ${userExecutablePath}`);
       browser = await puppeteer.launch({
@@ -215,25 +288,33 @@ export async function launchBrowser(options = {}) {
     }
   }
 
-  // 2. Try system Chrome
+  // 3. Try system Chrome auto-detection
   if (!browser) {
     const chromePath = detectChrome();
     if (chromePath) {
-      try {
-        logger.info('browser_launch', 'start', `Attempting to launch system Chrome at ${chromePath}`);
-        browser = await puppeteer.launch({
-          ...baseConfig,
-          executablePath: chromePath
-        });
-        logger.info('browser_launch', 'ok', `System Chrome launched successfully`);
-      } catch (err) {
-        logger.warn('browser_launch', 'fail', `Failed to launch system Chrome: ${err.message}`);
+      // Block WSL + Windows browser combination (shouldn't happen with auto-detect, but safety check)
+      if (isWSLWindowsBrowser(chromePath)) {
+        logger.error('browser_launch', 'fail', 'Auto-detected Windows Chrome from WSL - not supported');
         browser = null;
+      } else {
+        try {
+          logger.info('browser_launch', 'start', `Attempting to launch system Chrome at ${chromePath}`);
+          browser = await puppeteer.launch({
+            ...baseConfig,
+            executablePath: chromePath
+          });
+          logger.info('browser_launch', 'ok', `System Chrome launched successfully`);
+        } catch (err) {
+          logger.warn('browser_launch', 'fail', `Failed to launch system Chrome: ${err.message}`);
+          browser = null;
+        }
       }
+    } else {
+      logger.debug('chrome_detection', 'none', 'No system Chrome found');
     }
   }
 
-  // 3. No browser found - throw clear error (puppeteer-core has no bundled Chromium)
+  // 4. No browser found - throw clear error (puppeteer-core has no bundled Chromium)
   if (!browser) {
     const errorMessage = `Chrome/Chromium not found.
 
@@ -281,12 +362,47 @@ export async function closeBrowser(browser) {
     return;
   }
 
-  try {
-    logger.debug('browser_close', 'start', 'Closing browser');
-    await browser.close();
-    logger.debug('browser_close', 'ok', 'Browser closed successfully');
-  } catch (err) {
-    logger.warn('browser_close', 'fail', `Error closing browser: ${err.message}`);
-    // Don't throw - browser may already be closed or in bad state
+  // Non-headless mode: disconnect (don't close) so browser stays open for inspection
+  // browser.disconnect() releases the connection, allowing Node to exit while browser runs
+  if (!browserIsHeadless) {
+    logger.info('browser_close', 'skip', 'Browser left open for inspection (non-headless mode)');
+    // eslint-disable-next-line no-console
+    console.log('\n📋 Browser left open for inspection. Close it manually when done.\n');
+    await browser.disconnect();
+    // Schedule graceful exit - allows pending I/O to flush before exit
+    // This is needed because puppeteer-core's disconnect doesn't fully release Node
+    setImmediate(() => process.exit(0));
+    return;
   }
+
+  // Get browser process reference before any close attempts
+  let browserProcess = null;
+  try {
+    browserProcess = browser.process();
+  } catch (e) {
+    // Process not accessible
+  }
+
+  logger.debug('browser_close', 'start', 'Closing browser');
+
+  // Step 1: Disconnect first to release WebSocket connection
+  // This is the most important step - it allows Node to exit
+  try {
+    await browser.disconnect();
+    logger.debug('browser_close', 'disconnected', 'Browser disconnected');
+  } catch (e) {
+    // Already disconnected
+  }
+
+  // Step 2: Kill browser process to clean up
+  if (browserProcess) {
+    try {
+      browserProcess.kill('SIGKILL');
+      logger.debug('browser_close', 'killed', 'Browser process killed');
+    } catch (e) {
+      // Process already exited or not accessible
+    }
+  }
+
+  logger.debug('browser_close', 'ok', 'Browser cleanup complete');
 }

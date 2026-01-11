@@ -39,13 +39,15 @@ describe('styles.js', () => {
   });
 
   describe('formatStyleTag', () => {
-    it('should wrap CSS in style tag with layer attribute', () => {
+    it('should wrap CSS in style tag with @layer declaration', () => {
       const css = 'body { margin: 0; }';
       const layer = 'base';
 
       const result = formatStyleTag(css, layer);
 
-      expect(result).toBe('<style data-layer="base">\nbody { margin: 0; }\n</style>');
+      expect(result).toContain('data-layer="base"');
+      expect(result).toContain('@layer base');
+      expect(result).toContain('body { margin: 0; }');
     });
 
     it('should handle different layer names', () => {
@@ -59,7 +61,8 @@ describe('styles.js', () => {
 
     it('should handle empty CSS', () => {
       const result = formatStyleTag('', 'base');
-      expect(result).toBe('<style data-layer="base">\n\n</style>');
+      expect(result).toContain('data-layer="base"');
+      expect(result).toContain('@layer base');
     });
 
     it('should preserve CSS formatting', () => {
@@ -278,7 +281,9 @@ body { margin: 0; }`;
 
       const result = await buildStyleBlock({ id: 'test' }, {});
 
-      expect(result).toBe('');
+      // Should still output layer order declaration even with no styles
+      // NOTE: frontmatter is intentionally NOT declared (undeclared layers have higher priority)
+      expect(result).toContain('@layer base, primary, layout, syntax, profile;');
     });
 
     it('should preserve layer order', async () => {
@@ -316,7 +321,9 @@ body { margin: 0; }`;
 
       const result = await buildStyleBlock({ id: 'minimal' }, {});
 
-      expect(result).toBe('');
+      // Should still output layer order declaration even with no styles
+      // NOTE: frontmatter is intentionally NOT declared (undeclared layers have higher priority)
+      expect(result).toContain('@layer base, primary, layout, syntax, profile;');
     });
   });
 

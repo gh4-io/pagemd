@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{metadata.title}}</title>
+  {{styles}}
+</head>
+<body>
+  <article class="handbook">
+    <!--
+      HANDBOOK TEMPLATE
+      =================
+      For SDLC/policy handbooks with deep TOC structure.
+
+      FRONTMATTER VARIABLES:
+      - title: Full document title (title page)
+      - short_title: Abbreviated title for running headers
+      - version: Document version (e.g., "1.0", "Draft")
+      - classification: Security classification (e.g., "INTERNAL", "CONFIDENTIAL")
+      - organization: Organization name for footer
+      - document_id: Document identifier
+      - effective_date: Date document becomes effective
+      - author: Document author/owner
+
+      RUNNING ELEMENTS:
+      - Header left (odd): short_title
+      - Header right (odd): version
+      - Header left (even): version
+      - Header right (even): short_title
+      - Footer left (odd): classification
+      - Footer center: Page X of Y
+      - Footer right (odd): organization
+
+      STRUCTURE SUPPORT:
+      - h1: Part (e.g., "Part I: Foundation")
+      - h2: Chapter (e.g., "Chapter 1: Introduction")
+      - h3: Section (e.g., "1.1 Purpose")
+      - h4: Subsection (e.g., "1.1.1 Scope")
+
+      PAGE BREAKS:
+      - Parts (h1): Always start on new page
+      - Chapters (h2): Always start on new page
+      - Use .chapter-break class for explicit breaks
+    -->
+
+    <!-- TITLE PAGE -->
+    <section class="title-page">
+      <div class="title-page-content">
+        <div class="title-page-header">
+          <span class="document-classification">{{metadata.classification}}</span>
+        </div>
+
+        <div class="title-page-body">
+          <h1 class="handbook-title">{{metadata.title}}</h1>
+
+          <div class="title-page-meta">
+            <div class="document-id">{{metadata.document_id}}</div>
+            <div class="document-version">Version {{metadata.version}}</div>
+            <div class="effective-date">Effective: {{metadata.effective_date}}</div>
+          </div>
+        </div>
+
+        <div class="title-page-footer">
+          <div class="organization">{{metadata.organization}}</div>
+          <div class="author">Prepared by: {{metadata.author}}</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TABLE OF CONTENTS PLACEHOLDER -->
+    <!-- Use <!-- ::TOC levels=4 --> directive in markdown to generate TOC here -->
+    <section class="toc-section">
+      <h2 class="toc-heading">Table of Contents</h2>
+      <nav class="toc-container">
+        <!-- TOC will be inserted by ::TOC directive -->
+        <!-- Example structure:
+        <ol class="toc">
+          <li class="toc-part"><a href="#part-i">Part I: Foundation</a>
+            <ol>
+              <li class="toc-chapter"><a href="#chapter-1">Chapter 1: Introduction</a>
+                <ol>
+                  <li class="toc-section"><a href="#purpose">1.1 Purpose</a></li>
+                  <li class="toc-section"><a href="#scope">1.2 Scope</a></li>
+                </ol>
+              </li>
+            </ol>
+          </li>
+        </ol>
+        -->
+      </nav>
+    </section>
+
+    <!-- DOCUMENT CONTENT -->
+    <main class="handbook-content">
+      {{content}}
+    </main>
+
+  </article>
+</body>
+</html>

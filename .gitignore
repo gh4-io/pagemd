@@ -113,3 +113,7 @@ $RECYCLE.BIN/
 *.conversation
 *.aicontext
 .mcp.json
+
+# Examples
+examples/md/*.pdf
+examples/md/*.html

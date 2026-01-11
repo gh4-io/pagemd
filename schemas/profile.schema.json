@@ -191,6 +191,18 @@
       },
       "additionalProperties": false
     },
+    "rendering": {
+      "type": "object",
+      "description": "Rendering behavior configuration",
+      "properties": {
+        "colorScheme": {
+          "type": "string",
+          "enum": ["light", "dark", "auto"],
+          "description": "Color scheme for rendering. 'light' forces light mode (default for PDF), 'dark' forces dark mode, 'auto' follows system preference (default for HTML)."
+        }
+      },
+      "additionalProperties": false
+    },
     "annotatedImage": {
       "type": "object",
       "description": "Default settings for annotated image overlays",

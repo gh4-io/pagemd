@@ -348,7 +348,7 @@ describe('Profile Inheritance System', () => {
       expect(merged.resources.css.length).toBe(1);
     });
 
-    it('should handle null and undefined values', () => {
+    it('should preserve parent values when child has null (null means inherit)', () => {
       const parent = {
         id: 'parent',
         value1: 'parent-value',
@@ -358,16 +358,19 @@ describe('Profile Inheritance System', () => {
 
       const child = {
         id: 'child',
-        value1: null,
+        value1: null,        // null = inherit from parent
         value2: 'child-value',
-        value3: null
+        value3: null         // null = inherit from parent
       };
 
       const merged = mergeProfiles(parent, child);
 
-      expect(merged.value1).toBeNull();
+      // Null in child preserves parent value (null means "inherit")
+      expect(merged.value1).toBe('parent-value');
+      // Non-null in child overrides parent
       expect(merged.value2).toBe('child-value');
-      expect(merged.value3).toBeNull();
+      // Null in child preserves parent object
+      expect(merged.value3).toEqual({ nested: 'object' });
     });
   });
 

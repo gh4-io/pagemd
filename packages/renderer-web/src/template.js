@@ -4,9 +4,15 @@
  */
 
 import { readFile } from 'fs/promises';
-import { resolvePath, expandTokens, createLogger } from '@pagemd/core';
+import { resolvePath, expandTokens, createLogger, resolveResource } from '@pagemd/core';
 
 const logger = createLogger('renderer.web');
+
+/**
+ * Default template path from standard_letter profile
+ * Used as fallback when profile doesn't specify resources.template
+ */
+const DEFAULT_TEMPLATE_PATH = '${projectRoot}/templates/standard_letter.html';
 
 /**
  * @typedef {Object} TemplateResult
@@ -21,29 +27,46 @@ const logger = createLogger('renderer.web');
  * @param {object} pathContext - Path resolution context
  * @param {object} [options={}] - Options
  * @param {boolean} [options.returnMetadata=false] - Return full result with metadata
+ * @param {string} [options.cliPath] - CLI package root for bundled defaults
  * @returns {Promise<string|TemplateResult>} Template HTML or full result with metadata
  */
 export async function loadTemplate(profile, pathContext, options = {}) {
-  // Primary: resources.template, Fallback: layout.source (legacy)
-  const templatePath = profile?.resources?.template || profile?.layout?.source;
+  // Primary: resources.template, Fallback: layout.source (legacy), then default template
+  let templatePath = profile?.resources?.template || profile?.layout?.source;
+
+  // Fallback to default template when not specified or explicitly null
   if (!templatePath) {
-    throw new Error('Profile missing resources.template or layout.source path');
+    templatePath = DEFAULT_TEMPLATE_PATH;
+    const profileId = profile?.id || 'unknown';
+    logger.info(`Profile '${profileId}' missing template - using default: ${templatePath}`);
   }
 
-  // Resolve template path using path context
-  const resolved = resolvePath(templatePath, pathContext);
-  logger.debug(`Loading template: ${resolved}`);
-
   try {
-    const template = await readFile(resolved, 'utf-8');
+    // First expand tokens in the template path
+    const expanded = expandTokens(templatePath, pathContext);
+    logger.debug(`Template path after token expansion: ${expanded}`);
+
+    // Build context for resolveResource
+    const context = {
+      workingPath: pathContext.markdownDir,
+      workspacePath: pathContext.projectRoot || pathContext.workspaceFolder,
+      manifestPath: profile._manifestDir || pathContext.manifestDir,
+      cliPath: options.cliPath || pathContext.cliPath,
+      sourceType: 'profile'
+    };
+
+    const { resolvedPath } = resolveResource(expanded, 'templates', context);
+    logger.debug(`Loading template: ${resolvedPath}`);
+
+    const template = await readFile(resolvedPath, 'utf-8');
     logger.debug(`Loaded template (${template.length} chars)`);
 
     if (options.returnMetadata) {
       const { stat } = await import('fs/promises');
-      const stats = await stat(resolved);
+      const stats = await stat(resolvedPath);
       return {
         template,
-        resolvedPath: resolved,
+        resolvedPath,
         size: stats.size
       };
     }
@@ -51,7 +74,7 @@ export async function loadTemplate(profile, pathContext, options = {}) {
     return template;
   } catch (err) {
     logger.error(`Failed to load template: ${err.message}`);
-    throw new Error(`Template load failed: ${templatePath} → ${resolved}`);
+    throw new Error(`Template load failed: ${templatePath}`);
   }
 }
 
@@ -147,6 +170,7 @@ export function processTokens(template, data, pathContext = null) {
  * @param {object} context.metadata - Document metadata
  * @param {object} context.profile - Active profile
  * @param {object} context.pathContext - Path resolution context
+ * @param {string} [context.colorScheme] - Resolved color scheme (light|dark|auto)
  * @returns {string} Rendered HTML
  */
 export function renderTemplate(template, context) {
@@ -155,7 +179,8 @@ export function renderTemplate(template, context) {
     styles = '',
     metadata = {},
     profile = {},
-    pathContext = {}
+    pathContext = {},
+    colorScheme
   } = context;
 
   // Build token map for replacement
@@ -166,7 +191,24 @@ export function renderTemplate(template, context) {
     profile
   };
 
-  const result = processTokens(template, tokenData, pathContext);
+  let result = processTokens(template, tokenData, pathContext);
+
+  // Inject data-color-scheme attribute on <html> tag if colorScheme is provided
+  if (colorScheme) {
+    result = result.replace(
+      /<html(\s+[^>]*)?>/i,
+      (match, attrs) => {
+        // If there are existing attributes, append to them
+        if (attrs) {
+          return `<html${attrs} data-color-scheme="${colorScheme}">`;
+        }
+        // No existing attributes
+        return `<html data-color-scheme="${colorScheme}">`;
+      }
+    );
+    logger.debug(`Injected data-color-scheme="${colorScheme}" attribute`);
+  }
+
   logger.debug('Template rendered successfully');
   return result;
 }

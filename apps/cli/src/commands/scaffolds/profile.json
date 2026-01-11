@@ -3,16 +3,15 @@
   "description": "Custom PageMD profile",
   "extends": "standard_letter",
 
-  "layout": {
-    "type": "letter",
-    "css": "${projectRoot}/layouts/letter.css"
+  "resources": {
+    "template": null,
+    "layout": null,
+    "css": []
   },
 
-  "resources": {
-    "template": "${projectRoot}/templates/standard_letter.html",
-    "css": [
-      "${projectRoot}/styles/primary.css"
-    ]
+  "layout": {
+    "pageSize": "Letter",
+    "orientation": "portrait"
   },
 
   "outputs": {

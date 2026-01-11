@@ -1,0 +1,359 @@
+/**
+ * Legal/Formal Document Style
+ *
+ * A formal document style suitable for legal briefs, contracts, policies,
+ * and other formal documents requiring:
+ * - Serif typography (Georgia, Times New Roman)
+ * - Legal-style ordered list markers (A, B, C and i, ii, iii)
+ * - Proper indentation for nested lists
+ * - Justified text with hyphenation
+ * - Line numbering support via CSS counters
+ * - Formal heading hierarchy
+ *
+ * USAGE:
+ * Include this CSS via profile or frontmatter:
+ *   styles:
+ *     - examples/styles/04-legal.css
+ *
+ * CSS VARIABLES (customizable):
+ * --legal-font-family: Georgia, "Times New Roman", Times, serif
+ * --legal-font-size: 12pt
+ * --legal-line-height: 2 (double-spaced)
+ * --legal-heading-font: inherit
+ * --legal-indent: 0.5in
+ * --legal-paragraph-indent: 0.5in
+ * --legal-enable-line-numbers: 0 (set to 1 to enable)
+ */
+
+/* ==========================================================================
+   CSS Custom Properties
+   ========================================================================== */
+
+:root {
+  --legal-font-family: Georgia, "Times New Roman", Times, serif;
+  --legal-font-size: 12pt;
+  --legal-line-height: 2;
+  --legal-heading-font: inherit;
+  --legal-indent: 0.5in;
+  --legal-paragraph-indent: 0.5in;
+  --legal-enable-line-numbers: 0;
+  --legal-list-gap: 0.5em;
+}
+
+/* ==========================================================================
+   Base Typography - Serif, Justified, Double-Spaced
+   ========================================================================== */
+
+body {
+  font-family: var(--legal-font-family);
+  font-size: var(--legal-font-size);
+  line-height: var(--legal-line-height);
+  text-align: justify;
+  hyphens: auto;
+  -webkit-hyphens: auto;
+  -ms-hyphens: auto;
+}
+
+/* Paragraphs with first-line indent (legal brief style) */
+p {
+  margin: 0 0 1em 0;
+  text-indent: var(--legal-paragraph-indent);
+}
+
+/* Remove indent after headings and at start of sections */
+h1 + p,
+h2 + p,
+h3 + p,
+h4 + p,
+h5 + p,
+h6 + p,
+blockquote p:first-child,
+li > p:first-child {
+  text-indent: 0;
+}
+
+/* ==========================================================================
+   Formal Heading Styles
+   ========================================================================== */
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--legal-heading-font);
+  font-weight: bold;
+  text-align: left;
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+  page-break-after: avoid;
+}
+
+h1 {
+  font-size: 14pt;
+  text-transform: uppercase;
+  text-align: center;
+  border-bottom: none;
+  margin-top: 0;
+}
+
+h2 {
+  font-size: 12pt;
+  text-transform: uppercase;
+}
+
+h3 {
+  font-size: 12pt;
+  font-style: normal;
+}
+
+h4 {
+  font-size: 12pt;
+  font-weight: bold;
+  font-style: italic;
+}
+
+h5, h6 {
+  font-size: 12pt;
+  font-weight: normal;
+  text-decoration: underline;
+}
+
+/* ==========================================================================
+   Legal-Style Ordered Lists (A, B, C → 1, 2, 3 → a, b, c → i, ii, iii)
+   ========================================================================== */
+
+/* Reset list styling */
+ol, ul {
+  margin: 1em 0;
+  padding-left: var(--legal-indent);
+}
+
+li {
+  margin-bottom: var(--legal-list-gap);
+  text-align: justify;
+}
+
+/* Level 1: Uppercase letters (A, B, C) */
+ol {
+  list-style-type: upper-alpha;
+}
+
+/* Level 2: Arabic numerals (1, 2, 3) */
+ol ol {
+  list-style-type: decimal;
+}
+
+/* Level 3: Lowercase letters (a, b, c) */
+ol ol ol {
+  list-style-type: lower-alpha;
+}
+
+/* Level 4: Lowercase roman numerals (i, ii, iii) */
+ol ol ol ol {
+  list-style-type: lower-roman;
+}
+
+/* Level 5+: Restart pattern */
+ol ol ol ol ol {
+  list-style-type: upper-alpha;
+}
+
+/* Proper indentation for nested lists */
+ol ol,
+ul ul,
+ol ul,
+ul ol {
+  margin-top: var(--legal-list-gap);
+  margin-bottom: var(--legal-list-gap);
+  padding-left: var(--legal-indent);
+}
+
+/* Unordered lists in legal docs - use em dashes */
+ul {
+  list-style-type: "— ";
+}
+
+ul ul {
+  list-style-type: disc;
+}
+
+ul ul ul {
+  list-style-type: circle;
+}
+
+/* ==========================================================================
+   Blockquotes - Indented for Legal Citations
+   ========================================================================== */
+
+blockquote {
+  margin: 1em 0 1em var(--legal-indent);
+  padding: 0;
+  border-left: none;
+  font-style: normal;
+  background: transparent;
+}
+
+/* Long quotations (block quotes) - further indented on both sides */
+blockquote.long-quote,
+blockquote.block-quote {
+  margin-left: var(--legal-indent);
+  margin-right: var(--legal-indent);
+  font-size: 0.95em;
+}
+
+/* ==========================================================================
+   Tables - Formal Style
+   ========================================================================== */
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1em 0;
+  font-size: inherit;
+}
+
+table th,
+table td {
+  padding: 0.5em;
+  border: 1px solid #000;
+  text-align: left;
+  vertical-align: top;
+}
+
+table th {
+  font-weight: bold;
+  background-color: #f5f5f5;
+}
+
+/* ==========================================================================
+   Line Numbering (Optional - Enable via CSS Variable)
+   ========================================================================== */
+
+/*
+ * To enable line numbering, set --legal-enable-line-numbers: 1
+ * This adds line numbers in the left margin for court documents
+ */
+
+body {
+  counter-reset: line-number;
+}
+
+/* When enabled, paragraphs get line numbers */
+@supports (content: counter(line-number)) {
+  p::before {
+    content: "";
+  }
+}
+
+/* Line numbering container class - wrap content for numbering */
+.line-numbered {
+  counter-reset: legal-line;
+  position: relative;
+  padding-left: 3em;
+}
+
+.line-numbered p,
+.line-numbered li {
+  counter-increment: legal-line;
+  position: relative;
+}
+
+.line-numbered p::before,
+.line-numbered li::before {
+  content: counter(legal-line);
+  position: absolute;
+  left: -3em;
+  width: 2.5em;
+  text-align: right;
+  font-size: 10pt;
+  color: #666;
+}
+
+/* ==========================================================================
+   Signature Blocks
+   ========================================================================== */
+
+.signature-block {
+  margin-top: 3em;
+  page-break-inside: avoid;
+}
+
+.signature-line {
+  border-bottom: 1px solid #000;
+  width: 50%;
+  margin: 2em 0 0.25em 0;
+}
+
+.signature-name,
+.signature-title,
+.signature-date {
+  margin: 0.25em 0;
+}
+
+/* ==========================================================================
+   Legal Document Sections
+   ========================================================================== */
+
+/* Definitions section */
+.definitions dt {
+  font-weight: bold;
+  margin-top: 1em;
+}
+
+.definitions dd {
+  margin-left: var(--legal-indent);
+}
+
+/* Recitals / Whereas clauses */
+.recitals,
+.whereas {
+  margin: 1em 0;
+}
+
+.recitals p::before,
+.whereas p::before {
+  content: "WHEREAS, ";
+  font-weight: bold;
+}
+
+/* Numbered paragraphs (alternative to lists) */
+.numbered-paragraphs {
+  counter-reset: para;
+}
+
+.numbered-paragraphs p {
+  counter-increment: para;
+  text-indent: 0;
+  padding-left: 2em;
+  position: relative;
+}
+
+.numbered-paragraphs p::before {
+  content: counter(para) ".";
+  position: absolute;
+  left: 0;
+  font-weight: bold;
+}
+
+/* ==========================================================================
+   Print Optimizations
+   ========================================================================== */
+
+@media print {
+  /* Ensure proper page breaks */
+  h1, h2, h3, h4, h5, h6 {
+    page-break-after: avoid;
+  }
+
+  p {
+    orphans: 3;
+    widows: 3;
+  }
+
+  /* Keep signature blocks together */
+  .signature-block {
+    page-break-inside: avoid;
+  }
+
+  /* Avoid breaking inside list items */
+  li {
+    page-break-inside: avoid;
+  }
+}

@@ -70,6 +70,9 @@ export const colors = {
   levelDebug: createColorFn(ANSI.gray),
   levelTrace: createColorFn(ANSI.gray),
 
+  // App name - cyan
+  app: createColorFn(ANSI.cyan),
+
   // Result colors
   resultSuccess: createColorFn(ANSI.green),
   resultFail: createColorFn(ANSI.red),
@@ -82,7 +85,7 @@ export const colors = {
   message: createColorFn(ANSI.white),
   data: createColorFn(ANSI.gray),
 
-  // Delimiters
+  // Delimiters (kept for backward compatibility if needed)
   delimiter: createColorFn(ANSI.gray)
 };
 

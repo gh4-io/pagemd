@@ -5,7 +5,7 @@
  * Creates:
  * - project: Full project folder with markdown, profile, and stub directories
  * - profile: Single profile manifest file
- * - markdown: Single markdown file with frontmatter
+ * - markdown: Markdown file with accompanying profile (no stub directories)
  */
 
 import { promises as fs } from 'node:fs';
@@ -134,9 +134,10 @@ function generateProfile(name, baseProfile) {
     id: name,
     description: `Custom profile based on ${baseProfile?.id || getDefaultProfile()}`,
     extends: baseProfile?.id || getDefaultProfile(),
-    layout: {
-      type: 'letter',
-      css: '${projectRoot}/layouts/letter.css'
+    resources: {
+      template: null,
+      layout: null,
+      css: []
     },
     outputs: {
       pdf: { enabled: true, mode: 'ACTIVE_ONLY' },
@@ -246,16 +247,18 @@ async function initProfile(name, outputDir, templateId, force, projectRoot) {
 }
 
 /**
- * Initialize a markdown file
+ * Initialize a markdown file with accompanying profile
  * @param {string} name - Document name
  * @param {string} outputDir - Output directory
- * @param {string} templateId - Profile to reference
+ * @param {string} templateId - Base profile to extend
  * @param {boolean} force - Overwrite existing
+ * @param {string} projectRoot - PageMD project root
  */
-async function initMarkdown(name, outputDir, templateId, force) {
+async function initMarkdown(name, outputDir, templateId, force, projectRoot) {
   const mdPath = path.join(outputDir, `${name}.md`);
+  const profilePath = path.join(outputDir, `${name}.json`);
 
-  // Check if exists
+  // Check if markdown exists
   if (await exists(mdPath)) {
     if (!force) {
       throw new Error(`File already exists: ${mdPath}. Use --force to overwrite.`);
@@ -263,11 +266,37 @@ async function initMarkdown(name, outputDir, templateId, force) {
     logger.warn('init', 'overwrite', 'Overwriting existing file', { path: mdPath });
   }
 
-  // Create markdown file
-  await fs.writeFile(mdPath, generateMarkdown(name, templateId), 'utf-8');
+  // Check if profile exists
+  if (await exists(profilePath)) {
+    if (!force) {
+      throw new Error(`Profile already exists: ${profilePath}. Use --force to overwrite.`);
+    }
+    logger.warn('init', 'overwrite', 'Overwriting existing profile', { path: profilePath });
+  }
 
-  console.log(`\nCreated markdown file: ${mdPath}`);
-  console.log(`\nProfile: ${templateId}`);
+  // Load base profile for reference
+  let baseProfile = null;
+  try {
+    baseProfile = await loadAndMergeProfile(templateId, { searchFrom: projectRoot });
+  } catch {
+    logger.warn('init', 'template', `Template profile '${templateId}' not found, using defaults`);
+  }
+
+  // Create profile first (markdown references it)
+  const profile = generateProfile(name, baseProfile);
+  await fs.writeFile(profilePath, JSON.stringify(profile, null, 2), 'utf-8');
+  logger.debug('init', 'create', 'Created profile', { path: profilePath });
+
+  // Create markdown file referencing the local profile
+  await fs.writeFile(mdPath, generateMarkdown(name, `${name}.json`), 'utf-8');
+  logger.debug('init', 'create', 'Created markdown file', { path: mdPath });
+
+  console.log(`\nCreated PageMD document: ${name}`);
+  console.log(`\nFiles created:`);
+  console.log(`  ${name}.md    - Markdown document`);
+  console.log(`  ${name}.json  - Profile manifest (extends ${profile.extends})`);
+  console.log(`\nNext steps:`);
+  console.log(`  pagemd build ${name}.md`);
 }
 
 /**
@@ -296,7 +325,7 @@ export async function handler(argv) {
         await initProfile(name, outputDir, template, force, projectRoot);
         break;
       case 'markdown':
-        await initMarkdown(name, outputDir, template, force);
+        await initMarkdown(name, outputDir, template, force, projectRoot);
         break;
       default:
         throw new Error(`Unknown type: ${type}`);

@@ -53,6 +53,34 @@ Profiles are JSON or YAML files that configure how PageMD processes documents. T
 
 **Note:** Cannot create circular inheritance (A extends B extends A).
 
+#### Inheritance Rules
+
+When a profile extends another, values are merged according to these rules:
+
+| Type | Behavior | Example |
+|------|----------|---------|
+| **Objects** | Deep-merged recursively | Child `margins.top` overrides parent, other margins preserved |
+| **Arrays** | Child replaces parent entirely | Child `css: ["a.css"]` replaces parent `css: ["b.css", "c.css"]` |
+| **Primitives** | Child overrides parent | Child `timeout: 60000` replaces parent `timeout: 30000` |
+| **Null values** | Inherit from parent | Child `template: null` preserves parent template |
+
+**Null means "inherit":** Setting a field to `null` in a child profile preserves the parent's value. This allows selective inheritance without overriding.
+
+```json
+{
+  "id": "child",
+  "extends": "parent",
+  "resources": {
+    "template": null,
+    "css": ["custom.css"]
+  }
+}
+```
+
+In this example:
+- `template` is inherited from parent (null = inherit)
+- `css` replaces parent's CSS array (arrays always replace)
+
 ---
 
 ### description

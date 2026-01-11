@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{metadata.title}}</title>
+  {{styles}}
+</head>
+<body>
+  <article class="technical-form">
+    <!-- =================================================================
+         FORM HEADER (Repeats via running header in layout CSS)
+         ================================================================= -->
+    <header class="form-header">
+      <div class="header-logo">
+        <div class="logo-placeholder">[COMPANY LOGO]</div>
+        <div class="company-name">{{metadata.company_name}}</div>
+      </div>
+      <div class="header-title">
+        <h1 class="form-title">{{metadata.title}}</h1>
+        <div class="form-subtitle">{{metadata.form_type}}</div>
+      </div>
+      <div class="header-formno">
+        <div class="form-number-label">FORM NO.</div>
+        <div class="form-number">{{metadata.form_number}}</div>
+      </div>
+    </header>
+
+    <!-- =================================================================
+         REVISION BLOCK
+         ================================================================= -->
+    <section class="revision-block">
+      <table class="revision-table">
+        <thead>
+          <tr>
+            <th>REV</th>
+            <th>DATE</th>
+            <th>DESCRIPTION</th>
+            <th>APPROVED BY</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="rev-cell">{{metadata.revision}}</td>
+            <td class="date-cell">{{metadata.revision_date}}</td>
+            <td class="desc-cell">{{metadata.revision_description}}</td>
+            <td class="approval-cell">{{metadata.approved_by}}</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- =================================================================
+         TASK CARD INFORMATION
+         ================================================================= -->
+    <section class="task-info-block">
+      <h2 class="section-heading">TASK INFORMATION</h2>
+      <table class="info-table">
+        <tbody>
+          <tr>
+            <td class="label-cell">ATA CHAPTER:</td>
+            <td class="value-cell">{{metadata.ata_chapter}}</td>
+            <td class="label-cell">TASK NUMBER:</td>
+            <td class="value-cell">{{metadata.task_number}}</td>
+          </tr>
+          <tr>
+            <td class="label-cell">INTERVAL:</td>
+            <td class="value-cell">{{metadata.interval}}</td>
+            <td class="label-cell">MAN-HOURS:</td>
+            <td class="value-cell">{{metadata.man_hours}}</td>
+          </tr>
+          <tr>
+            <td class="label-cell">ZONE(S):</td>
+            <td class="value-cell" colspan="3">{{metadata.zones}}</td>
+          </tr>
+          <tr>
+            <td class="label-cell">ACCESS:</td>
+            <td class="value-cell" colspan="3">{{metadata.access}}</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- =================================================================
+         AIRCRAFT EFFECTIVITY
+         ================================================================= -->
+    <section class="effectivity-block">
+      <h2 class="section-heading">AIRCRAFT EFFECTIVITY</h2>
+      <table class="effectivity-table">
+        <tbody>
+          <tr>
+            <td class="label-cell">AIRCRAFT TYPE:</td>
+            <td class="value-cell">{{metadata.aircraft_type}}</td>
+            <td class="label-cell">MODEL:</td>
+            <td class="value-cell">{{metadata.aircraft_model}}</td>
+          </tr>
+          <tr>
+            <td class="label-cell">SERIAL NUMBERS:</td>
+            <td class="value-cell" colspan="3">{{metadata.serial_numbers}}</td>
+          </tr>
+          <tr>
+            <td class="label-cell">APPLICABILITY:</td>
+            <td class="value-cell" colspan="3">{{metadata.applicability}}</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- =================================================================
+         SAFETY SECTION (Warnings, Cautions, Notes)
+         ================================================================= -->
+    <section class="safety-block">
+      <div class="warning-box" data-show="{{metadata.has_warnings}}">
+        <div class="safety-icon warning-icon">WARNING</div>
+        <div class="safety-content">
+          {{metadata.warnings}}
+        </div>
+      </div>
+
+      <div class="caution-box" data-show="{{metadata.has_cautions}}">
+        <div class="safety-icon caution-icon">CAUTION</div>
+        <div class="safety-content">
+          {{metadata.cautions}}
+        </div>
+      </div>
+
+      <div class="note-box" data-show="{{metadata.has_notes}}">
+        <div class="safety-icon note-icon">NOTE</div>
+        <div class="safety-content">
+          {{metadata.notes}}
+        </div>
+      </div>
+    </section>
+
+    <!-- =================================================================
+         TOOLS, EQUIPMENT & MATERIALS
+         ================================================================= -->
+    <section class="resources-block">
+      <h2 class="section-heading">TOOLS, EQUIPMENT & MATERIALS</h2>
+      <table class="resources-table">
+        <thead>
+          <tr>
+            <th>ITEM</th>
+            <th>DESCRIPTION</th>
+            <th>PART NUMBER</th>
+            <th>QTY</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{metadata.resources_rows}}
+        </tbody>
+      </table>
+    </section>
+
+    <!-- =================================================================
+         PROCEDURE STEPS (Main Content)
+         ================================================================= -->
+    <section class="procedure-block">
+      <h2 class="section-heading">PROCEDURE</h2>
+      <div class="procedure-content">
+        {{content}}
+      </div>
+    </section>
+
+    <!-- =================================================================
+         TORQUE VALUES TABLE
+         ================================================================= -->
+    <section class="torque-block" data-show="{{metadata.has_torque_values}}">
+      <h2 class="section-heading">TORQUE VALUES</h2>
+      <table class="torque-table">
+        <thead>
+          <tr>
+            <th>STEP</th>
+            <th>FASTENER</th>
+            <th>SIZE</th>
+            <th>TORQUE VALUE</th>
+            <th>LUBRICANT</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{metadata.torque_rows}}
+        </tbody>
+      </table>
+    </section>
+
+    <!-- =================================================================
+         SIGN-OFF BLOCKS
+         ================================================================= -->
+    <section class="signoff-block">
+      <h2 class="section-heading">SIGN-OFF</h2>
+      <table class="signoff-table">
+        <thead>
+          <tr>
+            <th colspan="2">PERFORMED BY</th>
+            <th colspan="2">INSPECTED BY (RII)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="label-cell">NAME:</td>
+            <td class="signature-cell"></td>
+            <td class="label-cell">NAME:</td>
+            <td class="signature-cell"></td>
+          </tr>
+          <tr>
+            <td class="label-cell">CERT NO.:</td>
+            <td class="signature-cell"></td>
+            <td class="label-cell">CERT NO.:</td>
+            <td class="signature-cell"></td>
+          </tr>
+          <tr>
+            <td class="label-cell">SIGNATURE:</td>
+            <td class="signature-cell signature-line"></td>
+            <td class="label-cell">SIGNATURE:</td>
+            <td class="signature-cell signature-line"></td>
+          </tr>
+          <tr>
+            <td class="label-cell">DATE:</td>
+            <td class="signature-cell"></td>
+            <td class="label-cell">DATE:</td>
+            <td class="signature-cell"></td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- =================================================================
+         DOCUMENT CONTROL FOOTER (Repeats via running footer in layout CSS)
+         ================================================================= -->
+    <footer class="form-footer">
+      <div class="footer-left">
+        <span class="doc-control">{{metadata.document_control}}</span>
+      </div>
+      <div class="footer-center">
+        <span class="confidential">{{metadata.confidentiality}}</span>
+      </div>
+      <div class="footer-right">
+        <span class="print-date">Printed: {{metadata.print_date}}</span>
+      </div>
+    </footer>
+  </article>
+</body>
+</html>

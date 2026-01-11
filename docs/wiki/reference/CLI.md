@@ -25,6 +25,7 @@ Convert Markdown to HTML, PDF, PNG, or JPEG.
 **Syntax:**
 ```bash
 pagemd build <input> [options]
+pagemd build --stdin [options]     # Read from stdin
 pagemd <input> [options]           # 'build' is default command
 ```
 
@@ -34,7 +35,7 @@ pagemd <input> [options]           # 'build' is default command
 
 | Argument | Description |
 |----------|-------------|
-| `<input>` | Markdown file or directory path |
+| `<input>` | Markdown file or directory path (omit if using `--stdin`) |
 
 **Options:**
 
@@ -42,10 +43,13 @@ pagemd <input> [options]           # 'build' is default command
 |--------|-------|-------------|---------|
 | `--output` | `-o` | Output format(s), comma-separated: `html`, `pdf`, `png`, `jpeg` | `html,pdf` |
 | `--profile` | `-p` | Profile ID to use | `standard_letter` |
-| `--output-dir` | `-d` | Output directory | Same as input |
+| `--output-dir` | `-d` | Output directory | Same as input (or cwd for stdin) |
 | `--debug` | | Enable debug artifacts | `false` |
 | `--pagedjs` | | Paged.js mode: `browser` or `cli` | `browser` |
 | `--stdout` | | Output HTML to stdout (single file, html only) | `false` |
+| `--stdin` | | Read markdown from stdin instead of file | `false` |
+| `--stdin-path` | | Logical file path for stdin content (enables correct relative path resolution) | `null` |
+| `--base-name` | | Base filename for output when using `--stdin` | `stdin` |
 
 **Environment variable overrides:** CLI flags take precedence over environment variables:
 - `PAGEMD_PROFILE` → `--profile`
@@ -77,6 +81,19 @@ pagemd build document.md -o pdf --debug
 
 # Output HTML to stdout (for piping)
 pagemd build document.md -o html --stdout
+
+# Read markdown from stdin, output HTML to stdout
+cat document.md | pagemd build --stdin --stdout -o html
+
+# Read from stdin with custom output filename
+echo "# Hello" | pagemd build --stdin --base-name greeting -o html
+
+# Pipe stdin to PDF output
+cat document.md | pagemd build --stdin -o pdf --base-name report
+
+# Stdin with path context for relative path resolution
+# (Useful when document has relative profile/resource paths)
+cat /path/to/doc.md | pagemd build --stdin --stdin-path /path/to/doc.md -o html
 ```
 
 **What you'll see:**
@@ -107,6 +124,9 @@ Debug mode creates additional artifacts in `debug/` and shows expanded summary w
 | `Input is not a markdown file` | File doesn't have `.md` extension |
 | `--stdout requires single file input` | Can't use `--stdout` with directories |
 | `--stdout only supports html format` | Remove non-html formats when using `--stdout` |
+| `Provide <input> file/directory or use --stdin` | Neither input file nor `--stdin` flag provided |
+| `Cannot use both <input> and --stdin` | Can't specify both input file and `--stdin` |
+| `No content received from stdin` | Empty or whitespace-only stdin content |
 
 ---
 

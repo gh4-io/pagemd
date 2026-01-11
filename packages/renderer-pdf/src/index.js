@@ -5,7 +5,7 @@
 
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
-import { createLogger, resolvePath, findProjectRoot } from '@pagemd/core';
+import { createLogger, resolvePath, findProjectRoot, resolveColorScheme } from '@pagemd/core';
 import { renderDocument } from '@pagemd/renderer-web';
 import { launchBrowser, closeBrowser, detectChrome } from './browser.js';
 import { getPagedJsScript, injectPagedJs, getPagedJsConfig } from './pagedjs.js';
@@ -57,6 +57,7 @@ export async function renderPdf(markdownPath, options = {}) {
   });
 
   let browser = null;
+  let page = null;
   let debugDir = null;
   const debugArtifacts = [];
 
@@ -124,7 +125,7 @@ export async function renderPdf(markdownPath, options = {}) {
 
     // Step 7: Create new page and set content
     logger.debug('render.page', 'started', 'Creating page and setting content');
-    const page = await browser.newPage();
+    page = await browser.newPage();
 
     // Capture browser console for debugging (Paged.js status messages)
     page.on('console', msg => {
@@ -140,6 +141,25 @@ export async function renderPdf(markdownPath, options = {}) {
       height: 1056, // 11" at 96 DPI
       deviceScaleFactor: 1
     });
+
+    // Step 7.1: Apply color scheme emulation
+    // Resolve color scheme from frontmatter > profile > env > default
+    const colorScheme = resolveColorScheme({
+      frontmatter: htmlResult.metadata,
+      profile: htmlResult.profile,
+      envDefault: process.env.PAGEMD_COLOR_SCHEME,
+      outputFormat: 'pdf'
+    });
+
+    // Apply emulation if not 'auto' (auto means follow system preference)
+    if (colorScheme !== 'auto') {
+      await page.emulateMediaFeatures([
+        { name: 'prefers-color-scheme', value: colorScheme }
+      ]);
+      logger.debug('render.color_scheme', 'applied', `Color scheme emulated: ${colorScheme}`);
+    } else {
+      logger.debug('render.color_scheme', 'auto', 'Using system preference for color scheme');
+    }
 
     // Prepare HTML for rendering with proper image path resolution
     // Primary: inject <base href> for relative paths
@@ -257,7 +277,13 @@ export async function renderPdf(markdownPath, options = {}) {
       pages: pageCount
     });
 
-    // Step 12: Close browser
+    // Step 12: Close page and browser
+    // Skip page.close() in non-headless mode so user can inspect the rendered page
+    if (page && headless) {
+      await page.close().catch(err => {
+        logger.debug('render.page_close', 'fail', `Error closing page: ${err.message}`);
+      });
+    }
     await closeBrowser(browser);
 
     const result = {
@@ -278,7 +304,11 @@ export async function renderPdf(markdownPath, options = {}) {
       stack: error.stack
     });
 
-    // Clean up browser on error
+    // Clean up page and browser on error
+    // Skip page.close() in non-headless mode so user can inspect the error state
+    if (page && headless) {
+      await page.close().catch(() => {});
+    }
     if (browser) {
       await closeBrowser(browser);
     }
@@ -326,5 +356,7 @@ export {
   prepareHtmlForRendering,
   injectBaseHref,
   rewriteRelativePaths,
-  buildBaseUrl
+  buildBaseUrl,
+  // Color scheme utilities
+  resolveColorScheme
 };

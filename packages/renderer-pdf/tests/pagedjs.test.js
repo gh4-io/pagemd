@@ -10,7 +10,10 @@ describe('getPagedJsScript', () => {
   it('should return absolute path to paged.polyfill.js', () => {
     const scriptPath = getPagedJsScript();
     expect(scriptPath).toContain('paged.polyfill.js');
-    expect(scriptPath).toContain('node_modules/pagedjs/dist');
+    // Path should be either bundled (vendor/) or source (node_modules/pagedjs/dist/)
+    const isBundledPath = scriptPath.includes('vendor');
+    const isSourcePath = scriptPath.includes('node_modules/pagedjs/dist');
+    expect(isBundledPath || isSourcePath).toBe(true);
   });
 
   it('should return path that exists on filesystem', () => {

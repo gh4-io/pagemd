@@ -1,5 +1,6 @@
 ---
 title: Extended Syntax Stress Test
+profile: "../profiles/technical.json"
 author: PageMD Test Suite
 date: 2026-01-03
 description: Comprehensive test of all extended markdown syntax features
@@ -17,11 +18,7 @@ January 2026
 
 <!-- ::COVER_END -->
 
-<!-- ::PAGEBREAK -->
-
 <!-- ::TOC levels=3 -->
-
-<!-- ::PAGEBREAK -->
 
 # Chapter 1: Comment Directives {#chapter-1}
 
@@ -100,11 +97,11 @@ PageMD's native callout syntax for inline and block callouts.
 
 ## Block Callouts
 
-[[WARNING]]
+[[WARNING]]  
 This is a block warning callout. It spans multiple lines and can contain detailed information about potential issues.
 
 Use these for important cautionary notes.
-[[/WARNING]]
+[[/WARNING]]  
 
 [[DANGER]]
 This is a danger callout. Use sparingly for critical safety information or actions that could cause data loss or system damage.

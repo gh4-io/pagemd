@@ -112,11 +112,12 @@ describe('logger', () => {
       expect(consoleLogMock).toHaveBeenCalledOnce();
       const logOutput = consoleLogMock.mock.calls[0][0];
 
-      expect(logOutput).toContain('level=TRACE');
-      expect(logOutput).toContain('module=cli');
-      expect(logOutput).toContain('section=section1');
-      expect(logOutput).toContain('result=success');
-      expect(logOutput).toContain('msg="Test message"');
+      expect(logOutput).toContain('[TRACE]');
+      expect(logOutput).toContain('[PageMD-CLI]');
+      expect(logOutput).toContain('[cli]');
+      expect(logOutput).toContain('[section1]');
+      expect(logOutput).toContain('success:');
+      expect(logOutput).toContain('Test message');
     });
 
     it('debug() logs with correct format', () => {
@@ -126,10 +127,11 @@ describe('logger', () => {
       expect(consoleLogMock).toHaveBeenCalledOnce();
       const logOutput = consoleLogMock.mock.calls[0][0];
 
-      expect(logOutput).toContain('level=DEBUG');
-      expect(logOutput).toContain('module=parser');
-      expect(logOutput).toContain('section=tokenizer');
-      expect(logOutput).toContain('result=in-progress');
+      expect(logOutput).toContain('[DEBUG]');
+      expect(logOutput).toContain('[PageMD-CLI]');
+      expect(logOutput).toContain('[parser]');
+      expect(logOutput).toContain('[tokenizer]');
+      expect(logOutput).toContain('in-progress:');
     });
 
     it('info() logs with correct format', () => {
@@ -139,8 +141,9 @@ describe('logger', () => {
       expect(consoleLogMock).toHaveBeenCalledOnce();
       const logOutput = consoleLogMock.mock.calls[0][0];
 
-      expect(logOutput).toContain('level=INFO');
-      expect(logOutput).toContain('module=renderer.pdf');
+      expect(logOutput).toContain('[INFO]');
+      expect(logOutput).toContain('[PageMD-CLI]');
+      expect(logOutput).toContain('[renderer.pdf]');
     });
 
     it('warn() logs with correct format', () => {
@@ -150,8 +153,9 @@ describe('logger', () => {
       expect(consoleLogMock).toHaveBeenCalledOnce();
       const logOutput = consoleLogMock.mock.calls[0][0];
 
-      expect(logOutput).toContain('level=WARN');
-      expect(logOutput).toContain('module=validation');
+      expect(logOutput).toContain('[WARN]');
+      expect(logOutput).toContain('[PageMD-CLI]');
+      expect(logOutput).toContain('[validation]');
     });
 
     it('error() logs to stderr', () => {
@@ -162,8 +166,9 @@ describe('logger', () => {
       expect(consoleLogMock).not.toHaveBeenCalled();
 
       const logOutput = consoleErrorMock.mock.calls[0][0];
-      expect(logOutput).toContain('level=ERROR');
-      expect(logOutput).toContain('module=io');
+      expect(logOutput).toContain('[ERROR]');
+      expect(logOutput).toContain('[PageMD-CLI]');
+      expect(logOutput).toContain('[io]');
     });
 
     it('fatal() logs to stderr', () => {
@@ -174,7 +179,8 @@ describe('logger', () => {
       expect(consoleLogMock).not.toHaveBeenCalled();
 
       const logOutput = consoleErrorMock.mock.calls[0][0];
-      expect(logOutput).toContain('level=FATAL');
+      expect(logOutput).toContain('[FATAL]');
+      expect(logOutput).toContain('[PageMD-CLI]');
     });
 
     it('includes structured data when provided', () => {
@@ -185,30 +191,30 @@ describe('logger', () => {
       expect(consoleLogMock).toHaveBeenCalledOnce();
       const logOutput = consoleLogMock.mock.calls[0][0];
 
-      expect(logOutput).toContain('data=');
+      expect(logOutput).toContain('; ');
       expect(logOutput).toContain('"profileId":"test"');
       expect(logOutput).toContain('"count":5');
     });
 
-    it('escapes double quotes in messages', () => {
+    it('handles quotes in messages without escaping', () => {
       const logger = createLogger('cli');
       logger.info('test', 'success', 'Message with "quotes" inside');
 
       expect(consoleLogMock).toHaveBeenCalledOnce();
       const logOutput = consoleLogMock.mock.calls[0][0];
 
-      expect(logOutput).toContain('msg="Message with \\"quotes\\" inside"');
+      expect(logOutput).toContain('Message with "quotes" inside');
     });
 
-    it('includes ISO timestamp', () => {
+    it('includes human-readable timestamp', () => {
       const logger = createLogger('cli');
       logger.info('test', 'success', 'Test message');
 
       expect(consoleLogMock).toHaveBeenCalledOnce();
       const logOutput = consoleLogMock.mock.calls[0][0];
 
-      // Check for ISO timestamp format (starts with YYYY-MM-DD)
-      expect(logOutput).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+      // Check for human-readable timestamp format (YYYY-MM-DD HH:mm:ss.SSS)
+      expect(logOutput).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}/);
     });
   });
 
@@ -296,8 +302,8 @@ describe('logger', () => {
       const log1 = consoleLogMock.mock.calls[0][0];
       const log2 = consoleLogMock.mock.calls[1][0];
 
-      expect(log1).toContain('module=cli');
-      expect(log2).toContain('module=parser');
+      expect(log1).toContain('[cli]');
+      expect(log2).toContain('[parser]');
     });
 
     it('all loggers share same log level', () => {
@@ -315,6 +321,58 @@ describe('logger', () => {
       logger2.error('test', 'failure', 'Should log');
 
       expect(consoleErrorMock).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('waterfall logic', () => {
+    it('shows all fields when data is present', () => {
+      const logger = createLogger('cli');
+      logger.info('test', 'success', 'Message', { key: 'value' });
+
+      expect(consoleLogMock).toHaveBeenCalledOnce();
+      const logOutput = consoleLogMock.mock.calls[0][0];
+
+      expect(logOutput).toContain('success:');
+      expect(logOutput).toContain('Message');
+      expect(logOutput).toContain('; ');
+      expect(logOutput).toContain('{"key":"value"}');
+    });
+
+    it('shows result and message when no data', () => {
+      const logger = createLogger('cli');
+      logger.info('test', 'success', 'Message');
+
+      expect(consoleLogMock).toHaveBeenCalledOnce();
+      const logOutput = consoleLogMock.mock.calls[0][0];
+
+      expect(logOutput).toContain('success: Message');
+      expect(logOutput).not.toContain('; {');
+    });
+
+    it('shows only result when no message or data', () => {
+      const logger = createLogger('cli');
+      logger.info('test', 'success');
+
+      expect(consoleLogMock).toHaveBeenCalledOnce();
+      const logOutput = consoleLogMock.mock.calls[0][0];
+
+      expect(logOutput).toContain('success:');
+      // Verify trailing colon but no message when only result present
+      expect(logOutput).toMatch(/success:$/);
+    });
+
+    it('omits all payload when no result/message/data', () => {
+      const logger = createLogger('cli');
+      logger.info('test');
+
+      expect(consoleLogMock).toHaveBeenCalledOnce();
+      const logOutput = consoleLogMock.mock.calls[0][0];
+
+      expect(logOutput).toContain('[PageMD-CLI]');
+      expect(logOutput).toContain('[cli]');
+      expect(logOutput).toContain('[test]');
+      // Verify no trailing colon or payload
+      expect(logOutput).toMatch(/\[test\]$/);
     });
   });
 });

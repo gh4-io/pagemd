@@ -6,8 +6,9 @@
  * - Single parent inheritance via extends property
  * - Deep-merge objects (nested properties merged recursively)
  * - Replace arrays (child arrays completely replace parent arrays)
+ * - Null values mean "inherit from parent" (preserves parent value)
  * - Circular reference detection
- * - Profile ID validation (must match filename)
+ * - Profile validation (delegated to loadProfileSync)
  */
 
 import { loadProfileSync } from './config.js';
@@ -25,20 +26,30 @@ export function getDefaultProfile() {
 
 /**
  * Deep-merge two objects
- * Objects: deep-merge (recursively merge nested properties)
- * Arrays: child replaces parent (no merging)
+ * - Objects: deep-merge (recursively merge nested properties)
+ * - Arrays: child replaces parent (no merging)
+ * - Null values: child null means "inherit from parent" (preserves parent value)
  * @param {object} parent - Parent object
  * @param {object} child - Child object
  * @returns {object} Merged object
  */
 function deepMerge(parent, child) {
-  // If either is not an object, child wins
-  if (typeof parent !== 'object' || parent === null ||
-      typeof child !== 'object' || child === null) {
+  // If child is null, preserve parent value (null means "inherit from parent")
+  if (child === null) {
+    return parent;
+  }
+
+  // If parent is not an object or is null, child wins
+  if (typeof parent !== 'object' || parent === null) {
     return child;
   }
 
-  // Arrays: child replaces parent entirely
+  // If child is not an object, child wins
+  if (typeof child !== 'object') {
+    return child;
+  }
+
+  // Arrays: child replaces parent entirely (unless child is null, handled above)
   if (Array.isArray(parent) || Array.isArray(child)) {
     return child;
   }
@@ -48,13 +59,20 @@ function deepMerge(parent, child) {
 
   for (const key in child) {
     if (child.hasOwnProperty(key)) {
-      if (typeof child[key] === 'object' && child[key] !== null && !Array.isArray(child[key]) &&
+      const childValue = child[key];
+
+      // Skip null values - they mean "inherit from parent"
+      if (childValue === null) {
+        continue;
+      }
+
+      if (typeof childValue === 'object' && !Array.isArray(childValue) &&
           typeof parent[key] === 'object' && parent[key] !== null && !Array.isArray(parent[key])) {
         // Both are objects (not arrays) - recurse
-        result[key] = deepMerge(parent[key], child[key]);
+        result[key] = deepMerge(parent[key], childValue);
       } else {
         // Child wins (includes array replacement)
-        result[key] = child[key];
+        result[key] = childValue;
       }
     }
   }
@@ -168,20 +186,22 @@ export function detectCircularInheritance(profileName, chain, loadFn) {
  * @param {object} context - Loading context
  * @param {string} [context.searchFrom] - Directory to start search from
  * @param {string} [context.configDir] - Explicit config directory
+ * @param {string} [context.cliPath] - CLI package root for built-in resources
  * @returns {Promise<object>} Fully merged profile object
  * @throws {Error} If profile not found or validation fails
  */
 export async function loadAndMergeProfile(profileName, context = {}) {
-  const { searchFrom = null, configDir = null } = context;
+  const { searchFrom = null, configDir = null, cliPath = null } = context;
 
   logger.info('loading', 'in-progress', 'Loading profile with inheritance', {
     profile: profileName,
     searchFrom,
-    configDir
+    configDir,
+    cliPath
   });
 
   // Create loading function for circular detection
-  const loadFn = (name) => loadProfileSync(name, searchFrom, configDir);
+  const loadFn = (name) => loadProfileSync(name, searchFrom, configDir, cliPath);
 
   // Detect circular inheritance before loading
   try {
@@ -194,23 +214,12 @@ export async function loadAndMergeProfile(profileName, context = {}) {
     throw err;
   }
 
-  // Load the base profile
+  // Load the base profile (validation handled by loadProfileSync)
   const profile = loadFn(profileName);
   if (!profile) {
     const error = new Error(`Profile not found: ${profileName}`);
     logger.error('loading', 'failure', 'Profile not found', { profile: profileName });
     throw error;
-  }
-
-  // Validate the profile
-  try {
-    validateProfile(profile, profileName);
-  } catch (err) {
-    logger.error('loading', 'failure', 'Profile validation failed', {
-      profile: profileName,
-      error: err.message
-    });
-    throw err;
   }
 
   // If no inheritance, return as-is

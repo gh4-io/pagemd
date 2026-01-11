@@ -1,11 +1,12 @@
 /**
  * @pagemd/cli/commands/create
- * Create a new PageMD resource (profile, style, layout, or template)
+ * Create a new PageMD resource (profile, style, layout, template, or markdown)
  *
  * Features:
  * - Creates files with non-interfering scaffolding (commented out by default)
  * - Can copy from existing resource with --source
  * - Can inject reference into markdown frontmatter with --input
+ * - Markdown creates a single file with basic frontmatter (use init for md + profile)
  */
 
 import { promises as fs } from 'node:fs';
@@ -28,13 +29,13 @@ const logger = createLogger('cli');
  */
 export const command = 'create <resource>';
 export const aliases = ['add'];
-export const describe = 'Create a new PageMD resource (profile, style, layout, template)';
+export const describe = 'Create a new PageMD resource (profile, style, layout, template, markdown)';
 
 export const builder = {
   resource: {
     describe: 'Type of resource to create',
     type: 'string',
-    choices: ['profile', 'style', 'layout', 'template'],
+    choices: ['profile', 'style', 'layout', 'template', 'markdown'],
     demandOption: true
   },
   source: {
@@ -66,7 +67,8 @@ const RESOURCE_EXTENSIONS = {
   profile: '.json',
   style: '.css',
   layout: '.css',
-  template: '.html'
+  template: '.html',
+  markdown: '.md'
 };
 
 /**
@@ -76,7 +78,8 @@ const DISCOVERY_TYPES = {
   profile: 'profiles',
   style: 'styles',
   layout: 'layouts',
-  template: 'templates'
+  template: 'templates',
+  markdown: null // Markdown files are not discovered as resources
 };
 
 /**
@@ -86,7 +89,8 @@ const FRONTMATTER_FIELDS = {
   profile: 'pipeline_profile',
   style: 'styles',
   layout: null, // Not directly referenced in frontmatter
-  template: null // Not directly referenced in frontmatter
+  template: null, // Not directly referenced in frontmatter
+  markdown: null // N/A - markdown is the target, not a reference
 };
 
 /**
@@ -133,9 +137,33 @@ function getDefaultScaffold(resourceType) {
       return '<!DOCTYPE html>\n<html>\n<head>{{styles}}</head>\n<body>{{content}}</body>\n</html>\n';
     case 'profile':
       return JSON.stringify({ id: '{{name}}', description: 'Custom profile' }, null, 2);
+    case 'markdown':
+      return getMarkdownScaffold();
     default:
       return '';
   }
+}
+
+/**
+ * Generate markdown scaffold content with placeholders
+ * @returns {string} Markdown content with {{name}} placeholders
+ */
+function getMarkdownScaffold() {
+  const date = new Date().toISOString().split('T')[0];
+
+  return `---
+title: "{{title}}"
+document_id: {{document_id}}
+revision: 1
+status: Draft
+effective_date: ${date}
+profile: standard_letter
+---
+
+# {{title}}
+
+Add your content here.
+`;
 }
 
 /**
@@ -284,6 +312,16 @@ export async function handler(argv) {
       content = await loadScaffold(resource);
       // Replace placeholders
       content = content.replace(/\{\{name\}\}/g, name);
+
+      // Additional placeholders for markdown
+      if (resource === 'markdown') {
+        const title = name.replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+        const documentId = name.toUpperCase().replace(/[^A-Z0-9]/g, '-');
+        const date = new Date().toISOString().split('T')[0];
+        content = content.replace(/\{\{title\}\}/g, title);
+        content = content.replace(/\{\{document_id\}\}/g, documentId);
+        content = content.replace(/\{\{date\}\}/g, date);
+      }
     }
 
     // Write file

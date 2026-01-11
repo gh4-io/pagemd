@@ -1,5 +1,6 @@
 ---
 title: Index Feature Stress Test
+profile: "../profiles/academic.json"
 index: true
 index_title: "Subject Index"
 ---

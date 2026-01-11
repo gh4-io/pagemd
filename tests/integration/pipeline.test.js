@@ -18,7 +18,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 // Example markdown file path (relative to test file location)
-const EXAMPLE_MD_PATH = resolve(__dirname, '../../examples/md/basic-document.md');
+const EXAMPLE_MD_PATH = resolve(__dirname, '../../examples/md/01-basic-document.md');
 const PROJECT_ROOT = resolve(__dirname, '../..');
 
 describe('PageMD Pipeline Integration', () => {
