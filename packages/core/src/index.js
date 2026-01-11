@@ -3,7 +3,7 @@
  * Core utilities for PageMD pipeline
  */
 
-export { createLogger, setLogLevel, getLogLevel } from './logger.js';
+export { createLogger, setLogLevel, getLogLevel, getTimestamp } from './logger.js';
 export {
   loadEnvConfig,
   getEnv,
@@ -30,9 +30,13 @@ export {
   createPathContext,
   resolvePath,
   resolveResourcePath,
+  resolveResource,
   expandTokens,
   findProjectRoot,
-  getPackageRootFromCli
+  getPackageRootFromCli,
+  buildSearchPaths,
+  findResourceWithDuplicateCheck,
+  RESOURCE_EXTENSIONS
 } from './path-resolver.js';
 export {
   loadAndMergeProfile,
@@ -63,3 +67,7 @@ export {
   getResourceDirectories,
   RESOURCE_TYPES
 } from './resource-discovery.js';
+export {
+  resolveColorScheme,
+  validateColorScheme
+} from './color-scheme.js';

@@ -2,7 +2,7 @@
  * @pagemd/core/logger
  * Universal logger for PageMD pipeline
  *
- * Log format: <timestamp>;level=<level>;module=<module>;section=<section>;result=<result>;msg="<message>";data=<json>
+ * Log format: YYYY-MM-DD HH:mm:ss.SSS [level] [app] [module][section] result: message; data
  *
  * Color support:
  * - PAGEMD_LOG_COLOR=1/true/yes: Force colors ON
@@ -62,24 +62,23 @@ export function getLogLevel() {
 }
 
 /**
- * Format timestamp as UTC ISO
- * @returns {string} ISO timestamp
+ * Format timestamp in bracket-compatible format
+ * @returns {string} Timestamp in format: YYYY-MM-DD HH:mm:ss.SSS
  */
-function getTimestamp() {
-  return new Date().toISOString();
+export function getTimestamp() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const hour = String(now.getHours()).padStart(2, '0');
+  const minute = String(now.getMinutes()).padStart(2, '0');
+  const second = String(now.getSeconds()).padStart(2, '0');
+  const ms = String(now.getMilliseconds()).padStart(3, '0');
+  return `${year}-${month}-${day} ${hour}:${minute}:${second}.${ms}`;
 }
 
 /**
- * Escape double quotes in message
- * @param {string} msg - Message to escape
- * @returns {string} Escaped message
- */
-function escapeMessage(msg) {
-  return String(msg).replace(/"/g, '\\"');
-}
-
-/**
- * Format log entry with colors
+ * Format log entry with brackets and waterfall logic
  * @param {string} level - Log level
  * @param {string} module - Module name
  * @param {string} section - Section/component within module
@@ -90,23 +89,39 @@ function escapeMessage(msg) {
  */
 function formatLogEntry(level, module, section, result, message, data) {
   const timestamp = getTimestamp();
-  const escapedMsg = escapeMessage(message);
-  const d = colors.delimiter(';');
 
-  let logLine = [
+  // Build metadata: timestamp [app] [level] [module][section]
+  const metadata = [
     colors.timestamp(timestamp),
-    `level=${colorLevel(level)}`,
-    `module=${colors.module(module)}`,
-    `section=${colors.section(section)}`,
-    `result=${colorResult(result)}`,
-    `msg="${colors.message(escapedMsg)}"`
-  ].join(d);
+    `[${colors.app('PageMD-CLI')}]`,
+    `[${colorLevel(level)}]`,
+    `[${colors.module(module)}]`,
+    `[${colors.section(section)}]`
+  ].join(' ');
 
-  if (data !== undefined && data !== null) {
-    logLine += `${d}data=${colors.data(JSON.stringify(data))}`;
+  // Waterfall logic for result/message/data
+  const hasResult = result !== undefined && result !== null;
+  const hasMessage = message !== undefined && message !== null;
+  const hasData = data !== undefined && data !== null;
+
+  let payload = '';
+
+  if (hasData) {
+    // If data is present, must show result/message/data (even if empty)
+    const resultPart = hasResult ? colorResult(result) : '';
+    const messagePart = hasMessage ? colors.message(String(message)) : '';
+    payload = `${resultPart}: ${messagePart}; ${colors.data(JSON.stringify(data))}`;
+  } else if (hasMessage) {
+    // If message is present (no data), must show result/message
+    const resultPart = hasResult ? colorResult(result) : '';
+    payload = `${resultPart}: ${colors.message(String(message))}`;
+  } else if (hasResult) {
+    // If only result is present
+    payload = `${colorResult(result)}:`;
   }
+  // If none present, payload stays empty
 
-  return logLine;
+  return payload ? `${metadata} ${payload}` : metadata;
 }
 
 /**

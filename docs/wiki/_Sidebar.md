@@ -20,6 +20,7 @@
 ### Reference
 - [[reference/CLI|CLI Commands]]
 - [[reference/Settings|Settings]]
+- [[reference/Path-Resolution|Path Resolution]]
 - [[reference/Profile-Schema|Profile Schema]]
 - [[reference/Inline-Attributes|Inline Attributes]]
 - [[reference/Glossary|Glossary]]

@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{metadata.title}}</title>
+  {{styles}}
+</head>
+<body>
+  <article class="title-page">
+    <!-- Classification Banner (Top) -->
+    <div class="classification-banner classification-banner--top">
+      {{metadata.classification}}
+    </div>
+
+    <!-- Document Header -->
+    <header class="document-header">
+      <div class="document-type">{{metadata.document_type}}</div>
+      <div class="document-identifiers">
+        <span class="document-number">{{metadata.document_number}}</span>
+        <span class="document-revision">Revision {{metadata.revision}}</span>
+        <span class="document-date">{{metadata.date}}</span>
+      </div>
+    </header>
+
+    <!-- Main Title Block -->
+    <section class="title-block">
+      <h1 class="document-title">{{metadata.title}}</h1>
+      <p class="document-subtitle">{{metadata.subtitle}}</p>
+      <div class="document-version">Version {{metadata.version}}</div>
+    </section>
+
+    <!-- Author Block -->
+    <section class="author-block">
+      <h2 class="block-heading">Prepared By</h2>
+      <div class="author-name">{{metadata.author.name}}</div>
+      <div class="author-title">{{metadata.author.title}}</div>
+      <div class="author-department">{{metadata.author.department}}</div>
+    </section>
+
+    <!-- Organization Block -->
+    <section class="organization-block">
+      <div class="organization-name">{{metadata.organization.name}}</div>
+      <div class="organization-division">{{metadata.organization.division}}</div>
+      <div class="organization-address">{{metadata.organization.address}}</div>
+    </section>
+
+    <!-- Approval Signature Block -->
+    <section class="approval-block">
+      <h2 class="block-heading">Approval Signatures</h2>
+      <table class="approval-table">
+        <thead>
+          <tr>
+            <th>Role</th>
+            <th>Name</th>
+            <th>Signature</th>
+            <th>Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Author</td>
+            <td>{{metadata.approvals.author.name}}</td>
+            <td class="signature-cell"></td>
+            <td>{{metadata.approvals.author.date}}</td>
+          </tr>
+          <tr>
+            <td>Reviewer</td>
+            <td>{{metadata.approvals.reviewer.name}}</td>
+            <td class="signature-cell"></td>
+            <td>{{metadata.approvals.reviewer.date}}</td>
+          </tr>
+          <tr>
+            <td>Approver</td>
+            <td>{{metadata.approvals.approver.name}}</td>
+            <td class="signature-cell"></td>
+            <td>{{metadata.approvals.approver.date}}</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- Legal Notice Footer -->
+    <footer class="legal-notice">
+      <p class="notice-text">{{metadata.legal_notice}}</p>
+      <p class="copyright-text">{{metadata.copyright}}</p>
+    </footer>
+
+    <!-- Classification Banner (Bottom) -->
+    <div class="classification-banner classification-banner--bottom">
+      {{metadata.classification}}
+    </div>
+  </article>
+
+  <!-- Document Content (for multi-page documents) -->
+  <main class="document-content">
+    {{content}}
+  </main>
+</body>
+</html>

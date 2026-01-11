@@ -1,0 +1,162 @@
+/**
+ * Technical Documentation Style
+ * Developer-focused: dark code blocks, callout boxes with icons, API tables
+ *
+ * Features:
+ * - Monospace accents for headings and code
+ * - Dark code blocks optimized for syntax highlighting
+ * - Callout boxes (note, warning, tip, caution, info) with ::before icons
+ * - API reference table styling with dark headers
+ * - Mermaid diagram container styling
+ *
+ * Usage: styles: examples/styles/05-technical.css
+ */
+
+/* ==========================================================================
+   Typography - Monospace Accents
+   ========================================================================== */
+
+body { font-family: 'Inter', -apple-system, sans-serif; font-size: 15px; line-height: 1.7; color: #1a1a2e; }
+
+h1, h2, h3, h4 {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-weight: 700; color: #16213e;
+  margin-top: 2rem; margin-bottom: 0.75rem;
+}
+
+h1 { font-size: 2rem; border-bottom: 3px solid #0f4c75; padding-bottom: 0.5rem; }
+h2 { font-size: 1.5rem; border-bottom: 2px solid #3282b8; padding-bottom: 0.3rem; }
+h3 { font-size: 1.25rem; color: #0f4c75; }
+
+/* ==========================================================================
+   Dark Code Blocks - Syntax Highlighting Friendly
+   ========================================================================== */
+
+pre {
+  background: #1e1e2e; color: #cdd6f4;
+  border: 1px solid #313244; border-radius: 8px;
+  padding: 1.25rem; margin: 1.5rem 0;
+  font-size: 13px; line-height: 1.5; overflow-x: auto;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+}
+
+pre code {
+  font-family: 'JetBrains Mono', monospace;
+  background: transparent; border: none; padding: 0; color: inherit;
+}
+
+/* Inline code styling */
+:not(pre) > code {
+  font-family: 'JetBrains Mono', monospace; font-size: 0.875em;
+  background: #e8eef4; color: #0f4c75;
+  border: 1px solid #c9d6e3; border-radius: 4px; padding: 0.15em 0.4em;
+}
+
+/* ==========================================================================
+   Callout Boxes with Icons via ::before
+   ========================================================================== */
+
+.callout, .markdown-alert {
+  position: relative; padding: 1rem 1rem 1rem 3.5rem;
+  margin: 1.5rem 0; border-radius: 8px; border-left: 4px solid;
+}
+
+.callout::before, .markdown-alert::before {
+  position: absolute; left: 1rem; top: 1rem;
+  font-size: 1.25rem; font-weight: bold;
+}
+
+/* Note - blue info icon */
+.callout-note, .markdown-alert-note { background: #e7f3ff; border-color: #0969da; }
+.callout-note::before, .markdown-alert-note::before { content: "\2139"; color: #0969da; }
+
+/* Tip - green checkmark */
+.callout-tip, .markdown-alert-tip { background: #e6f9ed; border-color: #1a7f37; }
+.callout-tip::before, .markdown-alert-tip::before { content: "\2713"; color: #1a7f37; }
+
+/* Warning - amber triangle */
+.callout-warning, .markdown-alert-warning { background: #fff8e6; border-color: #bf8700; }
+.callout-warning::before, .markdown-alert-warning::before { content: "\26A0"; color: #bf8700; }
+
+/* Caution - red X mark */
+.callout-caution, .callout-danger, .markdown-alert-caution { background: #fff1f0; border-color: #cf222e; }
+.callout-caution::before, .callout-danger::before, .markdown-alert-caution::before { content: "\2716"; color: #cf222e; }
+
+/* Info - purple star */
+.callout-info, .markdown-alert-important { background: #f5f0ff; border-color: #8250df; }
+.callout-info::before, .markdown-alert-important::before { content: "\2605"; color: #8250df; }
+
+/* ==========================================================================
+   API Reference Table Styling
+   ========================================================================== */
+
+table {
+  border-collapse: collapse; width: 100%; margin: 1.5rem 0; font-size: 14px;
+  border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+}
+
+th {
+  background: #16213e; color: #fff;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 600; font-size: 12px; text-transform: uppercase;
+  letter-spacing: 0.05em; padding: 0.875rem 1rem; text-align: left; border: none;
+}
+
+td { padding: 0.75rem 1rem; border-bottom: 1px solid #e8eef4; vertical-align: top; }
+td:first-child { font-family: 'JetBrains Mono', monospace; font-weight: 600; color: #0f4c75; white-space: nowrap; }
+td:nth-child(2) code { background: #1e1e2e; color: #89b4fa; border: none; padding: 0.2em 0.5em; }
+td code { background: transparent; border: none; padding: 0; color: #0f4c75; }
+
+tr:nth-child(even) { background: #f8fafc; }
+tr:hover { background: #e8eef4; }
+
+/* ==========================================================================
+   Mermaid Diagram Container Styling
+   ========================================================================== */
+
+.mermaid-diagram {
+  margin: 2rem 0; padding: 1.5rem; background: #f8fafc;
+  border: 1px solid #e8eef4; border-radius: 12px; text-align: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.mermaid-diagram svg { max-width: 100%; height: auto; }
+.mermaid-diagram figcaption { font-size: 0.875rem; color: #586069; margin-top: 0.75rem; font-style: italic; }
+
+/* ==========================================================================
+   Additional Technical Elements
+   ========================================================================== */
+
+/* Keyboard shortcuts */
+kbd {
+  font-family: 'JetBrains Mono', monospace; font-size: 0.8em;
+  background: linear-gradient(180deg, #f8fafc 0%, #e8eef4 100%);
+  border: 1px solid #c9d6e3; border-radius: 4px;
+  padding: 0.15em 0.5em; box-shadow: 0 2px 0 #c9d6e3;
+}
+
+/* Definition lists for API documentation */
+dl { margin: 1.5rem 0; }
+dt { font-family: 'JetBrains Mono', monospace; font-weight: 700; color: #0f4c75; margin-top: 1.25rem; }
+dd { margin-left: 1.5rem; margin-top: 0.25rem; color: #4a5568; }
+
+/* Blockquotes */
+blockquote { background: #f8fafc; border-left: 4px solid #3282b8; margin: 1.5rem 0; padding: 1rem 1.25rem; color: #4a5568; }
+
+/* Links with underline accent */
+a { color: #0f4c75; text-decoration: none; border-bottom: 1px solid #3282b8; }
+a:hover { color: #3282b8; border-bottom-width: 2px; }
+
+/* Horizontal rules - gradient accent */
+hr { border: none; height: 2px; background: linear-gradient(90deg, #0f4c75, #3282b8, #bbe1fa); margin: 2.5rem 0; }
+
+/* ==========================================================================
+   Print Optimizations
+   ========================================================================== */
+
+@media print {
+  pre { background: #f6f8fa !important; color: #1a1a2e !important; box-shadow: none; }
+  th { background: #e1e4e8 !important; color: #1a1a2e !important; }
+  .callout, .markdown-alert, .mermaid-diagram { break-inside: avoid; page-break-inside: avoid; }
+  table, .mermaid-diagram { box-shadow: none; }
+}

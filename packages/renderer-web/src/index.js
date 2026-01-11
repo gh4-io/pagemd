@@ -7,13 +7,16 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { parse, parseFile } from '@pagemd/parser';
 import {
-  loadProfileSync,
+  loadAndMergeProfile,
   createPathContext,
   findProjectRoot,
   createLogger,
   addResource,
   resolvePath,
-  resolveResourcePath
+  resolveResourcePath,
+  resolveResource,
+  expandTokens,
+  resolveColorScheme
 } from '@pagemd/core';
 import { loadTemplate, renderTemplate } from './template.js';
 import { buildStyleBlock } from './styles.js';
@@ -37,27 +40,49 @@ async function loadFrontmatterStyles(stylePaths, pathContext) {
   const cssChunks = [];
   const resources = [];
 
+  // Build resource resolution context
+  const resourceContext = {
+    workingPath: pathContext.markdownDir,
+    workspacePath: pathContext.projectRoot || pathContext.workspaceFolder,
+    manifestPath: pathContext.manifestDir,
+    cliPath: pathContext.cliPath,
+    sourceType: 'frontmatter'
+  };
+
   for (const stylePath of stylePaths) {
+    // First expand tokens in the style path
+    const expanded = expandTokens(stylePath, pathContext);
+
+    let resolvedPath;
     try {
-      const resolved = resolveResourcePath(stylePath, pathContext);
-      const content = await fs.readFile(resolved, 'utf-8');
-      cssChunks.push(content);
-      resources.push({
-        layer: 'frontmatter',
-        source: stylePath,
-        resolvedPath: resolved,
-        size: content.length
-      });
-      logger.debug('frontmatter-css', 'success', `Loaded frontmatter CSS: ${stylePath}`, {
-        resolved,
-        size: content.length
-      });
+      const result = resolveResource(expanded, 'styles', resourceContext);
+      resolvedPath = result.resolvedPath;
     } catch (error) {
-      logger.warn('frontmatter-css', 'failure', `Failed to load frontmatter CSS: ${stylePath}`, {
-        error: error.message
-      });
-      // Continue with other files - don't fail the entire render
+      // Enhance error with context for user-friendly message
+      const enhancedError = new Error(
+        `Missing frontmatter stylesheet: ${stylePath}\n` +
+        `Source: Document frontmatter 'styles' array\n` +
+        (error.searchedPaths
+          ? `Searched in:\n${error.searchedPaths.map((p, i) => `  ${i + 1}. ${p}`).join('\n')}`
+          : `Details: ${error.message}`)
+      );
+      enhancedError.cause = error;
+      logger.error('frontmatter-css', 'failure', enhancedError.message);
+      throw enhancedError;
     }
+
+    const content = await fs.readFile(resolvedPath, 'utf-8');
+    cssChunks.push(content);
+    resources.push({
+      layer: 'frontmatter',
+      source: stylePath,
+      resolvedPath,
+      size: content.length
+    });
+    logger.debug('frontmatter-css', 'success', `Loaded frontmatter CSS: ${stylePath}`, {
+      resolved: resolvedPath,
+      size: content.length
+    });
   }
 
   return {
@@ -72,26 +97,38 @@ async function loadFrontmatterStyles(stylePaths, pathContext) {
  * @param {string} options.markdownPath - Path to markdown file (optional for string rendering)
  * @param {string} options.profile - Profile ID to use
  * @param {string} options.projectRoot - Project root directory
- * @returns {object} Render context with pathContext, profile, and options
+ * @param {string} [options.cliPath] - CLI package root for bundled defaults
+ * @returns {Promise<object>} Render context with pathContext, profile, and options
  */
-export function createRenderContext(options) {
+export async function createRenderContext(options) {
   const {
     markdownPath,
     profile: profileId = 'standard_letter',
-    projectRoot = findProjectRoot(markdownPath || process.cwd())
+    projectRoot = findProjectRoot(markdownPath || process.cwd()),
+    cliPath = null
   } = options;
 
-  // Load profile - loadProfileSync(profileName, searchFrom, configDir)
-  const profile = loadProfileSync(profileId, projectRoot, projectRoot);
+  // Determine search base for profile resolution:
+  // - For relative paths in frontmatter, use markdown directory
+  // - For named profiles, use project root
+  const markdownDir = markdownPath ? path.dirname(markdownPath) : null;
+
+  // Load profile with inheritance - loadAndMergeProfile(profileName, context)
+  const profile = await loadAndMergeProfile(profileId, {
+    searchFrom: markdownDir || projectRoot,
+    configDir: projectRoot,
+    cliPath
+  });
   if (!profile) {
     throw new Error(`Profile not found: ${profileId}`);
   }
 
   // Create path context (include manifestDir from profile for ${manifestDir} token)
   const pathContext = createPathContext({
-    markdownDir: markdownPath ? path.dirname(markdownPath) : null,
+    markdownDir,
     projectRoot,
-    manifestDir: profile._manifestDir
+    manifestDir: profile._manifestDir,
+    cliPath
   });
 
   logger.debug(`Render context created: profile=${profile.id}, root=${projectRoot}`);
@@ -121,15 +158,28 @@ export async function renderDocument(markdownPath, options = {}) {
   logger.debug('Step 1: Parsing markdown');
   const { content, html, metadata } = await parseFile(markdownPath, options);
 
-  // Step 2: Create render context (loads profile, creates path context)
+  // Step 1b: Resolve profile (frontmatter > options > default)
+  // Frontmatter profile takes precedence over CLI -p flag for per-document choice
+  // Note: Parser normalizes 'profile' → 'pipeline_profile'
+  const profileToUse = metadata.pipeline_profile || options.profile;
+  if (metadata.pipeline_profile) {
+    logger.debug(`Using profile from frontmatter: ${metadata.pipeline_profile}`);
+  }
+
+  // Step 2: Create render context (loads profile with inheritance, creates path context)
   logger.debug('Step 2: Creating render context');
-  const context = createRenderContext({ ...options, markdownPath });
+  const context = await createRenderContext({
+    ...options,
+    profile: profileToUse,  // Use frontmatter profile if present
+    markdownPath
+  });
   const { profile, pathContext } = context;
 
   // Step 3: Load HTML template (with metadata if debug mode)
   logger.debug('Step 3: Loading template');
   const templateResult = await loadTemplate(profile, pathContext, {
-    returnMetadata: !!debugMetadata
+    returnMetadata: !!debugMetadata,
+    cliPath: options.cliPath
   });
 
   let template;
@@ -199,6 +249,15 @@ export async function renderDocument(markdownPath, options = {}) {
     styles = styleResult;
   }
 
+  // Step 6b: Resolve color scheme for HTML rendering
+  logger.debug('Step 6b: Resolving color scheme');
+  const colorScheme = resolveColorScheme({
+    frontmatter: mergedMetadata,
+    profile,
+    envDefault: process.env.PAGEMD_COLOR_SCHEME,
+    outputFormat: 'html'
+  });
+
   // Step 7: Render template with content, styles, and metadata
   logger.debug('Step 7: Rendering template');
   const renderedHtml = renderTemplate(template, {
@@ -206,7 +265,8 @@ export async function renderDocument(markdownPath, options = {}) {
     styles,
     metadata: mergedMetadata,
     profile,
-    pathContext
+    pathContext,
+    colorScheme
   });
 
   // Step 8: Fill TOC placeholder if present (using metadata.toc settings)
@@ -237,6 +297,7 @@ export async function renderDocument(markdownPath, options = {}) {
  * @param {string} options.profile - Profile ID (default: 'standard_letter')
  * @param {object} options.metadata - Additional metadata to merge
  * @param {string} options.projectRoot - Project root (default: cwd)
+ * @param {string} options.markdownPath - Logical markdown file path for path resolution (optional)
  * @returns {Promise<{html: string, metadata: object}>} Rendered document
  */
 export async function renderMarkdown(markdown, options = {}) {
@@ -246,14 +307,27 @@ export async function renderMarkdown(markdown, options = {}) {
   logger.debug('Step 1: Parsing markdown');
   const { content, html, metadata: parsedMetadata } = parse(markdown, options);
 
-  // Step 2: Create render context (without markdownPath)
+  // Step 1b: Resolve profile (frontmatter > options > default)
+  // Frontmatter profile takes precedence over CLI -p flag for per-document choice
+  // Note: Parser normalizes 'profile' → 'pipeline_profile'
+  const profileToUse = parsedMetadata.pipeline_profile || options.profile;
+  if (parsedMetadata.pipeline_profile) {
+    logger.debug(`Using profile from frontmatter: ${parsedMetadata.pipeline_profile}`);
+  }
+
+  // Step 2: Create render context (loads profile with inheritance, without markdownPath)
   logger.debug('Step 2: Creating render context');
-  const context = createRenderContext(options);
+  const context = await createRenderContext({
+    ...options,
+    profile: profileToUse  // Use frontmatter profile if present
+  });
   const { profile, pathContext } = context;
 
   // Step 3: Load HTML template
   logger.debug('Step 3: Loading template');
-  const template = await loadTemplate(profile, pathContext);
+  const template = await loadTemplate(profile, pathContext, {
+    cliPath: options.cliPath
+  });
 
   // Step 4: Merge profile defaults with frontmatter metadata
   logger.debug('Step 4: Merging metadata with profile defaults');

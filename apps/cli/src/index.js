@@ -23,16 +23,16 @@ import * as createCommand from './commands/create.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const PROJECT_ROOT = getPackageRootFromCli(__dirname);
-
-// Load and cache all PAGEMD_* environment variables
+// Load and cache all PAGEMD_* environment variables FIRST
 loadEnvConfig();
 
-const logger = createLogger('cli');
-
-// Set log level from environment (centralized via env.js)
+// Set log level from environment BEFORE any code that might log
 const logLevel = getEnv('logLevel') || 'WARN';
 setLogLevel(logLevel);
+
+const PROJECT_ROOT = getPackageRootFromCli(__dirname);
+
+const logger = createLogger('cli');
 
 // Log any env var warnings at DEBUG level
 const envWarnings = getEnvWarnings();
@@ -81,8 +81,9 @@ yargs(hideBin(process.argv))
     global: true
   })
   .middleware((argv) => {
-    // Pass projectRoot to all commands
+    // Pass projectRoot and cliPath to all commands
     argv.projectRoot = PROJECT_ROOT;
+    argv.cliPath = PROJECT_ROOT;
 
     if (argv.logLevel) {
       setLogLevel(argv.logLevel);

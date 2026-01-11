@@ -68,7 +68,15 @@ export const FIELD_ALIASES = {
 
   // Index aliases
   indexTitle: 'index_title',
-  'index-title': 'index_title'
+  'index-title': 'index_title',
+
+  // Fancy lists aliases
+  fancyLists: 'fancy_lists',
+  'fancy-lists': 'fancy_lists',
+
+  // Color scheme aliases
+  colorScheme: 'color_scheme',
+  'color-scheme': 'color_scheme'
 };
 
 // Default values (loaded from metadata.defaults.json)
@@ -114,7 +122,8 @@ const FIELD_DEFINITIONS = {
   toc_page_numbers: { type: 'boolean' },
   toc_page_levels: { type: 'number', coerce: true },
   index: { type: 'boolean' },
-  index_title: { type: 'string', trim: true }
+  index_title: { type: 'string', trim: true },
+  fancy_lists: { type: 'boolean' }
 };
 
 /**

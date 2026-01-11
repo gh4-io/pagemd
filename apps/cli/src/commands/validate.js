@@ -84,7 +84,7 @@ async function validateMarkdownFile(filePath, options = {}) {
     // Load profile with inheritance (includes circular inheritance check)
     let profile;
     try {
-      profile = await loadAndMergeProfile(profileId);
+      profile = await loadAndMergeProfile(profileId, { cliPath: argv.cliPath });
     } catch (err) {
       errors.push(`Profile error: ${err.message}`);
       return { valid: false, errors, warnings };

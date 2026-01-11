@@ -1,0 +1,436 @@
+/**
+ * Handbook Layout - SDLC/Policy Documents
+ *
+ * Paged.js layout for handbooks with:
+ * - Letter size, portrait orientation
+ * - 1in margins
+ * - Running headers (short_title, version) - different odd/even
+ * - Running footers (classification, page numbers, organization)
+ * - Chapter/Part page breaks
+ * - 4-level heading hierarchy support
+ *
+ * FRONTMATTER VARIABLES USED:
+ * - short_title: Abbreviated title for running header
+ * - version: Document version for running header
+ * - classification: Security classification for footer
+ * - organization: Organization name for footer
+ *
+ * CSS VARIABLES (set via profile or frontmatter):
+ * --handbook-header-font-size: 9pt (default)
+ * --handbook-footer-font-size: 8pt (default)
+ * --handbook-classification-color: #666 (default)
+ */
+
+/* ==========================================================================
+   BASE PAGE SETUP
+   ========================================================================== */
+
+@page {
+  size: Letter;
+  margin: 1in;
+
+  /* Default running header - center */
+  @top-center {
+    content: none;
+  }
+
+  /* Default running footer - page numbers center */
+  @bottom-center {
+    content: "Page " counter(page) " of " counter(pages);
+    font-size: var(--handbook-footer-font-size, 8pt);
+    font-family: sans-serif;
+  }
+}
+
+/* ==========================================================================
+   ODD PAGES (RIGHT-HAND PAGES)
+   ========================================================================== */
+
+@page :right {
+  /* Header: short_title on left, version on right */
+  @top-left {
+    content: string(short-title);
+    font-size: var(--handbook-header-font-size, 9pt);
+    font-family: sans-serif;
+    font-style: italic;
+  }
+
+  @top-right {
+    content: string(doc-version);
+    font-size: var(--handbook-header-font-size, 9pt);
+    font-family: sans-serif;
+  }
+
+  /* Footer: classification left, page center, organization right */
+  @bottom-left {
+    content: string(classification);
+    font-size: var(--handbook-footer-font-size, 8pt);
+    font-family: sans-serif;
+    font-weight: bold;
+    color: var(--handbook-classification-color, #666);
+    text-transform: uppercase;
+  }
+
+  @bottom-center {
+    content: "Page " counter(page) " of " counter(pages);
+    font-size: var(--handbook-footer-font-size, 8pt);
+    font-family: sans-serif;
+  }
+
+  @bottom-right {
+    content: string(organization);
+    font-size: var(--handbook-footer-font-size, 8pt);
+    font-family: sans-serif;
+  }
+}
+
+/* ==========================================================================
+   EVEN PAGES (LEFT-HAND PAGES)
+   ========================================================================== */
+
+@page :left {
+  /* Header: version on left, short_title on right (mirrored) */
+  @top-left {
+    content: string(doc-version);
+    font-size: var(--handbook-header-font-size, 9pt);
+    font-family: sans-serif;
+  }
+
+  @top-right {
+    content: string(short-title);
+    font-size: var(--handbook-header-font-size, 9pt);
+    font-family: sans-serif;
+    font-style: italic;
+  }
+
+  /* Footer: organization left, page center, classification right (mirrored) */
+  @bottom-left {
+    content: string(organization);
+    font-size: var(--handbook-footer-font-size, 8pt);
+    font-family: sans-serif;
+  }
+
+  @bottom-center {
+    content: "Page " counter(page) " of " counter(pages);
+    font-size: var(--handbook-footer-font-size, 8pt);
+    font-family: sans-serif;
+  }
+
+  @bottom-right {
+    content: string(classification);
+    font-size: var(--handbook-footer-font-size, 8pt);
+    font-family: sans-serif;
+    font-weight: bold;
+    color: var(--handbook-classification-color, #666);
+    text-transform: uppercase;
+  }
+}
+
+/* ==========================================================================
+   TITLE PAGE
+   ========================================================================== */
+
+@page title-page {
+  size: Letter;
+  margin: 1in;
+
+  /* No running headers on title page */
+  @top-left { content: none; }
+  @top-center { content: none; }
+  @top-right { content: none; }
+
+  /* No running footers on title page (except classification) */
+  @bottom-left { content: none; }
+  @bottom-center { content: none; }
+  @bottom-right { content: none; }
+}
+
+.title-page {
+  page: title-page;
+  page-break-after: always;
+}
+
+/* ==========================================================================
+   TABLE OF CONTENTS PAGE
+   ========================================================================== */
+
+@page toc-page {
+  size: Letter;
+  margin: 1in;
+
+  @top-left {
+    content: "Table of Contents";
+    font-size: var(--handbook-header-font-size, 9pt);
+    font-family: sans-serif;
+    font-style: italic;
+  }
+
+  @top-right {
+    content: string(doc-version);
+    font-size: var(--handbook-header-font-size, 9pt);
+    font-family: sans-serif;
+  }
+
+  @bottom-center {
+    content: counter(page, lower-roman);
+    font-size: var(--handbook-footer-font-size, 8pt);
+    font-family: sans-serif;
+  }
+
+  @bottom-left { content: none; }
+  @bottom-right { content: none; }
+}
+
+.toc-section {
+  page: toc-page;
+  page-break-after: always;
+}
+
+/* ==========================================================================
+   CHAPTER/PART NAMED PAGES
+   ========================================================================== */
+
+/* Part opening page - no header, starts fresh */
+@page part-start {
+  size: Letter;
+  margin: 1in;
+
+  @top-left { content: none; }
+  @top-center { content: none; }
+  @top-right { content: none; }
+
+  @bottom-center {
+    content: "Page " counter(page) " of " counter(pages);
+    font-size: var(--handbook-footer-font-size, 8pt);
+    font-family: sans-serif;
+  }
+
+  @bottom-left {
+    content: string(classification);
+    font-size: var(--handbook-footer-font-size, 8pt);
+    font-family: sans-serif;
+    font-weight: bold;
+    color: var(--handbook-classification-color, #666);
+    text-transform: uppercase;
+  }
+
+  @bottom-right {
+    content: string(organization);
+    font-size: var(--handbook-footer-font-size, 8pt);
+    font-family: sans-serif;
+  }
+}
+
+/* Chapter opening page - no header, starts fresh */
+@page chapter-start {
+  size: Letter;
+  margin: 1in;
+
+  @top-left { content: none; }
+  @top-center { content: none; }
+  @top-right { content: none; }
+
+  @bottom-center {
+    content: "Page " counter(page) " of " counter(pages);
+    font-size: var(--handbook-footer-font-size, 8pt);
+    font-family: sans-serif;
+  }
+
+  @bottom-left {
+    content: string(classification);
+    font-size: var(--handbook-footer-font-size, 8pt);
+    font-family: sans-serif;
+    font-weight: bold;
+    color: var(--handbook-classification-color, #666);
+    text-transform: uppercase;
+  }
+
+  @bottom-right {
+    content: string(organization);
+    font-size: var(--handbook-footer-font-size, 8pt);
+    font-family: sans-serif;
+  }
+}
+
+/* ==========================================================================
+   RUNNING ELEMENT STRING SOURCES
+
+   These elements in the HTML provide content for running headers/footers.
+   Use string-set CSS property to capture values from frontmatter.
+   ========================================================================== */
+
+/* Short title for running header */
+.short-title,
+[data-short-title]::before {
+  string-set: short-title content();
+}
+
+/* Version for running header */
+.doc-version,
+[data-version]::before {
+  string-set: doc-version content();
+}
+
+/* Classification for running footer */
+.document-classification,
+[data-classification]::before {
+  string-set: classification content();
+}
+
+/* Organization for running footer */
+.organization,
+[data-organization]::before {
+  string-set: organization content();
+}
+
+/* ==========================================================================
+   PAGE BREAK CONTROLS
+   ========================================================================== */
+
+/* Parts (h1) - always start on new page */
+.handbook-content h1:not(.toc-heading),
+.handbook h1:not(.handbook-title):not(.toc-heading) {
+  page: part-start;
+  page-break-before: always;
+  page-break-after: avoid;
+}
+
+/* Override: Headings inside title-page and TOC should NOT get page breaks */
+.title-page h1,
+.title-page h2,
+.toc h1,
+.toc h2 {
+  page: auto;
+  page-break-before: auto;
+  page-break-after: auto;
+}
+
+/* Chapters (h2) - flow naturally without page breaks
+ * Chapters inherit the page template from their Part (part-start).
+ * To force a chapter to start on a new page with chapter-start template,
+ * add class="chapter-break" to the heading.
+ */
+.handbook-content h2 {
+  page-break-after: avoid;
+}
+
+/* Explicit chapter break - use chapter-start page template and force new page */
+.handbook-content h2.chapter-break {
+  page: chapter-start;
+  page-break-before: always;
+}
+
+/* Sections (h3) - keep with following content */
+.handbook-content h3 {
+  page-break-after: avoid;
+}
+
+/* Subsections (h4) - keep with following content */
+.handbook-content h4 {
+  page-break-after: avoid;
+}
+
+/* Avoid breaking inside important elements */
+.handbook-content pre,
+.handbook-content table,
+.handbook-content figure,
+.handbook-content blockquote {
+  page-break-inside: avoid;
+}
+
+/* Keep list items together when possible */
+.handbook-content li {
+  page-break-inside: avoid;
+}
+
+/* ==========================================================================
+   TITLE PAGE LAYOUT STRUCTURE
+   ========================================================================== */
+
+.title-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
+.title-page-content {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 100%;
+  flex: 1;
+}
+
+.title-page-header {
+  text-align: center;
+  padding-top: 1in;
+}
+
+.title-page-body {
+  text-align: center;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.title-page-footer {
+  text-align: center;
+  padding-bottom: 1in;
+}
+
+/* ==========================================================================
+   TOC LAYOUT STRUCTURE
+   ========================================================================== */
+
+.toc-section {
+  /* TOC uses roman numeral page numbers (handled by @page toc-page) */
+}
+
+.toc-heading {
+  text-align: center;
+  margin-bottom: 2em;
+}
+
+.toc-container {
+  /* TOC navigation container */
+}
+
+/* TOC styling for 4-level hierarchy */
+.toc-container ol {
+  list-style: none;
+  padding-left: 0;
+}
+
+.toc-container ol ol {
+  padding-left: 1.5em;
+}
+
+.toc-container li {
+  margin: 0.5em 0;
+}
+
+/* TOC leader dots */
+.toc-container a {
+  display: flex;
+}
+
+.toc-container a::after {
+  content: leader(dotted) target-counter(attr(href), page);
+  flex: 1;
+  text-align: right;
+}
+
+/* ==========================================================================
+   HANDBOOK CONTENT AREA
+   ========================================================================== */
+
+.handbook-content {
+  /* Main content area inherits page settings */
+}
+
+/* Reset page to normal after first h2 (chapter) */
+.handbook-content h2 ~ * {
+  page: auto;
+}

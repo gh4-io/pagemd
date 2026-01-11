@@ -1,0 +1,198 @@
+/**
+ * Adaptive Color Scheme
+ *
+ * Light mode default with dark mode support via:
+ * - [data-theme="dark"] attribute on html/body
+ * - @media (prefers-color-scheme: dark) system preference
+ *
+ * Includes warm and cool palette options via CSS custom properties.
+ */
+
+/* ==========================================================================
+   Core Color Palette
+   ========================================================================== */
+
+:root {
+  /* Warm palette (default) */
+  --color-warm-50: #fef7ed;
+  --color-warm-100: #fdecd3;
+  --color-warm-200: #fbd5a6;
+  --color-warm-300: #f8b86e;
+  --color-warm-400: #f49034;
+  --color-warm-500: #f17316;
+  --color-warm-600: #e25a0c;
+  --color-warm-700: #bb430c;
+  --color-warm-800: #953612;
+  --color-warm-900: #782e12;
+
+  /* Cool palette */
+  --color-cool-50: #eff6ff;
+  --color-cool-100: #dbeafe;
+  --color-cool-200: #bfdbfe;
+  --color-cool-300: #93c5fd;
+  --color-cool-400: #60a5fa;
+  --color-cool-500: #3b82f6;
+  --color-cool-600: #2563eb;
+  --color-cool-700: #1d4ed8;
+  --color-cool-800: #1e40af;
+  --color-cool-900: #1e3a8a;
+
+  /* Neutral grays */
+  --gray-50: #fafafa;
+  --gray-100: #f4f4f5;
+  --gray-200: #e4e4e7;
+  --gray-300: #d4d4d8;
+  --gray-400: #a1a1aa;
+  --gray-500: #71717a;
+  --gray-600: #52525b;
+  --gray-700: #3f3f46;
+  --gray-800: #27272a;
+  --gray-900: #18181b;
+
+  /* Transition timing */
+  --color-transition: 200ms ease-in-out;
+}
+
+/* ==========================================================================
+   Light Mode (Default)
+   ========================================================================== */
+
+:root,
+[data-theme="light"] {
+  --bg-primary: #ffffff;
+  --bg-secondary: var(--gray-50);
+  --bg-tertiary: var(--gray-100);
+
+  --text-primary: var(--gray-900);
+  --text-secondary: var(--gray-600);
+  --text-muted: var(--gray-400);
+
+  --accent-primary: var(--color-warm-500);
+  --accent-secondary: var(--color-cool-500);
+  --accent-hover: var(--color-warm-600);
+
+  --border-color: var(--gray-200);
+  --border-focus: var(--color-warm-400);
+
+  --code-bg: var(--gray-100);
+  --code-text: var(--gray-800);
+
+  --link-color: var(--color-cool-600);
+  --link-hover: var(--color-cool-700);
+}
+
+/* ==========================================================================
+   Dark Mode
+   ========================================================================== */
+
+[data-theme="dark"] {
+  --bg-primary: var(--gray-900);
+  --bg-secondary: var(--gray-800);
+  --bg-tertiary: var(--gray-700);
+
+  --text-primary: var(--gray-50);
+  --text-secondary: var(--gray-300);
+  --text-muted: var(--gray-500);
+
+  --accent-primary: var(--color-warm-400);
+  --accent-secondary: var(--color-cool-400);
+  --accent-hover: var(--color-warm-300);
+
+  --border-color: var(--gray-700);
+  --border-focus: var(--color-warm-500);
+
+  --code-bg: var(--gray-800);
+  --code-text: var(--gray-200);
+
+  --link-color: var(--color-cool-400);
+  --link-hover: var(--color-cool-300);
+}
+
+/* System preference dark mode */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg-primary: var(--gray-900);
+    --bg-secondary: var(--gray-800);
+    --bg-tertiary: var(--gray-700);
+
+    --text-primary: var(--gray-50);
+    --text-secondary: var(--gray-300);
+    --text-muted: var(--gray-500);
+
+    --accent-primary: var(--color-warm-400);
+    --accent-secondary: var(--color-cool-400);
+    --accent-hover: var(--color-warm-300);
+
+    --border-color: var(--gray-700);
+    --border-focus: var(--color-warm-500);
+
+    --code-bg: var(--gray-800);
+    --code-text: var(--gray-200);
+
+    --link-color: var(--color-cool-400);
+    --link-hover: var(--color-cool-300);
+  }
+}
+
+/* ==========================================================================
+   Application Styles
+   ========================================================================== */
+
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  transition:
+    background-color var(--color-transition),
+    color var(--color-transition);
+}
+
+a {
+  color: var(--link-color);
+  transition: color var(--color-transition);
+}
+
+a:hover {
+  color: var(--link-hover);
+}
+
+code,
+pre {
+  background-color: var(--code-bg);
+  color: var(--code-text);
+  transition:
+    background-color var(--color-transition),
+    color var(--color-transition);
+}
+
+blockquote {
+  border-left-color: var(--accent-primary);
+  background-color: var(--bg-secondary);
+  transition:
+    border-color var(--color-transition),
+    background-color var(--color-transition);
+}
+
+hr {
+  border-color: var(--border-color);
+  transition: border-color var(--color-transition);
+}
+
+/* ==========================================================================
+   Cool Palette Variant
+   Use [data-palette="cool"] on html/body to switch accent colors
+   ========================================================================== */
+
+[data-palette="cool"] {
+  --accent-primary: var(--color-cool-500);
+  --accent-secondary: var(--color-warm-500);
+  --accent-hover: var(--color-cool-600);
+  --border-focus: var(--color-cool-400);
+}
+
+[data-palette="cool"][data-theme="dark"],
+[data-palette="cool"]:is(:root:not([data-theme="light"])) {
+  --accent-primary: var(--color-cool-400);
+  --accent-secondary: var(--color-warm-400);
+  --accent-hover: var(--color-cool-300);
+  --border-focus: var(--color-cool-500);
+}

@@ -1,5 +1,6 @@
 ---
 title: Multi-Page Index Stress Test
+profile: "../profiles/academic.json"
 index: true
 index_title: "Comprehensive Subject Index"
 toc: true

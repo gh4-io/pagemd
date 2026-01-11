@@ -1,0 +1,161 @@
+/**
+ * Cover Page Layout - Full-Bleed Executive/Security Reports
+ * CSS Layer: layout (3 of 6)
+ *
+ * This file contains ONLY paged-media structural CSS for cover pages:
+ * - @page rules with zero margins for full-bleed printing
+ * - Named page for cover-specific behavior
+ * - No running headers/footers (classification banners in template)
+ * - Page break controls for after cover
+ *
+ * Visual styling (gradients, colors, typography) belongs in template CSS.
+ *
+ * USAGE:
+ * Apply class="page-cover" to the cover page container element.
+ * The first page uses named page "cover" with zero margins.
+ * Subsequent pages revert to "default" with standard margins.
+ */
+
+/* Cover Page - Full Bleed (Zero Margins) */
+@page cover {
+  size: Letter portrait;
+  margin: 0;
+
+  /* No running headers/footers on cover page */
+  /* Classification banners are part of the template markup */
+  @top-left { content: none; }
+  @top-center { content: none; }
+  @top-right { content: none; }
+  @bottom-left { content: none; }
+  @bottom-center { content: none; }
+  @bottom-right { content: none; }
+}
+
+/* Apply cover page rules to elements with this class */
+.page-cover,
+.cover-page {
+  page: cover;
+  break-after: page;
+}
+
+/* Default Page - Standard Margins for Content After Cover */
+@page default {
+  size: Letter portrait;
+  margin: 1.0in;
+
+  /* Optional running headers/footers for content pages */
+  @top-left {
+    content: var(--page-header-left, none);
+    font-size: var(--page-margin-font-size, 9pt);
+  }
+  @top-center {
+    content: var(--page-header-center, none);
+    font-size: var(--page-margin-font-size, 9pt);
+  }
+  @top-right {
+    content: var(--page-header-right, none);
+    font-size: var(--page-margin-font-size, 9pt);
+  }
+  @bottom-left {
+    content: var(--page-footer-left, none);
+    font-size: var(--page-margin-font-size, 9pt);
+  }
+  @bottom-center {
+    content: var(--page-footer-center, none);
+    font-size: var(--page-margin-font-size, 9pt);
+  }
+  @bottom-right {
+    content: var(--page-footer-right, none);
+    font-size: var(--page-margin-font-size, 9pt);
+  }
+}
+
+/* Elements after cover use default page */
+.page-default {
+  page: default;
+}
+
+/* Base @page fallback - matches cover for consistency */
+@page {
+  size: Letter portrait;
+  margin: 0;
+}
+
+/* First page explicitly uses cover rules */
+@page :first {
+  margin: 0;
+  @top-left { content: none; }
+  @top-center { content: none; }
+  @top-right { content: none; }
+  @bottom-left { content: none; }
+  @bottom-center { content: none; }
+  @bottom-right { content: none; }
+}
+
+/* Page Break Controls */
+
+/* Ensure cover page is always alone */
+.cover-page {
+  break-after: page;
+  break-inside: avoid;
+}
+
+/* Content after cover starts on new page */
+.cover-page + * {
+  break-before: page;
+}
+
+/* Prevent orphaned elements at page boundaries */
+h1, h2, h3, h4, h5, h6 {
+  break-after: avoid;
+}
+
+table, figure, pre, blockquote {
+  break-inside: avoid;
+}
+
+/* Landscape variant for wide content */
+@page cover-landscape {
+  size: Letter landscape;
+  margin: 0;
+
+  @top-left { content: none; }
+  @top-center { content: none; }
+  @top-right { content: none; }
+  @bottom-left { content: none; }
+  @bottom-center { content: none; }
+  @bottom-right { content: none; }
+}
+
+.page-cover-landscape {
+  page: cover-landscape;
+  break-after: page;
+}
+
+/* A4 variant for international use */
+@page cover-a4 {
+  size: A4 portrait;
+  margin: 0;
+
+  @top-left { content: none; }
+  @top-center { content: none; }
+  @top-right { content: none; }
+  @bottom-left { content: none; }
+  @bottom-center { content: none; }
+  @bottom-right { content: none; }
+}
+
+.page-cover-a4 {
+  page: cover-a4;
+  break-after: page;
+}
+
+/* Print color accuracy */
+@media print {
+  .cover-page,
+  .page-cover {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    color-adjust: exact;
+  }
+}

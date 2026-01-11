@@ -8,6 +8,7 @@ Common issues, error messages, and solutions for PageMD.
 
 - [Environment Variables](#environment-variables)
 - [Chrome/Browser Issues](#chromebrowser-issues)
+  - [Non-Headless Mode for Inspection](#non-headless-mode-for-inspection)
 - [Profile Not Found](#profile-not-found)
 - [Path Resolution Errors](#path-resolution-errors)
 - [PDF Rendering Issues](#pdf-rendering-issues)
@@ -16,6 +17,7 @@ Common issues, error messages, and solutions for PageMD.
 - [Debug Mode](#debug-mode)
 - [Log Levels](#log-levels)
 - [Common Error Messages](#common-error-messages)
+  - [Missing Frontmatter Stylesheet](#missing-frontmatter-stylesheet-name)
 - [See Also](#see-also)
 
 ---
@@ -226,6 +228,39 @@ pagemd build doc.md --log-level TRACE
    - PageMD disables sandbox (`--no-sandbox`) by default
    - Required for Docker/WSL environments
    - If security concerned, check Puppeteer docs for safe configuration
+
+---
+
+### Non-Headless Mode for Inspection
+
+**Purpose:** Keep browser visible after PDF generation for debugging CSS/layout issues.
+
+**Enable:**
+```bash
+# Linux/macOS
+PAGEMD_HEADLESS=0 pagemd build document.md -o pdf
+
+# Windows (PowerShell)
+$env:PAGEMD_HEADLESS="0"
+pagemd build document.md -o pdf
+```
+
+**Behavior (after 2026-01-10 fix):**
+- PDF renders successfully
+- **Tab stays open** for inspection (you can use DevTools)
+- **Browser window remains** as an orphaned process
+- **CLI process exits cleanly** (no timeout)
+- Message displayed: `📋 Browser left open for inspection. Close it manually when done.`
+
+**When to Use:**
+- Debugging CSS layout issues
+- Inspecting Paged.js output
+- Checking margin/page-break behavior
+- Diagnosing rendering problems
+
+**Close browser manually** when done - it won't close automatically.
+
+**Technical Note:** The browser becomes an orphaned process because puppeteer-core's `disconnect()` releases the WebSocket connection but doesn't terminate the browser. This is intentional - it allows inspection without blocking the CLI.
 
 ---
 
@@ -690,33 +725,53 @@ Per-File Breakdown:
 **Usage:**
 ```bash
 pagemd build document.md --debug
+# Or via environment variable
+PAGEMD_DEBUG=1 pagemd build document.md
 ```
 
-**Artifacts Created:**
-- `document-debug.html` - Final HTML before PDF generation
-- `document-debug.css` - Merged CSS (all sources)
-- Browser window visible (not headless)
+**Artifacts Created in `debug/` folder:**
+
+| File | Contents |
+|------|----------|
+| `{name}.paged.html` | HTML snapshot after Paged.js processing |
+| `{name}.screenshot.png` | Full page screenshot |
+
+**Example:** Building `document.md` creates:
+```
+output/
+├── document.pdf
+├── document.html
+└── debug/
+    ├── document.paged.html
+    └── document.screenshot.png
+```
 
 **When to Use:**
 - PDF layout issues
 - CSS not applying correctly
-- JavaScript errors
-- Profile/path resolution problems
+- Paged.js rendering problems
+- Profile/path resolution issues
 
 **Example Workflow:**
 ```bash
 # Generate debug artifacts
 pagemd build document.md --debug
 
-# Inspect HTML
-cat document-debug.html
+# Inspect processed HTML
+cat debug/document.paged.html
 
-# Open in browser
-open document-debug.html
-
-# Check CSS
-cat document-debug.css
+# Open in browser to debug
+open debug/document.paged.html
 ```
+
+**Show browser window (for interactive debugging):**
+```bash
+PAGEMD_HEADLESS=0 pagemd build document.md --debug
+```
+
+The PDF renders normally and the process completes, but the browser window stays open for inspection. You'll see: `📋 Browser left open for inspection. Close it manually when done.`
+
+Use browser DevTools to inspect CSS, check console for errors, and examine the Paged.js output.
 
 ---
 
@@ -754,8 +809,8 @@ pagemd build document.md --log-level DEBUG
 - `OFF` - No logging
 - `FATAL` - Fatal errors only
 - `ERROR` - Errors only
-- `WARN` - Warnings and errors
-- `INFO` - Progress indicators (default)
+- `WARN` - Warnings and errors (default)
+- `INFO` - Progress indicators
 - `DEBUG` - Development diagnostics
 - `TRACE` - All operations (very verbose)
 
@@ -897,6 +952,54 @@ pagemd validate document.md --log-level DEBUG
 ```
 
 See [Profile Not Found](#profile-not-found).
+
+---
+
+### `Missing frontmatter stylesheet: <name>`
+
+**Cause:** A CSS file specified in the document's frontmatter `styles` array could not be found.
+
+**Example Error:**
+```
+Error: Missing frontmatter stylesheet: my-custom
+Source: Document frontmatter 'styles' array
+Searched in:
+  1. /home/user/docs/my-custom.css
+  2. /home/user/docs/.pagemd/styles/my-custom.css
+  3. /home/user/docs/styles/my-custom.css
+  4. /home/user/project/styles/my-custom.css
+  ...
+```
+
+**Solutions:**
+
+1. **Check file exists** at one of the searched locations:
+   ```bash
+   ls -la /path/to/project/styles/
+   ```
+
+2. **For preset styles**, they may be in a subdirectory. PageMD searches `styles/presets/`, `styles/syntax/`, and `styles/vendor/` automatically:
+   ```yaml
+   # Both of these work (subdirectories are searched)
+   styles: ["modern-clean"]           # Finds styles/presets/modern-clean.css
+   styles: ["presets/modern-clean"]   # Explicit path also works
+   ```
+
+3. **Check spelling and extension**:
+   - PageMD auto-adds `.css` extension
+   - Names are case-sensitive on Linux
+
+4. **Use absolute path** if relative resolution fails:
+   ```yaml
+   styles: ["/absolute/path/to/my-style.css"]
+   ```
+
+5. **Enable debug logging** to see all search paths:
+   ```bash
+   PAGEMD_LOG_LEVEL=DEBUG pagemd build doc.md
+   ```
+
+**Note:** Unlike warnings in previous versions, missing stylesheets now cause the build to fail. This ensures you don't accidentally publish documents with missing styles.
 
 ---
 

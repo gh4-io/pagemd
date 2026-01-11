@@ -1,0 +1,309 @@
+/**
+ * Title Page Layout - Paged.js Structure
+ * CSS Layer: layout (3 of 6)
+ *
+ * This file contains ONLY paged-media structural CSS for title pages:
+ * - @page rules (size, margins)
+ * - No running headers/footers on title page
+ * - Centered content layout
+ * - Large margins for formal documents
+ *
+ * Visual styling (colors, fonts, borders) belongs in template CSS.
+ */
+
+/* ==========================================================================
+   TITLE PAGE - Named Page
+   ========================================================================== */
+
+/**
+ * Title page has no running headers or footers.
+ * Uses larger margins for formal presentation.
+ */
+@page title-page {
+  size: Letter portrait;
+  margin: 1.25in 1.5in;
+
+  /* Suppress all running headers/footers */
+  @top-left { content: none; }
+  @top-center { content: none; }
+  @top-right { content: none; }
+  @bottom-left { content: none; }
+  @bottom-center { content: none; }
+  @bottom-right { content: none; }
+}
+
+/* Apply title-page layout to the title page article */
+.title-page {
+  page: title-page;
+  break-after: page;
+}
+
+/* ==========================================================================
+   CONTENT PAGES - Named Page (for documents with content after title)
+   ========================================================================== */
+
+@page content {
+  size: Letter portrait;
+  margin: 1.0in;
+
+  /* Standard running footer with page numbers */
+  @bottom-center {
+    content: counter(page);
+    font-size: 9pt;
+  }
+}
+
+.document-content {
+  page: content;
+}
+
+/* ==========================================================================
+   TITLE PAGE STRUCTURE
+   ========================================================================== */
+
+/**
+ * Title page uses flexbox for vertical distribution.
+ * Content flows from top to bottom with space between sections.
+ */
+.title-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
+/* ==========================================================================
+   CLASSIFICATION BANNERS
+   ========================================================================== */
+
+/**
+ * Classification banners appear at absolute top and bottom of page.
+ * Positioned outside the normal flow.
+ */
+.classification-banner {
+  text-align: center;
+  text-transform: uppercase;
+  font-weight: bold;
+  font-size: 12pt;
+  letter-spacing: 0.1em;
+  padding: 0.25em 0;
+  width: 100%;
+}
+
+.classification-banner--top {
+  margin-bottom: 1.5rem;
+}
+
+.classification-banner--bottom {
+  margin-top: auto;
+  padding-top: 1.5rem;
+}
+
+/* Classification banner is hidden when empty */
+.classification-banner:empty {
+  display: none;
+}
+
+/* ==========================================================================
+   DOCUMENT HEADER
+   ========================================================================== */
+
+.document-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.document-type {
+  font-size: 11pt;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  margin-bottom: 0.5rem;
+}
+
+.document-identifiers {
+  font-size: 10pt;
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.document-identifiers > span {
+  white-space: nowrap;
+}
+
+/* ==========================================================================
+   TITLE BLOCK
+   ========================================================================== */
+
+.title-block {
+  text-align: center;
+  margin: 3rem 0;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.document-title {
+  font-size: 24pt;
+  font-weight: bold;
+  line-height: 1.2;
+  margin: 0 0 1rem 0;
+  break-inside: avoid;
+}
+
+.document-subtitle {
+  font-size: 14pt;
+  font-style: italic;
+  margin: 0 0 1.5rem 0;
+}
+
+.document-subtitle:empty {
+  display: none;
+}
+
+.document-version {
+  font-size: 12pt;
+  margin-top: 1rem;
+}
+
+/* ==========================================================================
+   AUTHOR BLOCK
+   ========================================================================== */
+
+.author-block {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.block-heading {
+  font-size: 10pt;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 0.5rem;
+  font-weight: normal;
+}
+
+.author-name {
+  font-size: 12pt;
+  font-weight: bold;
+}
+
+.author-title,
+.author-department {
+  font-size: 10pt;
+}
+
+/* ==========================================================================
+   ORGANIZATION BLOCK
+   ========================================================================== */
+
+.organization-block {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.organization-name {
+  font-size: 11pt;
+  font-weight: bold;
+}
+
+.organization-division,
+.organization-address {
+  font-size: 10pt;
+}
+
+/* ==========================================================================
+   APPROVAL BLOCK
+   ========================================================================== */
+
+.approval-block {
+  margin: 2rem 0;
+  break-inside: avoid;
+}
+
+.approval-block .block-heading {
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.approval-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 10pt;
+}
+
+.approval-table th,
+.approval-table td {
+  border: 1px solid currentColor;
+  padding: 0.5rem;
+  text-align: left;
+}
+
+.approval-table th {
+  background-color: rgba(0, 0, 0, 0.05);
+  font-weight: bold;
+  text-transform: uppercase;
+  font-size: 9pt;
+  letter-spacing: 0.05em;
+}
+
+.approval-table .signature-cell {
+  min-width: 2in;
+  height: 0.75in;
+}
+
+/* ==========================================================================
+   LEGAL NOTICE FOOTER
+   ========================================================================== */
+
+.legal-notice {
+  text-align: center;
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid currentColor;
+  font-size: 9pt;
+}
+
+.notice-text,
+.copyright-text {
+  margin: 0.25rem 0;
+}
+
+/* Hide legal notice when empty */
+.legal-notice:empty,
+.notice-text:empty,
+.copyright-text:empty {
+  display: none;
+}
+
+/* ==========================================================================
+   PAGE BREAK UTILITIES
+   ========================================================================== */
+
+/**
+ * Force page break after title page (already set on .title-page).
+ * Content starts on a new page.
+ */
+.title-page + .document-content {
+  break-before: page;
+}
+
+/* ==========================================================================
+   PRINT OPTIMIZATIONS
+   ========================================================================== */
+
+@media print {
+  .title-page {
+    /* Ensure full page height in print */
+    height: 100vh;
+    page-break-after: always;
+  }
+
+  .approval-table th {
+    /* Ensure header background prints */
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}

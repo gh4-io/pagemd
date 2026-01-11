@@ -14,7 +14,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { createLogger } from '@pagemd/core';
-import { resolvePath, resolveResourcePath, expandTokens, DEFAULT_FILES, getEnv } from '@pagemd/core';
+import { resolvePath, resolveResourcePath, resolveResource, expandTokens, DEFAULT_FILES, getEnv } from '@pagemd/core';
 
 const logger = createLogger('assets');
 
@@ -41,33 +41,40 @@ export const CSS_LAYER_ORDER = ['base', 'primary', 'layout', 'syntax', 'profile'
  * Load a stylesheet file
  * @param {string} cssPath - Path to CSS file (may contain tokens)
  * @param {object} context - Path resolution context from @pagemd/core
+ * @param {string} [sourceType='profile'] - Source type: 'profile', 'frontmatter', or 'cli'
  * @returns {Promise<StylesheetResult>} CSS content with resolved path info
  * @throws {Error} If file not found or read fails
  */
-export async function loadStylesheet(cssPath, context) {
+export async function loadStylesheet(cssPath, context, sourceType = 'profile') {
   logger.trace('stylesheet', 'in-progress', `Loading stylesheet: ${cssPath}`);
 
   try {
-    // Expand tokens first (e.g., ${projectRoot}, ${manifestDir})
+    // First expand tokens in the CSS path
     const expanded = expandTokens(cssPath, context);
+    logger.trace('stylesheet', 'info', `CSS path after token expansion: ${expanded}`);
 
-    // Resolve path with priority search
-    const resolved = path.isAbsolute(expanded)
-      ? resolvePath(expanded, context)
-      : resolveResourcePath(expanded, context);
+    // Build resource resolution context
+    const resourceContext = {
+      workingPath: context.markdownDir,
+      workspacePath: context.projectRoot || context.workspaceFolder,
+      manifestPath: context.manifestDir,
+      cliPath: context.cliPath,
+      sourceType
+    };
 
-    const content = await fs.readFile(resolved, 'utf-8');
-    const stats = await fs.stat(resolved);
+    const { resolvedPath } = resolveResource(expanded, 'styles', resourceContext);
+    const content = await fs.readFile(resolvedPath, 'utf-8');
+    const stats = await fs.stat(resolvedPath);
 
     logger.debug('stylesheet', 'success', `Loaded stylesheet`, {
       cssPath,
-      resolved,
+      resolved: resolvedPath,
       size: stats.size
     });
 
     return {
       content,
-      resolvedPath: resolved,
+      resolvedPath,
       size: stats.size
     };
   } catch (error) {

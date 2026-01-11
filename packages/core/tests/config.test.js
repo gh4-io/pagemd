@@ -223,7 +223,35 @@ describe('config', () => {
       expect(profileSync).toBeNull();
     });
 
-    it('prioritizes searchFrom over configDir', async () => {
+    it('defaults to standard_letter for null profile name', () => {
+      clearConfigCache();
+      const profile = loadProfileSync(null);
+      expect(profile).not.toBeNull();
+      expect(profile.id).toBe('standard_letter');
+    });
+
+    it('defaults to standard_letter for empty string profile name', () => {
+      clearConfigCache();
+      const profile = loadProfileSync('');
+      expect(profile).not.toBeNull();
+      expect(profile.id).toBe('standard_letter');
+    });
+
+    it('defaults to standard_letter for whitespace-only profile name', () => {
+      clearConfigCache();
+      const profile = loadProfileSync('   ');
+      expect(profile).not.toBeNull();
+      expect(profile.id).toBe('standard_letter');
+    });
+
+    it('defaults to standard_letter for undefined profile name', () => {
+      clearConfigCache();
+      const profile = loadProfileSync(undefined);
+      expect(profile).not.toBeNull();
+      expect(profile.id).toBe('standard_letter');
+    });
+
+    it('throws error when duplicate profiles found in searchFrom and configDir', async () => {
       // Create profile in searchFrom location
       const searchFromProfiles = join(testDir, '.pagemd', 'profiles');
       mkdirSync(searchFromProfiles, { recursive: true });
@@ -237,8 +265,10 @@ describe('config', () => {
       const configProfile = { id: 'priority', source: 'configDir' };
       writeFileSync(join(configProfiles, 'priority.json'), JSON.stringify(configProfile));
 
-      const profile = await loadProfile('priority', testDir, configDir);
-      expect(profile.source).toBe('searchFrom');
+      // Now expects duplicate detection error
+      await expect(loadProfile('priority', testDir, configDir))
+        .rejects
+        .toThrow('Duplicate resources found for "priority"');
     });
 
     it('falls back to configDir when not in searchFrom', async () => {

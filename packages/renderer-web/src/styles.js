@@ -41,8 +41,10 @@ export async function buildStyleBlock(profile, context, options = {}) {
     // Aggregate styles from theme-kit (base, primary, profile layers)
     const aggregated = await aggregateStyles(profile, context);
 
-    // Build style tags for each layer and collect resource metadata
-    let styleBlock = '';
+    // Declare CSS layer order upfront (priority: low to high)
+    // This ensures our layers override any unlayered styles (like VS Code defaults)
+    // NOTE: frontmatter is intentionally NOT declared - undeclared layers have highest priority
+    let styleBlock = '<style>\n@layer base, primary, layout, syntax, profile;\n</style>\n';
     const resources = [];
 
     for (const { layer, content, source, resolvedPath, size } of aggregated) {
@@ -90,13 +92,17 @@ export async function buildStyleBlock(profile, context, options = {}) {
 }
 
 /**
- * Wrap CSS in <style> tag with data-layer attribute
+ * Wrap CSS in <style> tag with proper @layer declaration
  * @param {string} css - CSS content to wrap
- * @param {string} layer - Layer name (base, primary, profile, frontmatter)
- * @returns {string} HTML <style> tag with data-layer attribute
+ * @param {string} layer - Layer name (base, primary, layout, syntax, profile, frontmatter)
+ * @returns {string} HTML <style> tag with @layer wrapper
  */
 export function formatStyleTag(css, layer) {
-  return `<style data-layer="${layer}">\n${css}\n</style>`;
+  return `<style data-layer="${layer}">
+@layer ${layer} {
+${css}
+}
+</style>`;
 }
 
 /**

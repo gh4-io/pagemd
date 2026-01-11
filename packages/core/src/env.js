@@ -28,6 +28,11 @@ const VALID_OUTPUT_FORMATS = ['html', 'pdf', 'png', 'jpeg']
 const VALID_PAGEDJS_MODES = ['browser', 'cli']
 
 /**
+ * Valid color schemes for PAGEMD_COLOR_SCHEME
+ */
+const VALID_COLOR_SCHEMES = ['LIGHT', 'DARK', 'AUTO']
+
+/**
  * Environment variable schema with types, defaults, and validation
  */
 export const ENV_SCHEMA = {
@@ -44,6 +49,7 @@ export const ENV_SCHEMA = {
   PAGEMD_HEADLESS: { type: 'boolean', default: true, description: 'Browser headless mode' },
   PAGEMD_PAGEDJS_MODE: { type: 'enum', default: 'browser', values: VALID_PAGEDJS_MODES, description: 'Paged.js mode' },
   PAGEMD_TIMEOUT: { type: 'number', default: 30000, min: 1000, max: 600000, description: 'Rendering timeout (ms)' },
+  PAGEMD_COLOR_SCHEME: { type: 'enum', default: 'LIGHT', values: VALID_COLOR_SCHEMES, description: 'Color scheme for rendering (light, dark, auto)' },
 
   // Output configuration
   PAGEMD_JPEG_QUALITY: { type: 'number', default: 90, min: 1, max: 100, description: 'JPEG output quality' },
@@ -53,6 +59,9 @@ export const ENV_SCHEMA = {
 
   // Mermaid diagram rendering
   PAGEMD_MERMAID: { type: 'boolean', default: true, description: 'Enable mermaid diagram rendering' },
+
+  // Fancy lists (letters, Roman numerals)
+  PAGEMD_FANCY_LISTS: { type: 'boolean', default: false, description: 'Enable fancy list formatting (letters, Roman numerals)' },
 
   // Path configuration
   PAGEMD_PROJECT_ROOT: { type: 'path', default: null, description: 'Override project root detection' },
@@ -313,6 +322,9 @@ export function mergeWithEnv(cliOptions = {}) {
 
     // Keep Chrome: env only
     keepChrome: env.keepChrome,
+
+    // Color scheme: env only (profile/frontmatter can override)
+    colorScheme: env.colorScheme,
 
     // JPEG quality: env > default
     jpegQuality: env.jpegQuality,

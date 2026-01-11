@@ -15,6 +15,7 @@ vi.mock('fs/promises', () => ({
 // Mock @pagemd/core
 vi.mock('@pagemd/core', () => ({
   resolvePath: (path) => `/resolved/${path}`,
+  resolveResource: (path, type, context) => ({ resolvedPath: `/resolved/${path}`, searchedPaths: [] }),
   expandTokens: (str) => str ? str.replace(/\{\{PROJECT_ROOT\}\}/g, '/project') : str,
   createLogger: () => ({
     debug: () => {},
@@ -53,13 +54,20 @@ describe('template.js', () => {
       expect(readFile).toHaveBeenCalledWith('/resolved/templates/test.html', 'utf-8');
     });
 
-    it('should throw error when profile missing template path', async () => {
+    it('should use default template when profile missing template path', async () => {
+      readFile.mockResolvedValue('<html>{{content}}</html>');
+
       const profile = { id: 'test' };
       const pathContext = {};
 
-      await expect(loadTemplate(profile, pathContext))
-        .rejects
-        .toThrow('Profile missing resources.template or layout.source path');
+      const result = await loadTemplate(profile, pathContext);
+
+      // Should fall back to default template path
+      expect(result).toBe('<html>{{content}}</html>');
+      expect(readFile).toHaveBeenCalledWith(
+        expect.stringContaining('standard_letter.html'),
+        'utf-8'
+      );
     });
 
     it('should throw error when template file not found', async () => {

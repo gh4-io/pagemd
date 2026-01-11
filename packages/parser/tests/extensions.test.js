@@ -85,9 +85,11 @@ More content
       expect(html).toContain('More content');
     });
 
-    it('should stop at blank line if no closing tag', () => {
+    it('should stop after multiple consecutive blank lines if no closing tag', () => {
       const input = `[[WARNING]]
 Line 1
+
+
 
 This should not be included`;
 
@@ -97,6 +99,20 @@ This should not be included`;
       expect(warningDiv).toBeTruthy();
       expect(warningDiv[0]).toContain('Line 1');
       expect(warningDiv[0]).not.toContain('This should not be included');
+    });
+
+    it('should handle blank lines within multi-line callout when closing tag present', () => {
+      const input = `[[WARNING]]
+First paragraph
+
+Second paragraph after blank line
+[[/WARNING]]`;
+
+      const html = md.render(input);
+
+      expect(html).toContain('<div class="callout callout-warning">');
+      expect(html).toContain('First paragraph');
+      expect(html).toContain('Second paragraph');
     });
 
     it('should handle empty callouts', () => {

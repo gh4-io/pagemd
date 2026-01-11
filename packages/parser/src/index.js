@@ -10,6 +10,7 @@ import { wikilinkPlugin } from './wikilinks.js';
 import { normalizeMetadata } from './metadata.js';
 import { registerExtensions } from './extensions.js';
 import { directivesPlugin } from './directives.js';
+import { markdownItFancyListPlugin, isFancyListsEnabled } from './fancy-lists.js';
 
 // Singleton highlighter - initialized once, reused for all renders
 let highlighter = null;
@@ -27,7 +28,142 @@ const DEFAULT_THEMES = ['github-light', 'github-dark'];
 
 // Container types for markdown-it-container (:::name blocks)
 // These complement GFM alerts with additional container types
-const CONTAINER_TYPES = ['details', 'summary', 'aside', 'columns', 'spoiler'];
+const CONTAINER_TYPES = [
+  'details', 'summary', 'aside', 'columns', 'spoiler',
+  'warning', 'caution', 'note', 'important', 'tip',
+  'document-header', 'title-block', 'applicability-box',
+  'approval-block', 'footer-notice'
+];
+
+/**
+ * Parse attribute syntax {.class #id} into HTML attributes
+ * @param {string} attrs - Attribute string like ".warning #id" (without braces)
+ * @returns {string} HTML attribute string like 'class="warning" id="id"'
+ */
+function parseAttributes(attrs) {
+  const parts = [];
+  const classes = [];
+  let id = null;
+
+  // Match .class and #id patterns
+  const classMatches = attrs.match(/\.([a-zA-Z0-9_-]+)/g);
+  const idMatch = attrs.match(/#([a-zA-Z0-9_-]+)/);
+
+  if (classMatches) {
+    classes.push(...classMatches.map(m => m.slice(1)));
+  }
+  if (idMatch) {
+    id = idMatch[1];
+  }
+
+  if (classes.length > 0) {
+    parts.push(`class="${classes.join(' ')}"`);
+  }
+  if (id) {
+    parts.push(`id="${id}"`);
+  }
+
+  return parts.length > 0 ? ' ' + parts.join(' ') : '';
+}
+
+/**
+ * Custom block rule for attribute-based containers `::: {.class}`
+ * Runs before markdown-it-container to catch attribute syntax
+ * @param {object} state - Markdown-it state
+ * @param {number} startLine - Starting line number
+ * @param {number} endLine - Ending line number
+ * @param {boolean} silent - Silent mode (don't generate tokens)
+ * @returns {boolean} True if rule matched and processed
+ */
+function attributeContainerRule(state, startLine, endLine, silent) {
+  const marker = ':';
+  const markerCount = 3;
+  let pos = state.bMarks[startLine] + state.tShift[startLine];
+  let max = state.eMarks[startLine];
+
+  // Check for ::: marker
+  if (pos + markerCount > max) return false;
+
+  const markerStr = state.src.slice(pos, pos + markerCount);
+  if (markerStr !== marker.repeat(markerCount)) return false;
+
+  pos += markerCount;
+
+  // Get the content after :::
+  const firstLine = state.src.slice(pos, max).trim();
+
+  // Only match if it starts with { (attribute syntax)
+  if (!firstLine.startsWith('{')) return false;
+
+  // If we're in silent mode (checking if rule matches), return true
+  if (silent) return true;
+
+  // Find the closing :::
+  let nextLine = startLine;
+  let autoClosed = false;
+
+  while (nextLine < endLine) {
+    nextLine++;
+    if (nextLine >= endLine) break;
+
+    pos = state.bMarks[nextLine] + state.tShift[nextLine];
+    max = state.eMarks[nextLine];
+
+    if (pos < max && state.sCount[nextLine] < state.blkIndent) {
+      // Non-empty line with negative indent should stop the container
+      break;
+    }
+
+    // Check for closing :::
+    const line = state.src.slice(pos, max).trim();
+    if (line === marker.repeat(markerCount)) {
+      autoClosed = true;
+      break;
+    }
+  }
+
+  const oldParent = state.parentType;
+  const oldLineMax = state.lineMax;
+  state.parentType = 'container';
+
+  // Create opening token
+  const tokenOpen = state.push('div_open', 'div', 1);
+  tokenOpen.markup = marker.repeat(markerCount);
+  tokenOpen.block = true;
+
+  // Parse attributes and add to token
+  const attrMatch = firstLine.match(/^\{(.+)\}$/);
+  if (attrMatch) {
+    const attrs = parseAttributes(attrMatch[1]);
+    // Convert attrs string "class=\"foo\" id=\"bar\"" to token attrs array
+    const attrPairs = [];
+    const classMatch = attrs.match(/class="([^"]+)"/);
+    const idMatch = attrs.match(/id="([^"]+)"/);
+    if (classMatch) attrPairs.push(['class', classMatch[1]]);
+    if (idMatch) attrPairs.push(['id', idMatch[1]]);
+    tokenOpen.attrSet = (name, value) => {
+      if (!tokenOpen.attrs) tokenOpen.attrs = [];
+      tokenOpen.attrs.push([name, value]);
+    };
+    for (const [name, value] of attrPairs) {
+      tokenOpen.attrSet(name, value);
+    }
+  }
+
+  // Parse block content
+  state.lineMax = nextLine;
+  state.md.block.tokenize(state, startLine + 1, nextLine);
+  state.lineMax = oldLineMax;
+  state.parentType = oldParent;
+
+  // Create closing token
+  const tokenClose = state.push('div_close', 'div', -1);
+  tokenClose.markup = marker.repeat(markerCount);
+  tokenClose.block = true;
+
+  state.line = nextLine + (autoClosed ? 1 : 0);
+  return true;
+}
 
 /**
  * Create a container renderer for markdown-it-container
@@ -44,6 +180,47 @@ function createContainerConfig(name) {
         const params = token.info.trim().slice(name.length).trim();
         const title = params ? ` data-title="${params.replace(/"/g, '&quot;')}"` : '';
         return `<div class="container container-${name}"${title}>\n`;
+      }
+      return '</div>\n';
+    }
+  };
+}
+
+/**
+ * Create a catch-all container renderer for attribute syntax `::: {.class #id}`
+ * Uses a special regex-based validation to match any params starting with {
+ * @returns {object} Container configuration for generic divs
+ */
+function createGenericContainerConfig() {
+  return {
+    validate: (params) => {
+      // Match if params starts with { (attribute syntax)
+      return /^\s*\{/.test(params);
+    },
+    render: (tokens, idx) => {
+      const token = tokens[idx];
+      if (token.nesting === 1) {
+        // token.info contains the params string (everything after ::: and container name)
+        // For empty-name container, this is everything after :::
+        const params = token.info.trim();
+
+        // DEBUG: Log what we receive
+        if (process.env.PAGEMD_DEBUG_CONTAINERS) {
+          console.log('[GenericContainer] token.info:', JSON.stringify(token.info));
+          console.log('[GenericContainer] params:', JSON.stringify(params));
+        }
+
+        // Parse {.class #id} syntax
+        if (params.startsWith('{') && params.endsWith('}')) {
+          const attrs = parseAttributes(params.slice(1, -1));
+          if (process.env.PAGEMD_DEBUG_CONTAINERS) {
+            console.log('[GenericContainer] attrs:', attrs);
+          }
+          return `<div${attrs}>\n`;
+        }
+
+        // Fallback - just a plain div
+        return '<div>\n';
       }
       return '</div>\n';
     }
@@ -127,13 +304,22 @@ export function createParser(options = {}) {
   // 1. markdown-it-attrs - Adds {.class #id} attribute syntax
   md.use(markdownItAttrs);
 
+  // 1.5. markdown-it-fancy-lists - Letter and Roman numeral lists (opt-in)
+  if (isFancyListsEnabled(options)) {
+    md.use(markdownItFancyListPlugin);
+  }
+
   // 2. markdown-it-github-alerts - GFM alert syntax > [!NOTE]
   md.use(markdownItGithubAlerts);
 
   // 3. markdown-it-include - File inclusion !!!include(path)!!!
   md.use(markdownItInclude, { root: includeRoot });
 
-  // 3.5. markdown-it-container - Custom :::name blocks
+  // 3.5. Custom attribute container block rule `::: {.class #id}`
+  // Registered BEFORE markdown-it-container so it catches attribute syntax first
+  md.block.ruler.before('fence', 'attribute_container', attributeContainerRule);
+
+  // 3.6. markdown-it-container - Custom :::name blocks
   // Register each container type (details, aside, columns, spoiler, etc.)
   for (const type of CONTAINER_TYPES) {
     md.use(markdownItContainer, type, createContainerConfig(type));

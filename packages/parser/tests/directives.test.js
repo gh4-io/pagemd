@@ -687,4 +687,106 @@ The butler did it.
     expect(html).toContain('markdown-alert-note');
     expect(html).toContain('<div class="break-page">');
   });
+
+  // Attribute syntax tests
+  it('should render container with single class attribute', () => {
+    const input = `::: {.warning}
+This is a warning message.
+:::`;
+
+    const { html } = parse(input);
+    expect(html).toContain('<div class="warning">');
+    expect(html).toContain('This is a warning message.');
+    expect(html).toContain('</div>');
+  });
+
+  it('should render container with multiple classes', () => {
+    const input = `::: {.document-header .primary}
+Header content
+:::`;
+
+    const { html } = parse(input);
+    expect(html).toContain('<div class="document-header primary">');
+    expect(html).toContain('Header content');
+  });
+
+  it('should render container with id attribute', () => {
+    const input = `::: {#section-intro}
+Introduction section
+:::`;
+
+    const { html } = parse(input);
+    expect(html).toContain('<div id="section-intro">');
+    expect(html).toContain('Introduction section');
+  });
+
+  it('should render container with both class and id', () => {
+    const input = `::: {.title-block #main-title}
+# Main Title
+:::`;
+
+    const { html } = parse(input);
+    expect(html).toContain('<div class="title-block" id="main-title">');
+    expect(html).toContain('<h1>Main Title</h1>');
+  });
+
+  it('should handle all technical form container classes', () => {
+    const containers = [
+      '.document-header',
+      '.title-block',
+      '.applicability-box',
+      '.warning',
+      '.caution',
+      '.note',
+      '.approval-block',
+      '.footer-notice'
+    ];
+
+    for (const className of containers) {
+      const input = `::: {${className}}
+Content
+:::`;
+      const { html } = parse(input);
+      const expectedClass = className.slice(1); // Remove leading dot
+      expect(html).toContain(`<div class="${expectedClass}">`);
+    }
+  });
+
+  it('should handle nested markdown inside attribute containers', () => {
+    const input = `::: {.warning}
+
+## Warning Title
+
+- Point 1
+- Point 2
+
+**Important:** Read this carefully.
+:::`;
+
+    const { html } = parse(input);
+    expect(html).toContain('<div class="warning">');
+    expect(html).toContain('<h2>Warning Title</h2>');
+    expect(html).toContain('<li>Point 1</li>');
+    expect(html).toContain('<strong>Important:</strong>');
+  });
+
+  it('should prefer named containers over attribute syntax when both match', () => {
+    // 'warning' is both a named container and can be used with {.warning}
+    const namedInput = `:::warning
+Named container
+:::`;
+
+    const attrInput = `::: {.warning}
+Attribute container
+:::`;
+
+    const { html: namedHtml } = parse(namedInput);
+    const { html: attrHtml } = parse(attrInput);
+
+    // Named should use container-warning class
+    expect(namedHtml).toContain('<div class="container container-warning">');
+
+    // Attribute syntax should use just the class name
+    expect(attrHtml).toContain('<div class="warning">');
+  });
 });

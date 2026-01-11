@@ -1,0 +1,533 @@
+/**
+ * Technical Form Layout - Aviation Maintenance Task Card (AeroLogic Style)
+ *
+ * Page layout for technical maintenance documentation:
+ * - Letter size, portrait orientation
+ * - Narrow margins (0.5in) for maximum content area
+ * - Repeating header with form number, title, revision
+ * - Footer with page X of Y and document control info
+ * - Structured table styling for form boxes
+ *
+ * Designed for Paged.js rendering.
+ */
+
+/* =============================================================================
+   PAGE SETUP
+   ============================================================================= */
+
+@page {
+  size: Letter portrait;
+  margin: 0.75in 0.5in 0.75in 0.5in;
+
+  /* Running header - form identification */
+  @top-left {
+    content: var(--form-number, "FORM-XXX");
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: 8pt;
+    font-weight: bold;
+    color: #333;
+  }
+
+  @top-center {
+    content: var(--form-title, "TECHNICAL FORM");
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: 8pt;
+    font-weight: bold;
+    text-transform: uppercase;
+    color: #333;
+  }
+
+  @top-right {
+    content: "Rev " var(--revision, "A");
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: 8pt;
+    font-weight: bold;
+    color: #333;
+  }
+
+  /* Running footer - page numbers and control info */
+  @bottom-left {
+    content: var(--document-control, "CONTROLLED DOCUMENT");
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: 7pt;
+    color: #666;
+  }
+
+  @bottom-center {
+    content: "Page " counter(page) " of " counter(pages);
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: 8pt;
+    font-weight: bold;
+    color: #333;
+  }
+
+  @bottom-right {
+    content: var(--print-date, "");
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: 7pt;
+    color: #666;
+  }
+}
+
+/* First page - full header shown in body, minimal running header */
+@page :first {
+  margin-top: 0.5in;
+
+  @top-left {
+    content: none;
+  }
+
+  @top-center {
+    content: none;
+  }
+
+  @top-right {
+    content: none;
+  }
+}
+
+/* =============================================================================
+   BASE DOCUMENT STYLES
+   ============================================================================= */
+
+.technical-form {
+  font-family: "Helvetica Neue", Arial, sans-serif;
+  font-size: 10pt;
+  line-height: 1.4;
+  color: #000;
+}
+
+/* =============================================================================
+   FORM HEADER
+   ============================================================================= */
+
+.form-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: stretch;
+  border: 2px solid #000;
+  margin-bottom: 12pt;
+  page-break-inside: avoid;
+}
+
+.header-logo {
+  flex: 0 0 150px;
+  padding: 8pt;
+  border-right: 1px solid #000;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.logo-placeholder {
+  width: 100px;
+  height: 40px;
+  border: 1px dashed #999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8pt;
+  color: #666;
+  margin-bottom: 4pt;
+}
+
+.company-name {
+  font-size: 9pt;
+  font-weight: bold;
+  text-align: center;
+}
+
+.header-title {
+  flex: 1;
+  padding: 8pt 12pt;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  border-right: 1px solid #000;
+}
+
+.form-title {
+  font-size: 14pt;
+  font-weight: bold;
+  text-transform: uppercase;
+  margin: 0;
+  text-align: center;
+}
+
+.form-subtitle {
+  font-size: 10pt;
+  color: #333;
+  margin-top: 4pt;
+}
+
+.header-formno {
+  flex: 0 0 100px;
+  padding: 8pt;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.form-number-label {
+  font-size: 8pt;
+  color: #666;
+  margin-bottom: 2pt;
+}
+
+.form-number {
+  font-size: 12pt;
+  font-weight: bold;
+}
+
+/* =============================================================================
+   SECTION HEADINGS
+   ============================================================================= */
+
+.section-heading {
+  font-size: 10pt;
+  font-weight: bold;
+  text-transform: uppercase;
+  background-color: #e0e0e0;
+  padding: 4pt 8pt;
+  margin: 0;
+  border: 1px solid #000;
+  border-bottom: none;
+}
+
+/* =============================================================================
+   TABLE STYLES - FORM BOXES
+   ============================================================================= */
+
+.revision-table,
+.info-table,
+.effectivity-table,
+.resources-table,
+.torque-table,
+.signoff-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 12pt;
+  page-break-inside: avoid;
+}
+
+.revision-table th,
+.info-table th,
+.effectivity-table th,
+.resources-table th,
+.torque-table th,
+.signoff-table th {
+  background-color: #f0f0f0;
+  font-size: 8pt;
+  font-weight: bold;
+  text-transform: uppercase;
+  padding: 4pt 6pt;
+  border: 1px solid #000;
+  text-align: left;
+}
+
+.revision-table td,
+.info-table td,
+.effectivity-table td,
+.resources-table td,
+.torque-table td,
+.signoff-table td {
+  font-size: 9pt;
+  padding: 4pt 6pt;
+  border: 1px solid #000;
+  vertical-align: top;
+}
+
+.label-cell {
+  font-weight: bold;
+  background-color: #f5f5f5;
+  width: 120px;
+  white-space: nowrap;
+}
+
+.value-cell {
+  background-color: #fff;
+}
+
+/* Revision table specifics */
+.rev-cell {
+  width: 40px;
+  text-align: center;
+  font-weight: bold;
+}
+
+.date-cell {
+  width: 80px;
+}
+
+.desc-cell {
+  /* flexible width */
+}
+
+.approval-cell {
+  width: 100px;
+}
+
+/* =============================================================================
+   SAFETY BLOCKS (WARNING / CAUTION / NOTE)
+   ============================================================================= */
+
+.safety-block {
+  margin-bottom: 12pt;
+}
+
+.warning-box,
+.caution-box,
+.note-box {
+  display: flex;
+  border: 2px solid;
+  margin-bottom: 8pt;
+  page-break-inside: avoid;
+}
+
+.warning-box {
+  border-color: #cc0000;
+}
+
+.caution-box {
+  border-color: #cc9900;
+}
+
+.note-box {
+  border-color: #0066cc;
+}
+
+.safety-icon {
+  flex: 0 0 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9pt;
+  font-weight: bold;
+  text-transform: uppercase;
+  writing-mode: horizontal-tb;
+  padding: 8pt;
+}
+
+.warning-icon {
+  background-color: #cc0000;
+  color: #fff;
+}
+
+.caution-icon {
+  background-color: #cc9900;
+  color: #000;
+}
+
+.note-icon {
+  background-color: #0066cc;
+  color: #fff;
+}
+
+.safety-content {
+  flex: 1;
+  padding: 8pt;
+  font-size: 9pt;
+  line-height: 1.4;
+}
+
+/* Hide empty safety boxes */
+[data-show="false"],
+[data-show=""] {
+  display: none;
+}
+
+/* =============================================================================
+   RESOURCES TABLE
+   ============================================================================= */
+
+.resources-block {
+  margin-bottom: 12pt;
+}
+
+.resources-table tbody tr:nth-child(even) {
+  background-color: #fafafa;
+}
+
+/* =============================================================================
+   PROCEDURE CONTENT
+   ============================================================================= */
+
+.procedure-block {
+  margin-bottom: 12pt;
+}
+
+.procedure-content {
+  border: 1px solid #000;
+  border-top: none;
+  padding: 8pt 12pt;
+}
+
+/* Numbered procedure steps */
+.procedure-content ol {
+  margin: 0;
+  padding-left: 24pt;
+  counter-reset: step-counter;
+}
+
+.procedure-content ol > li {
+  margin-bottom: 8pt;
+  page-break-inside: avoid;
+}
+
+/* Sub-steps */
+.procedure-content ol ol {
+  margin-top: 6pt;
+  padding-left: 20pt;
+}
+
+.procedure-content ol ol > li {
+  margin-bottom: 4pt;
+}
+
+/* Inline warnings/cautions in procedures */
+.procedure-content .inline-warning,
+.procedure-content .inline-caution,
+.procedure-content .inline-note {
+  display: block;
+  margin: 6pt 0;
+  padding: 6pt 8pt;
+  font-size: 9pt;
+  border-left: 4px solid;
+}
+
+.procedure-content .inline-warning {
+  background-color: #fff0f0;
+  border-color: #cc0000;
+}
+
+.procedure-content .inline-caution {
+  background-color: #fffbe6;
+  border-color: #cc9900;
+}
+
+.procedure-content .inline-note {
+  background-color: #f0f7ff;
+  border-color: #0066cc;
+}
+
+/* =============================================================================
+   TORQUE VALUES TABLE
+   ============================================================================= */
+
+.torque-block {
+  margin-bottom: 12pt;
+}
+
+.torque-table th {
+  text-align: center;
+}
+
+.torque-table td {
+  text-align: center;
+}
+
+.torque-table td:nth-child(2),
+.torque-table td:nth-child(5) {
+  text-align: left;
+}
+
+/* =============================================================================
+   SIGN-OFF BLOCKS
+   ============================================================================= */
+
+.signoff-block {
+  margin-bottom: 12pt;
+  page-break-inside: avoid;
+}
+
+.signoff-table th {
+  text-align: center;
+  font-size: 9pt;
+}
+
+.signature-cell {
+  min-height: 24pt;
+  background-color: #fff;
+}
+
+.signature-line {
+  border-bottom: 1px solid #000 !important;
+  min-height: 30pt;
+}
+
+/* =============================================================================
+   DOCUMENT FOOTER (Body element - different from running footer)
+   ============================================================================= */
+
+.form-footer {
+  display: flex;
+  justify-content: space-between;
+  font-size: 7pt;
+  color: #666;
+  padding-top: 8pt;
+  border-top: 1px solid #ccc;
+  margin-top: auto;
+}
+
+.footer-left,
+.footer-center,
+.footer-right {
+  flex: 1;
+}
+
+.footer-center {
+  text-align: center;
+}
+
+.footer-right {
+  text-align: right;
+}
+
+.confidential {
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+/* =============================================================================
+   PAGE BREAK CONTROLS
+   ============================================================================= */
+
+/* Keep sections together when possible */
+.revision-block,
+.task-info-block,
+.effectivity-block,
+.resources-block,
+.signoff-block {
+  page-break-inside: avoid;
+}
+
+/* Allow procedure block to break across pages */
+.procedure-block {
+  page-break-inside: auto;
+}
+
+/* Force page break before sign-off if near bottom */
+.signoff-block {
+  page-break-before: auto;
+}
+
+/* =============================================================================
+   PRINT OPTIMIZATIONS
+   ============================================================================= */
+
+@media print {
+  .technical-form {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .warning-icon,
+  .caution-icon,
+  .note-icon {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}

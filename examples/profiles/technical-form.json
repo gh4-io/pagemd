@@ -1,0 +1,50 @@
+{
+  "id": "technical-form",
+  "description": "Aviation task card and technical form layout with structured fields",
+
+  "resources": {
+    "template": "../templates/technical-form.html",
+    "layout": "../layouts/technical-form.css",
+    "css": ["../styles/05-technical.css"],
+    "fonts": [],
+    "assets": []
+  },
+
+  "pagedjs": {
+    "mode": "browser"
+  },
+  "outputs": {
+    "pdf": {
+      "enabled": true,
+      "mode": "ACTIVE_ONLY",
+      "options": {}
+    },
+    "html": {
+      "enabled": false,
+      "mode": "DISABLED",
+      "options": {}
+    },
+    "png": {
+      "enabled": false,
+      "mode": "DISABLED",
+      "options": {}
+    },
+    "jpeg": {
+      "enabled": false,
+      "mode": "DISABLED",
+      "options": {}
+    }
+  },
+  "validation": {
+    "required_fields": ["title", "document_id"]
+  },
+  "metadata": {
+    "defaults": {
+      "status": "Draft",
+      "revision": 0,
+      "page_numbers": true,
+      "running_header": true,
+      "running_footer": true
+    }
+  }
+}

@@ -1,6 +1,7 @@
 ---
 document_id: DOC-001
 title: PageMD Basic Document Example
+profile: "standard_letter"
 revision: 1
 status: Draft
 effective_date: 2026-01-03

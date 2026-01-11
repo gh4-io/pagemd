@@ -56,8 +56,10 @@ export function calloutPlugin(md) {
     let nextLine = startLine + 1;
     let content = firstLineContent;
     let foundClose = false;
+    let blankLineCount = 0;
+    const MAX_BLANK_LINES = 2; // Stop after 2 consecutive blank lines without closing tag
 
-    // Search for closing tag (stop at blank lines or end of doc)
+    // Search for closing tag
     while (nextLine < endLine) {
       const linePos = state.bMarks[nextLine] + state.tShift[nextLine];
       const lineMax = state.eMarks[nextLine];
@@ -70,10 +72,28 @@ export function calloutPlugin(md) {
         break;
       }
 
-      // Stop at blank line if no closing tag was found yet
-      if (line.trim() === '') {
+      // Stop if we hit another block-level element (another callout, heading, directive, etc.)
+      if (line.match(/^#+\s/) ||                          // Heading
+          line.match(/^\[\[(WARNING|DANGER)\]\]/i) ||     // Another callout
+          line.match(/^<!--\s*::/)) {                     // Directive comment
         break;
       }
+
+      // Track consecutive blank lines - stop after too many without finding closing tag
+      if (line.trim() === '') {
+        blankLineCount++;
+        if (blankLineCount > MAX_BLANK_LINES) {
+          break;
+        }
+        // Include blank line in content
+        if (content) content += '\n';
+        content += line;
+        nextLine++;
+        continue;
+      }
+
+      // Reset blank line counter when we see content
+      blankLineCount = 0;
 
       if (content) content += '\n';
       content += line;

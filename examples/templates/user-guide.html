@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{metadata.title}}</title>
+  {{styles}}
+  <style>
+    /* ==========================================================================
+       User Guide Template - Visual Styling
+       For use with user-guide.css layout
+       Inspired by AMOS/Swiss Aviation documentation standards
+       ========================================================================== */
+
+    :root {
+      /* Brand Colors */
+      --ug-color-primary: #003366;
+      --ug-color-secondary: #0066cc;
+      --ug-color-accent: #ff6600;
+
+      /* Callout Colors */
+      --ug-note-bg: #e7f3ff;
+      --ug-note-border: #0066cc;
+      --ug-note-icon: #0066cc;
+
+      --ug-warning-bg: #fff3cd;
+      --ug-warning-border: #ffc107;
+      --ug-warning-icon: #856404;
+
+      --ug-caution-bg: #fff5f5;
+      --ug-caution-border: #dc3545;
+      --ug-caution-icon: #dc3545;
+
+      /* Typography */
+      --ug-font-body: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+      --ug-font-heading: "Segoe UI Semibold", "Helvetica Neue", Arial, sans-serif;
+      --ug-font-mono: "Consolas", "Monaco", monospace;
+    }
+
+    /* ==========================================================================
+       Document Structure
+       ========================================================================== */
+
+    body {
+      font-family: var(--ug-font-body);
+      font-size: 10pt;
+      line-height: 1.5;
+      color: #333;
+    }
+
+    /* ==========================================================================
+       Title Page
+       ========================================================================== */
+
+    .title-page {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      min-height: 100%;
+      text-align: center;
+      page: title;
+    }
+
+    .title-page .company-logo {
+      max-width: 200px;
+      margin-bottom: 2rem;
+    }
+
+    .title-page .product-name {
+      font-size: 28pt;
+      font-weight: 600;
+      color: var(--ug-color-primary);
+      margin: 0 0 0.5rem 0;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .title-page .document-title {
+      font-size: 18pt;
+      font-weight: 400;
+      color: #555;
+      margin: 0 0 2rem 0;
+    }
+
+    .title-page .version-info {
+      font-size: 12pt;
+      color: #666;
+      margin: 1rem 0;
+    }
+
+    .title-page .version-number {
+      font-weight: 600;
+      color: var(--ug-color-primary);
+    }
+
+    .title-page .apn-info {
+      font-size: 10pt;
+      color: #888;
+      margin-top: 1rem;
+    }
+
+    .title-page .apn-label {
+      font-weight: 600;
+    }
+
+    .title-page .company-info {
+      margin-top: auto;
+      padding-top: 3rem;
+      font-size: 10pt;
+      color: #666;
+    }
+
+    .title-page .company-name {
+      font-weight: 600;
+      font-size: 12pt;
+      color: var(--ug-color-primary);
+    }
+
+    /* ==========================================================================
+       Copyright Page
+       ========================================================================== */
+
+    .copyright-page {
+      page: copyright;
+      font-size: 9pt;
+      color: #555;
+    }
+
+    .copyright-page h2 {
+      font-size: 12pt;
+      color: var(--ug-color-primary);
+      border-bottom: 1px solid #ccc;
+      padding-bottom: 0.5rem;
+      margin-top: 2rem;
+    }
+
+    .copyright-page .legal-notice {
+      margin: 1rem 0;
+      padding: 1rem;
+      background: #f9f9f9;
+      border-left: 3px solid var(--ug-color-primary);
+    }
+
+    .copyright-page .revision-history {
+      margin-top: 2rem;
+    }
+
+    .copyright-page table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 9pt;
+    }
+
+    .copyright-page th {
+      background: var(--ug-color-primary);
+      color: white;
+      padding: 0.5rem;
+      text-align: left;
+    }
+
+    .copyright-page td {
+      padding: 0.5rem;
+      border-bottom: 1px solid #ddd;
+    }
+
+    /* ==========================================================================
+       Table of Contents
+       ========================================================================== */
+
+    .toc-page {
+      page: toc;
+    }
+
+    .toc-page h2 {
+      font-size: 16pt;
+      color: var(--ug-color-primary);
+      border-bottom: 2px solid var(--ug-color-primary);
+      padding-bottom: 0.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    /* ==========================================================================
+       Chapter Headers
+       ========================================================================== */
+
+    .chapter {
+      page: chapter;
+      break-before: page;
+    }
+
+    .chapter-header {
+      margin-bottom: 2rem;
+      padding-bottom: 1rem;
+      border-bottom: 3px solid var(--ug-color-primary);
+    }
+
+    .chapter-number {
+      font-size: 14pt;
+      color: var(--ug-color-secondary);
+      font-weight: 600;
+      display: block;
+      margin-bottom: 0.25rem;
+    }
+
+    .chapter-title {
+      font-size: 20pt;
+      font-weight: 600;
+      color: var(--ug-color-primary);
+      margin: 0;
+      line-height: 1.2;
+    }
+
+    .chapter-apn {
+      font-size: 9pt;
+      color: #888;
+      margin-top: 0.5rem;
+    }
+
+    /* Section headings within chapters */
+    .document-content h2 {
+      font-size: 14pt;
+      color: var(--ug-color-primary);
+      margin-top: 1.5rem;
+      margin-bottom: 0.75rem;
+      padding-bottom: 0.25rem;
+      border-bottom: 1px solid #ddd;
+    }
+
+    .document-content h3 {
+      font-size: 12pt;
+      color: #333;
+      margin-top: 1.25rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .document-content h4 {
+      font-size: 11pt;
+      color: #555;
+      margin-top: 1rem;
+      margin-bottom: 0.5rem;
+    }
+
+    /* ==========================================================================
+       Callout Boxes - NOTE, WARNING, CAUTION
+       ========================================================================== */
+
+    .callout-box {
+      margin: 1rem 0;
+      padding: 0;
+      border-radius: 0;
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+
+    .callout-box .callout-header {
+      display: flex;
+      align-items: center;
+      padding: 0.5rem 0.75rem;
+      font-weight: 700;
+      font-size: 10pt;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .callout-box .callout-icon {
+      width: 18px;
+      height: 18px;
+      margin-right: 0.5rem;
+      flex-shrink: 0;
+    }
+
+    .callout-box .callout-body {
+      padding: 0.75rem;
+      font-size: 9.5pt;
+    }
+
+    /* NOTE callout */
+    .callout-note {
+      border: 1px solid var(--ug-note-border);
+    }
+
+    .callout-note .callout-header {
+      background: var(--ug-note-bg);
+      color: var(--ug-note-icon);
+      border-bottom: 1px solid var(--ug-note-border);
+    }
+
+    .callout-note .callout-body {
+      background: #f8fbff;
+    }
+
+    /* WARNING callout */
+    .callout-warning {
+      border: 2px solid var(--ug-warning-border);
+    }
+
+    .callout-warning .callout-header {
+      background: var(--ug-warning-bg);
+      color: var(--ug-warning-icon);
+      border-bottom: 2px solid var(--ug-warning-border);
+    }
+
+    .callout-warning .callout-body {
+      background: #fffdf5;
+    }
+
+    /* CAUTION callout */
+    .callout-caution {
+      border: 2px solid var(--ug-caution-border);
+    }
+
+    .callout-caution .callout-header {
+      background: var(--ug-caution-bg);
+      color: var(--ug-caution-icon);
+      border-bottom: 2px solid var(--ug-caution-border);
+    }
+
+    .callout-caution .callout-body {
+      background: #fff8f8;
+    }
+
+    /* Callout icons (inline SVG) */
+    .callout-note .callout-icon::before {
+      content: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%230066cc'%3E%3Cpath d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z'/%3E%3C/svg%3E");
+    }
+
+    .callout-warning .callout-icon::before {
+      content: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23856404'%3E%3Cpath d='M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z'/%3E%3C/svg%3E");
+    }
+
+    .callout-caution .callout-icon::before {
+      content: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23dc3545'%3E%3Cpath d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z'/%3E%3C/svg%3E");
+    }
+
+    /* ==========================================================================
+       Procedure Steps
+       ========================================================================== */
+
+    .procedure {
+      margin: 1rem 0;
+      padding: 0;
+    }
+
+    .procedure-title {
+      font-size: 11pt;
+      font-weight: 600;
+      color: var(--ug-color-primary);
+      margin-bottom: 0.75rem;
+      padding-bottom: 0.25rem;
+      border-bottom: 1px dashed #ccc;
+    }
+
+    .procedure-steps {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      counter-reset: step-counter;
+    }
+
+    .procedure-steps > li {
+      position: relative;
+      padding-left: 2.5rem;
+      margin-bottom: 0.75rem;
+      counter-increment: step-counter;
+    }
+
+    .procedure-steps > li::before {
+      content: counter(step-counter);
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 1.5rem;
+      height: 1.5rem;
+      background: var(--ug-color-primary);
+      color: white;
+      border-radius: 50%;
+      font-size: 9pt;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .procedure-steps .step-action {
+      font-weight: 500;
+    }
+
+    .procedure-steps .step-result {
+      display: block;
+      margin-top: 0.25rem;
+      padding-left: 1rem;
+      color: #555;
+      font-size: 9.5pt;
+      border-left: 2px solid #ddd;
+    }
+
+    .procedure-steps .step-result::before {
+      content: "Result: ";
+      font-weight: 600;
+      color: #666;
+    }
+
+    /* Substeps */
+    .procedure-steps ol {
+      list-style: lower-alpha;
+      margin: 0.5rem 0 0.5rem 1rem;
+      padding-left: 1rem;
+    }
+
+    .procedure-steps ol li {
+      margin-bottom: 0.25rem;
+    }
+
+    /* ==========================================================================
+       FAQ Section
+       ========================================================================== */
+
+    .faq-section {
+      margin: 1.5rem 0;
+    }
+
+    .faq-section h2 {
+      font-size: 14pt;
+      color: var(--ug-color-primary);
+      margin-bottom: 1rem;
+    }
+
+    .faq-item {
+      margin-bottom: 1rem;
+      border: 1px solid #e0e0e0;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .faq-question {
+      background: #f5f5f5;
+      padding: 0.75rem 1rem;
+      font-weight: 600;
+      color: var(--ug-color-primary);
+      font-size: 10pt;
+    }
+
+    .faq-question::before {
+      content: "Q: ";
+      color: var(--ug-color-accent);
+      font-weight: 700;
+    }
+
+    .faq-answer {
+      padding: 0.75rem 1rem;
+      font-size: 9.5pt;
+      background: white;
+    }
+
+    .faq-answer::before {
+      content: "A: ";
+      font-weight: 600;
+      color: #555;
+    }
+
+    /* ==========================================================================
+       Index Page
+       ========================================================================== */
+
+    .index-page {
+      page: index;
+      break-before: page;
+    }
+
+    .index-page h2 {
+      font-size: 16pt;
+      color: var(--ug-color-primary);
+      border-bottom: 2px solid var(--ug-color-primary);
+      padding-bottom: 0.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    /* ==========================================================================
+       Tables
+       ========================================================================== */
+
+    .document-content table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1rem 0;
+      font-size: 9.5pt;
+    }
+
+    .document-content th {
+      background: var(--ug-color-primary);
+      color: white;
+      padding: 0.5rem 0.75rem;
+      text-align: left;
+      font-weight: 600;
+    }
+
+    .document-content td {
+      padding: 0.5rem 0.75rem;
+      border: 1px solid #ddd;
+    }
+
+    .document-content tr:nth-child(even) {
+      background: #f9f9f9;
+    }
+
+    /* ==========================================================================
+       Code Blocks
+       ========================================================================== */
+
+    .document-content code {
+      font-family: var(--ug-font-mono);
+      font-size: 9pt;
+      background: #f4f4f4;
+      padding: 0.1rem 0.3rem;
+      border-radius: 3px;
+    }
+
+    .document-content pre {
+      background: #f4f4f4;
+      padding: 0.75rem 1rem;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      overflow-x: auto;
+      font-size: 9pt;
+      line-height: 1.4;
+    }
+
+    .document-content pre code {
+      background: transparent;
+      padding: 0;
+    }
+
+    /* ==========================================================================
+       Figures and Images
+       ========================================================================== */
+
+    .document-content figure {
+      margin: 1rem 0;
+      text-align: center;
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+
+    .document-content figcaption {
+      font-size: 9pt;
+      color: #666;
+      margin-top: 0.5rem;
+    }
+
+    .document-content figcaption .fig-number {
+      font-weight: 600;
+      color: var(--ug-color-primary);
+    }
+
+    /* ==========================================================================
+       Screen References
+       ========================================================================== */
+
+    .screen-ref {
+      font-family: var(--ug-font-mono);
+      font-size: 9pt;
+      background: #e8f4e8;
+      padding: 0.1rem 0.4rem;
+      border-radius: 3px;
+      border: 1px solid #c3e6c3;
+    }
+
+    .button-ref {
+      font-family: var(--ug-font-body);
+      font-size: 9pt;
+      font-weight: 600;
+      background: #e0e0e0;
+      padding: 0.1rem 0.5rem;
+      border-radius: 3px;
+      border: 1px solid #bbb;
+    }
+
+    .menu-path {
+      font-family: var(--ug-font-mono);
+      font-size: 9pt;
+      color: #555;
+    }
+
+    .menu-path .separator::before {
+      content: " > ";
+      color: var(--ug-color-accent);
+    }
+
+    /* ==========================================================================
+       Print Optimizations
+       ========================================================================== */
+
+    @media print {
+      .callout-box {
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
+
+      .procedure {
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
+
+      .faq-item {
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
+
+      h2, h3, h4 {
+        break-after: avoid;
+        page-break-after: avoid;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Title Page -->
+  <section class="title-page">
+    <img class="company-logo" src="{{metadata.company_logo}}" alt="{{metadata.company}}">
+    <h1 class="product-name">{{metadata.product}}</h1>
+    <p class="document-title">{{metadata.title}}</p>
+    <div class="version-info">
+      Version <span class="version-number">{{metadata.version}}</span>
+    </div>
+    <div class="apn-info">
+      <span class="apn-label">Document APN:</span> {{metadata.apn}}
+    </div>
+    <div class="company-info">
+      <div class="company-name">{{metadata.company}}</div>
+      <div>{{metadata.date}}</div>
+    </div>
+  </section>
+
+  <!-- Copyright Page -->
+  <section class="copyright-page">
+    <h2>Copyright and Legal Notice</h2>
+    <div class="legal-notice">
+      <p>&copy; {{metadata.copyright_year}} {{metadata.company}}. All rights reserved.</p>
+      <p>This document contains proprietary information protected by copyright. No part of this document may be reproduced, transmitted, or translated without prior written permission from {{metadata.company}}.</p>
+    </div>
+
+    <h2>Trademarks</h2>
+    <p>{{metadata.product}} is a trademark of {{metadata.company}}. All other trademarks are the property of their respective owners.</p>
+
+    <h2>Revision History</h2>
+    <div class="revision-history">
+      <table>
+        <thead>
+          <tr>
+            <th>Revision</th>
+            <th>Date</th>
+            <th>Description</th>
+            <th>Author</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{metadata.revisions}}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Table of Contents -->
+  <section class="toc-page">
+    <h2>Table of Contents</h2>
+    <!-- ::TOC levels=3 -->
+    <nav class="toc">
+      <!-- TOC will be generated here by Paged.js -->
+    </nav>
+  </section>
+
+  <!-- Main Document Content -->
+  <article class="document">
+    <main class="document-content">
+      {{content}}
+    </main>
+  </article>
+
+  <!-- Index Page -->
+  <section class="index-page">
+    <h2>Index</h2>
+    <!-- ::INDEX -->
+    <div class="book-index">
+      <!-- Index will be generated here -->
+    </div>
+  </section>
+</body>
+</html>

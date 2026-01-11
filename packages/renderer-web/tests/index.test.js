@@ -18,9 +18,10 @@ vi.mock('@pagemd/parser', () => ({
 
 // Mock @pagemd/core
 vi.mock('@pagemd/core', () => ({
-  loadProfileSync: vi.fn(),
+  loadAndMergeProfile: vi.fn(),
   createPathContext: vi.fn(),
   findProjectRoot: vi.fn(),
+  resolveColorScheme: vi.fn(() => 'auto'),
   createLogger: vi.fn(() => ({
     debug: vi.fn(),
     info: vi.fn(),
@@ -46,7 +47,7 @@ vi.mock('../src/styles.js', () => ({
 }));
 
 import { parse, parseFile } from '@pagemd/parser';
-import { loadProfileSync, createPathContext, findProjectRoot } from '@pagemd/core';
+import { loadAndMergeProfile, createPathContext, findProjectRoot } from '@pagemd/core';
 import { loadTemplate, renderTemplate } from '../src/template.js';
 import { buildStyleBlock } from '../src/styles.js';
 
@@ -60,7 +61,7 @@ describe('index.js', () => {
   });
 
   describe('createRenderContext', () => {
-    it('should create render context with default profile', () => {
+    it('should create render context with default profile', async () => {
       const mockProfile = {
         id: 'standard_letter',
         layout: { source: 'templates/standard.html' }
@@ -70,75 +71,91 @@ describe('index.js', () => {
         markdownPath: '/project/docs/test.md'
       };
 
-      loadProfileSync.mockReturnValue(mockProfile);
+      loadAndMergeProfile.mockResolvedValue(mockProfile);
       createPathContext.mockReturnValue(mockPathContext);
       findProjectRoot.mockReturnValue('/project');
 
-      const result = createRenderContext({
+      const result = await createRenderContext({
         markdownPath: '/project/docs/test.md'
       });
 
       expect(result.profile).toEqual(mockProfile);
       expect(result.pathContext).toEqual(mockPathContext);
-      expect(loadProfileSync).toHaveBeenCalledWith('standard_letter', '/project', '/project');
+      // searchFrom should be markdown directory for relative profile paths
+      expect(loadAndMergeProfile).toHaveBeenCalledWith('standard_letter', {
+        searchFrom: '/project/docs',
+        configDir: '/project',
+        cliPath: null
+      });
     });
 
-    it('should use specified profile ID', () => {
+    it('should use specified profile ID', async () => {
       const mockProfile = {
         id: 'custom_profile',
         layout: { source: 'templates/custom.html' }
       };
 
-      loadProfileSync.mockReturnValue(mockProfile);
+      loadAndMergeProfile.mockResolvedValue(mockProfile);
       createPathContext.mockReturnValue({});
       findProjectRoot.mockReturnValue('/project');
 
-      const result = createRenderContext({
+      const result = await createRenderContext({
         markdownPath: '/project/docs/test.md',
         profile: 'custom_profile'
       });
 
       expect(result.profile.id).toBe('custom_profile');
-      expect(loadProfileSync).toHaveBeenCalledWith('custom_profile', '/project', '/project');
+      // searchFrom should be markdown directory for relative profile paths
+      expect(loadAndMergeProfile).toHaveBeenCalledWith('custom_profile', {
+        searchFrom: '/project/docs',
+        configDir: '/project',
+        cliPath: null
+      });
     });
 
-    it('should use specified project root', () => {
+    it('should use specified project root', async () => {
       const mockProfile = { id: 'test' };
 
-      loadProfileSync.mockReturnValue(mockProfile);
+      loadAndMergeProfile.mockResolvedValue(mockProfile);
       createPathContext.mockReturnValue({});
 
-      createRenderContext({
+      await createRenderContext({
         markdownPath: '/custom/path/test.md',
         projectRoot: '/custom/root'
       });
 
-      expect(loadProfileSync).toHaveBeenCalledWith('standard_letter', '/custom/root', '/custom/root');
+      // searchFrom should be markdown directory for relative profile paths
+      expect(loadAndMergeProfile).toHaveBeenCalledWith('standard_letter', {
+        searchFrom: '/custom/path',
+        configDir: '/custom/root',
+        cliPath: null
+      });
       expect(createPathContext).toHaveBeenCalledWith({
         markdownDir: '/custom/path',
         projectRoot: '/custom/root',
-        manifestDir: undefined
+        manifestDir: undefined,
+        cliPath: null
       });
     });
 
-    it('should throw error when profile not found', () => {
-      loadProfileSync.mockReturnValue(null);
+    it('should throw error when profile not found', async () => {
+      loadAndMergeProfile.mockResolvedValue(null);
       findProjectRoot.mockReturnValue('/project');
 
-      expect(() => createRenderContext({
+      await expect(createRenderContext({
         markdownPath: '/project/test.md',
         profile: 'missing_profile'
-      })).toThrow('Profile not found: missing_profile');
+      })).rejects.toThrow('Profile not found: missing_profile');
     });
 
-    it('should handle missing markdownPath', () => {
+    it('should handle missing markdownPath', async () => {
       const mockProfile = { id: 'test' };
 
-      loadProfileSync.mockReturnValue(mockProfile);
+      loadAndMergeProfile.mockResolvedValue(mockProfile);
       createPathContext.mockReturnValue({});
       findProjectRoot.mockReturnValue('/project');
 
-      const result = createRenderContext({
+      const result = await createRenderContext({
         projectRoot: '/project'
       });
 
@@ -146,23 +163,29 @@ describe('index.js', () => {
       expect(createPathContext).toHaveBeenCalledWith({
         markdownDir: null,
         projectRoot: '/project',
-        manifestDir: undefined
+        manifestDir: undefined,
+        cliPath: null
       });
     });
 
-    it('should auto-detect project root when not provided', () => {
+    it('should auto-detect project root when not provided', async () => {
       const mockProfile = { id: 'test' };
 
-      loadProfileSync.mockReturnValue(mockProfile);
+      loadAndMergeProfile.mockResolvedValue(mockProfile);
       createPathContext.mockReturnValue({});
       findProjectRoot.mockReturnValue('/detected/root');
 
-      createRenderContext({
+      await createRenderContext({
         markdownPath: '/detected/root/docs/file.md'
       });
 
       expect(findProjectRoot).toHaveBeenCalledWith('/detected/root/docs/file.md');
-      expect(loadProfileSync).toHaveBeenCalledWith('standard_letter', '/detected/root', '/detected/root');
+      // searchFrom should be markdown directory for relative profile paths
+      expect(loadAndMergeProfile).toHaveBeenCalledWith('standard_letter', {
+        searchFrom: '/detected/root/docs',
+        configDir: '/detected/root',
+        cliPath: null
+      });
     });
   });
 
@@ -184,7 +207,7 @@ describe('index.js', () => {
         metadata: mockMetadata
       });
 
-      loadProfileSync.mockReturnValue(mockProfile);
+      loadAndMergeProfile.mockResolvedValue(mockProfile);
       createPathContext.mockReturnValue(mockPathContext);
       findProjectRoot.mockReturnValue('/project');
       loadTemplate.mockResolvedValue(mockTemplate);
@@ -267,7 +290,7 @@ describe('index.js', () => {
         metadata: {}
       });
 
-      loadProfileSync.mockReturnValue(customProfile);
+      loadAndMergeProfile.mockResolvedValue(customProfile);
       createPathContext.mockReturnValue({});
       findProjectRoot.mockReturnValue('/project');
       loadTemplate.mockResolvedValue('<html>{{content}}</html>');
@@ -294,7 +317,7 @@ describe('index.js', () => {
         metadata
       });
 
-      loadProfileSync.mockReturnValue({ id: 'test' });
+      loadAndMergeProfile.mockResolvedValue({ id: 'test' });
       createPathContext.mockReturnValue({});
       findProjectRoot.mockReturnValue('/project');
       loadTemplate.mockResolvedValue('<html>{{content}}</html>');
@@ -323,7 +346,7 @@ describe('index.js', () => {
         metadata: { title: 'From Parser' }
       });
 
-      loadProfileSync.mockReturnValue(mockProfile);
+      loadAndMergeProfile.mockResolvedValue(mockProfile);
       createPathContext.mockReturnValue(mockPathContext);
       findProjectRoot.mockReturnValue('/project');
       loadTemplate.mockResolvedValue(mockTemplate);
@@ -340,7 +363,7 @@ describe('index.js', () => {
       const result = await renderMarkdown(markdown);
 
       expect(parse).toHaveBeenCalledWith(markdown, {});
-      expect(loadTemplate).toHaveBeenCalledWith(mocks.mockProfile, mocks.mockPathContext);
+      expect(loadTemplate).toHaveBeenCalledWith(mocks.mockProfile, mocks.mockPathContext, { cliPath: undefined });
       expect(buildStyleBlock).toHaveBeenCalledWith(mocks.mockProfile, mocks.mockPathContext, {
         frontmatterCSS: undefined
       });
@@ -389,7 +412,7 @@ describe('index.js', () => {
         metadata: {}
       });
 
-      loadProfileSync.mockReturnValue(customProfile);
+      loadAndMergeProfile.mockResolvedValue(customProfile);
       createPathContext.mockReturnValue({});
       findProjectRoot.mockReturnValue('/project');
       loadTemplate.mockResolvedValue('<html>{{content}}</html>');
@@ -398,7 +421,11 @@ describe('index.js', () => {
 
       await renderMarkdown('# Test', { profile: 'custom' });
 
-      expect(loadProfileSync).toHaveBeenCalledWith('custom', '/project', '/project');
+      expect(loadAndMergeProfile).toHaveBeenCalledWith('custom', {
+        searchFrom: '/project',
+        configDir: '/project',
+        cliPath: null
+      });
     });
 
     it('should use custom project root', async () => {
@@ -409,7 +436,8 @@ describe('index.js', () => {
       expect(createPathContext).toHaveBeenCalledWith({
         markdownDir: null,
         projectRoot: '/custom/root',
-        manifestDir: undefined
+        manifestDir: undefined,
+        cliPath: null
       });
     });
 
@@ -458,7 +486,8 @@ describe('index.js', () => {
       expect(createPathContext).toHaveBeenCalledWith({
         markdownDir: null,
         projectRoot: expect.any(String),
-        manifestDir: undefined
+        manifestDir: undefined,
+        cliPath: null
       });
     });
   });
@@ -491,7 +520,7 @@ describe('index.js', () => {
         metadata: commonMetadata
       });
 
-      loadProfileSync.mockReturnValue(mockProfile);
+      loadAndMergeProfile.mockResolvedValue(mockProfile);
       createPathContext.mockReturnValue({ projectRoot: '/project' });
       findProjectRoot.mockReturnValue('/project');
       loadTemplate.mockResolvedValue(mockTemplate);

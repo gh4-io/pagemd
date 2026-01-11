@@ -1,0 +1,50 @@
+{
+  "id": "title-page",
+  "description": "Full title page setup with corporate styling for formal documents",
+
+  "resources": {
+    "template": "../templates/title-page.html",
+    "layout": "../layouts/title-page.css",
+    "css": ["../styles/03-corporate.css"],
+    "fonts": [],
+    "assets": []
+  },
+
+  "pagedjs": {
+    "mode": "browser"
+  },
+  "outputs": {
+    "pdf": {
+      "enabled": true,
+      "mode": "ACTIVE_ONLY",
+      "options": {}
+    },
+    "html": {
+      "enabled": false,
+      "mode": "DISABLED",
+      "options": {}
+    },
+    "png": {
+      "enabled": false,
+      "mode": "DISABLED",
+      "options": {}
+    },
+    "jpeg": {
+      "enabled": false,
+      "mode": "DISABLED",
+      "options": {}
+    }
+  },
+  "validation": {
+    "required_fields": ["title"]
+  },
+  "metadata": {
+    "defaults": {
+      "status": "Draft",
+      "revision": 0,
+      "page_numbers": true,
+      "running_header": true,
+      "running_footer": true
+    }
+  }
+}

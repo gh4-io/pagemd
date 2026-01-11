@@ -313,15 +313,16 @@ describe('launchBrowser', () => {
     );
   });
 
-  it('should disable headless when debug is true', async () => {
+  it('should NOT disable headless when debug is true (use headless:false explicitly)', async () => {
     puppeteer.default.launch.mockResolvedValue(mockBrowser);
 
     // Use executablePath to bypass Chrome detection
+    // debug:true should NOT force headless:false anymore
     await launchBrowser({ executablePath: '/usr/bin/chrome', debug: true });
 
     expect(puppeteer.default.launch).toHaveBeenCalledWith(
       expect.objectContaining({
-        headless: false
+        headless: true  // Default headless should be preserved
       })
     );
   });
@@ -392,17 +393,25 @@ describe('launchBrowser', () => {
 
 describe('closeBrowser', () => {
   let mockBrowser;
+  let mockProcess;
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockProcess = {
+      kill: vi.fn(),
+      exitCode: null // null means still running
+    };
     mockBrowser = {
-      close: vi.fn().mockResolvedValue(undefined)
+      close: vi.fn().mockResolvedValue(undefined),
+      disconnect: vi.fn(),
+      process: vi.fn().mockReturnValue(mockProcess)
     };
   });
 
-  it('should close browser successfully', async () => {
+  it('should disconnect and kill browser process', async () => {
     await closeBrowser(mockBrowser);
-    expect(mockBrowser.close).toHaveBeenCalledTimes(1);
+    expect(mockBrowser.disconnect).toHaveBeenCalledTimes(1);
+    expect(mockProcess.kill).toHaveBeenCalledWith('SIGKILL');
   });
 
   it('should handle null browser gracefully', async () => {
@@ -413,14 +422,14 @@ describe('closeBrowser', () => {
     await expect(closeBrowser(undefined)).resolves.toBeUndefined();
   });
 
-  it('should not throw when browser.close() fails', async () => {
-    mockBrowser.close.mockRejectedValue(new Error('Close failed'));
+  it('should not throw when browser.disconnect() fails', async () => {
+    mockBrowser.disconnect.mockImplementation(() => { throw new Error('Already disconnected'); });
     await expect(closeBrowser(mockBrowser)).resolves.toBeUndefined();
   });
 
-  it('should call close even if browser is in bad state', async () => {
-    mockBrowser.close.mockRejectedValue(new Error('Browser already closed'));
+  it('should handle browser with no accessible process', async () => {
+    mockBrowser.process.mockImplementation(() => { throw new Error('No process'); });
     await closeBrowser(mockBrowser);
-    expect(mockBrowser.close).toHaveBeenCalledTimes(1);
+    expect(mockBrowser.disconnect).toHaveBeenCalledTimes(1);
   });
 });

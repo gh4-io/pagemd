@@ -1,0 +1,520 @@
+/**
+ * User Guide Layout - Paged.js Structure CSS
+ * For software user guides (AMOS/Swiss Aviation style)
+ *
+ * This file contains ONLY paged-media structural CSS:
+ * - @page rules (size, margins)
+ * - Named pages (title, copyright, toc, chapter, index)
+ * - Running headers/footers
+ * - Page break controls
+ *
+ * Visual styling (colors, fonts, callout boxes) belongs in user-guide.html template.
+ *
+ * RUNNING HEADERS/FOOTERS:
+ * - Header: Chapter title on left (suppressed on first page of chapter)
+ * - Footer: Company logo area on left, page number on right
+ *
+ * PAGE TYPES:
+ * - title: Full-page title, no header/footer
+ * - copyright: Legal page, no header, minimal footer
+ * - toc: Table of contents, roman numerals
+ * - chapter: Main content, full headers/footers
+ * - index: Back-of-book index
+ */
+
+/* ==========================================================================
+   CSS Custom Properties for Header/Footer Content
+   Set these via frontmatter or profile metadata.defaults
+   ========================================================================== */
+
+:root {
+  /* Running header content - chapter title captured via string-set */
+  --ug-header-font-size: 9pt;
+  --ug-footer-font-size: 8pt;
+
+  /* Company logo for footer (base64 or path) */
+  --ug-company-logo: "";
+
+  /* Document identifiers */
+  --ug-document-apn: "";
+  --ug-document-revision: "";
+}
+
+/* ==========================================================================
+   String Sets - Capture Dynamic Content for Running Headers
+   ========================================================================== */
+
+/* Capture chapter title from h1 elements with chapter-title class */
+h1.chapter-title {
+  string-set: chapter-title content(text);
+}
+
+/* Alternative: capture from any h1 in chapter */
+.chapter h1 {
+  string-set: chapter-title content(text);
+}
+
+/* Capture section title from h2 */
+.document-content h2 {
+  string-set: section-title content(text);
+}
+
+/* ==========================================================================
+   Base Page - Default Layout (Letter, 1in margins)
+   ========================================================================== */
+
+@page {
+  size: Letter;
+  margin: 1in;
+
+  /* Running header - left side shows chapter title */
+  @top-left {
+    content: string(chapter-title);
+    font-size: var(--ug-header-font-size, 9pt);
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    color: #666;
+    vertical-align: bottom;
+    padding-bottom: 0.25in;
+  }
+
+  /* Running header - right side shows document APN */
+  @top-right {
+    content: var(--ug-document-apn, "");
+    font-size: var(--ug-header-font-size, 9pt);
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    color: #888;
+    vertical-align: bottom;
+    padding-bottom: 0.25in;
+  }
+
+  /* Header rule line */
+  @top-center {
+    content: "";
+    border-bottom: 0.5pt solid #ccc;
+    width: 100%;
+  }
+
+  /* Running footer - left side for company logo area */
+  @bottom-left {
+    content: var(--ug-company-logo, "");
+    font-size: var(--ug-footer-font-size, 8pt);
+    vertical-align: top;
+    padding-top: 0.25in;
+  }
+
+  /* Running footer - center shows revision */
+  @bottom-center {
+    content: var(--ug-document-revision, "");
+    font-size: var(--ug-footer-font-size, 8pt);
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    color: #888;
+    vertical-align: top;
+    padding-top: 0.25in;
+  }
+
+  /* Running footer - right side shows page number */
+  @bottom-right {
+    content: "Page " counter(page);
+    font-size: var(--ug-footer-font-size, 8pt);
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    color: #666;
+    vertical-align: top;
+    padding-top: 0.25in;
+  }
+}
+
+/* ==========================================================================
+   Title Page - No Headers/Footers
+   ========================================================================== */
+
+@page title {
+  size: Letter;
+  margin: 1in;
+
+  @top-left { content: none; }
+  @top-center { content: none; }
+  @top-right { content: none; }
+  @bottom-left { content: none; }
+  @bottom-center { content: none; }
+  @bottom-right { content: none; }
+}
+
+.title-page {
+  page: title;
+  break-after: page;
+}
+
+/* ==========================================================================
+   Copyright Page - Minimal Footer Only
+   ========================================================================== */
+
+@page copyright {
+  size: Letter;
+  margin: 1in;
+
+  /* No header */
+  @top-left { content: none; }
+  @top-center { content: none; }
+  @top-right { content: none; }
+
+  /* Simple footer with page number */
+  @bottom-left { content: none; }
+  @bottom-center { content: none; }
+  @bottom-right {
+    content: counter(page, lower-roman);
+    font-size: var(--ug-footer-font-size, 8pt);
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    color: #888;
+    vertical-align: top;
+    padding-top: 0.25in;
+  }
+}
+
+.copyright-page {
+  page: copyright;
+  break-after: page;
+}
+
+/* ==========================================================================
+   Table of Contents - Roman Numeral Page Numbers
+   ========================================================================== */
+
+@page toc {
+  size: Letter;
+  margin: 1in;
+
+  /* Header with document title */
+  @top-left {
+    content: "Table of Contents";
+    font-size: var(--ug-header-font-size, 9pt);
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    color: #666;
+    vertical-align: bottom;
+    padding-bottom: 0.25in;
+  }
+
+  @top-center {
+    content: "";
+    border-bottom: 0.5pt solid #ccc;
+    width: 100%;
+  }
+
+  @top-right {
+    content: var(--ug-document-apn, "");
+    font-size: var(--ug-header-font-size, 9pt);
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    color: #888;
+    vertical-align: bottom;
+    padding-bottom: 0.25in;
+  }
+
+  /* Footer with roman numerals */
+  @bottom-left { content: none; }
+  @bottom-center { content: none; }
+  @bottom-right {
+    content: counter(page, lower-roman);
+    font-size: var(--ug-footer-font-size, 8pt);
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    color: #888;
+    vertical-align: top;
+    padding-top: 0.25in;
+  }
+}
+
+.toc-page {
+  page: toc;
+  break-after: page;
+  counter-reset: page 1; /* Reset to page i */
+}
+
+/* ==========================================================================
+   Chapter Pages - Full Headers/Footers with Page Counter Reset
+   ========================================================================== */
+
+@page chapter {
+  size: Letter;
+  margin: 1in;
+
+  /* Running header - chapter title left */
+  @top-left {
+    content: string(chapter-title);
+    font-size: var(--ug-header-font-size, 9pt);
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    color: #666;
+    vertical-align: bottom;
+    padding-bottom: 0.25in;
+  }
+
+  @top-center {
+    content: "";
+    border-bottom: 0.5pt solid #ccc;
+    width: 100%;
+  }
+
+  @top-right {
+    content: var(--ug-document-apn, "");
+    font-size: var(--ug-header-font-size, 9pt);
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    color: #888;
+    vertical-align: bottom;
+    padding-bottom: 0.25in;
+  }
+
+  /* Footer with logo area and page number */
+  @bottom-left {
+    content: var(--ug-company-logo, "");
+    font-size: var(--ug-footer-font-size, 8pt);
+    vertical-align: top;
+    padding-top: 0.25in;
+  }
+
+  @bottom-center {
+    content: var(--ug-document-revision, "");
+    font-size: var(--ug-footer-font-size, 8pt);
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    color: #888;
+    vertical-align: top;
+    padding-top: 0.25in;
+  }
+
+  @bottom-right {
+    content: "Page " counter(page);
+    font-size: var(--ug-footer-font-size, 8pt);
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    color: #666;
+    vertical-align: top;
+    padding-top: 0.25in;
+  }
+}
+
+/* First page of chapter - no header (title acts as header) */
+@page chapter:first {
+  @top-left { content: none; }
+  @top-center { content: none; }
+  @top-right { content: none; }
+}
+
+.chapter {
+  page: chapter;
+  break-before: page;
+}
+
+/* First chapter resets page counter to 1 */
+.chapter:first-of-type {
+  counter-reset: page 1;
+}
+
+/* ==========================================================================
+   Index Page - Back-of-Book Index
+   ========================================================================== */
+
+@page index {
+  size: Letter;
+  margin: 1in;
+
+  /* Header */
+  @top-left {
+    content: "Index";
+    font-size: var(--ug-header-font-size, 9pt);
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    color: #666;
+    vertical-align: bottom;
+    padding-bottom: 0.25in;
+  }
+
+  @top-center {
+    content: "";
+    border-bottom: 0.5pt solid #ccc;
+    width: 100%;
+  }
+
+  @top-right {
+    content: var(--ug-document-apn, "");
+    font-size: var(--ug-header-font-size, 9pt);
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    color: #888;
+    vertical-align: bottom;
+    padding-bottom: 0.25in;
+  }
+
+  /* Footer */
+  @bottom-left { content: none; }
+  @bottom-center { content: none; }
+  @bottom-right {
+    content: "Page " counter(page);
+    font-size: var(--ug-footer-font-size, 8pt);
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    color: #666;
+    vertical-align: top;
+    padding-top: 0.25in;
+  }
+}
+
+.index-page {
+  page: index;
+  break-before: page;
+}
+
+/* ==========================================================================
+   Page Break Controls
+   ========================================================================== */
+
+/* Force page break before specific elements */
+.break-before {
+  break-before: page;
+  page-break-before: always;
+}
+
+/* Force page break after specific elements */
+.break-after {
+  break-after: page;
+  page-break-after: always;
+}
+
+/* Prevent breaks inside critical elements */
+.no-break {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+/* Keep headings with following content */
+h1, h2, h3, h4, h5, h6 {
+  break-after: avoid;
+  page-break-after: avoid;
+}
+
+/* Keep callout boxes together */
+.callout-box,
+.callout-note,
+.callout-warning,
+.callout-caution {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+/* Keep procedures together when possible */
+.procedure {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+/* Keep FAQ items together */
+.faq-item {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+/* Keep figures with captions together */
+figure {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+/* Keep tables together when reasonable */
+table {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+/* ==========================================================================
+   Widow/Orphan Control
+   ========================================================================== */
+
+p {
+  widows: 3;
+  orphans: 3;
+}
+
+li {
+  widows: 2;
+  orphans: 2;
+}
+
+/* ==========================================================================
+   Two-Column Layout for Index
+   ========================================================================== */
+
+.index-columns {
+  column-count: 2;
+  column-gap: 1.5rem;
+}
+
+.index-columns .index-section {
+  break-inside: avoid-column;
+  page-break-inside: avoid;
+}
+
+/* ==========================================================================
+   Blank Page Handling
+   ========================================================================== */
+
+/* Named page for intentionally blank pages */
+@page blank {
+  size: Letter;
+  margin: 1in;
+
+  @top-left { content: none; }
+  @top-center { content: none; }
+  @top-right { content: none; }
+  @bottom-left { content: none; }
+  @bottom-center {
+    content: "This page intentionally left blank";
+    font-size: 9pt;
+    font-style: italic;
+    color: #999;
+  }
+  @bottom-right { content: none; }
+}
+
+.blank-page {
+  page: blank;
+  break-after: page;
+}
+
+/* ==========================================================================
+   Landscape Page Support
+   ========================================================================== */
+
+@page landscape {
+  size: Letter landscape;
+  margin: 0.75in 1in;
+
+  @top-left {
+    content: string(chapter-title);
+    font-size: var(--ug-header-font-size, 9pt);
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    color: #666;
+    vertical-align: bottom;
+    padding-bottom: 0.25in;
+  }
+
+  @top-center {
+    content: "";
+    border-bottom: 0.5pt solid #ccc;
+    width: 100%;
+  }
+
+  @top-right {
+    content: var(--ug-document-apn, "");
+    font-size: var(--ug-header-font-size, 9pt);
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    color: #888;
+    vertical-align: bottom;
+    padding-bottom: 0.25in;
+  }
+
+  @bottom-left { content: none; }
+  @bottom-center { content: none; }
+  @bottom-right {
+    content: "Page " counter(page);
+    font-size: var(--ug-footer-font-size, 8pt);
+    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    color: #666;
+    vertical-align: top;
+    padding-top: 0.25in;
+  }
+}
+
+.page-landscape {
+  page: landscape;
+}
