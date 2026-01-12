@@ -5,12 +5,15 @@ import markdownItInclude from 'markdown-it-include';
 import markdownItContainer from 'markdown-it-container';
 import { createHighlighter } from 'shiki';
 import { readFile } from 'fs/promises';
+import { createLogger } from '@pagemd/core';
 import { extractFrontmatter } from './frontmatter.js';
 import { wikilinkPlugin } from './wikilinks.js';
 import { normalizeMetadata } from './metadata.js';
 import { registerExtensions } from './extensions.js';
 import { directivesPlugin } from './directives.js';
 import { markdownItFancyListPlugin, isFancyListsEnabled } from './fancy-lists.js';
+
+const logger = createLogger('parser');
 
 // Singleton highlighter - initialized once, reused for all renders
 let highlighter = null;
@@ -306,6 +309,7 @@ export function createParser(options = {}) {
 
   // 1.5. markdown-it-fancy-lists - Letter and Roman numeral lists (opt-in)
   if (isFancyListsEnabled(options)) {
+    logger.debug('Fancy lists enabled - letter (a, b, c) and Roman numeral (i, ii, iii) markers active');
     md.use(markdownItFancyListPlugin);
   }
 
@@ -355,10 +359,11 @@ export function parse(markdown, options = {}) {
     ? normalizeMetadata(rawMetadata)
     : rawMetadata;
 
-  // Create parser and render HTML - pass highlight_theme from metadata
+  // Create parser and render HTML - pass metadata options through
   const md = createParser({
     ...options,
-    highlightTheme: metadata.highlight_theme || options.highlightTheme
+    highlightTheme: metadata.highlight_theme || options.highlightTheme,
+    fancy_lists: metadata.fancy_lists ?? options.fancy_lists
   });
   const html = md.render(content);
 

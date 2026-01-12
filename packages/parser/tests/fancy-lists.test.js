@@ -72,7 +72,7 @@ describe('fancy lists', () => {
       const input = 'A.  First item\nB.  Second item\nC.  Third item';
       const html = md.render(input);
 
-      expect(html).toContain('<ol type="A">');
+      expect(html).toContain('type="A"');
       expect(html).toContain('<li>First item</li>');
       expect(html).toContain('<li>Second item</li>');
       expect(html).toContain('<li>Third item</li>');
@@ -84,7 +84,7 @@ describe('fancy lists', () => {
       const html = md.render(input);
 
       // Should render as paragraph, not list
-      expect(html).not.toContain('<ol type="A">');
+      expect(html).not.toContain('type="A"');
       expect(html).toContain('<p>');
     });
   });
@@ -95,7 +95,7 @@ describe('fancy lists', () => {
       const input = 'a. First item\nb. Second item\nc. Third item';
       const html = md.render(input);
 
-      expect(html).toContain('<ol type="a">');
+      expect(html).toContain('type="a"');
       expect(html).toContain('<li>First item</li>');
       expect(html).toContain('<li>Second item</li>');
     });
@@ -108,7 +108,7 @@ describe('fancy lists', () => {
       const input = 'I.  Introduction\nII.  Background\nIII.  Methodology';
       const html = md.render(input);
 
-      expect(html).toContain('<ol type="I">');
+      expect(html).toContain('type="I"');
       expect(html).toContain('<li>Introduction</li>');
       expect(html).toContain('<li>Background</li>');
       expect(html).toContain('<li>Methodology</li>');
@@ -121,7 +121,7 @@ describe('fancy lists', () => {
       const input = 'i. First clause\nii. Second clause\niii. Third clause';
       const html = md.render(input);
 
-      expect(html).toContain('<ol type="i">');
+      expect(html).toContain('type="i"');
       expect(html).toContain('<li>First clause</li>');
       expect(html).toContain('<li>Second clause</li>');
     });
@@ -162,8 +162,8 @@ describe('fancy lists', () => {
 II.  Top level`;
       const html = md.render(input);
 
-      expect(html).toContain('<ol type="I">');
-      expect(html).toContain('<ol type="A">');
+      expect(html).toContain('type="I"');
+      expect(html).toContain('type="A"');
     });
   });
 
@@ -186,7 +186,7 @@ II.  Top level`;
       const input = 'A.  First item {.highlight}\nB.  Second item';
       const html = md.render(input);
 
-      expect(html).toContain('<ol type="A">');
+      expect(html).toContain('type="A"');
       expect(html).toContain('class="highlight"');
     });
 
@@ -197,7 +197,7 @@ II.  Top level`;
       const html = md.render(input);
 
       expect(html).toContain('<blockquote>');
-      expect(html).toContain('<ol type="A">');
+      expect(html).toContain('type="A"');
     });
   });
 
@@ -208,7 +208,7 @@ II.  Top level`;
       const input = 'A.  \nB.  Second';
       const html = md.render(input);
 
-      expect(html).toContain('<ol type="A">');
+      expect(html).toContain('type="A"');
     });
 
     it('should handle list with single item', () => {
@@ -217,7 +217,7 @@ II.  Top level`;
       const input = 'A.  Only item';
       const html = md.render(input);
 
-      expect(html).toContain('<ol type="A">');
+      expect(html).toContain('type="A"');
       expect(html).toContain('<li>Only item</li>');
     });
 
@@ -226,7 +226,7 @@ II.  Top level`;
       const input = 'i.  First item\nii.   Second item';
       const html = md.render(input);
 
-      expect(html).toContain('<ol type="i">');
+      expect(html).toContain('type="i"');
       expect(html).toContain('<li>First item</li>');
       expect(html).toContain('<li>Second item</li>');
     });
@@ -240,7 +240,7 @@ II.  Top level`;
       const input = 'A.  First\nB.  Second';
       const html = md.render(input);
 
-      expect(html).toContain('<ol type="A">');
+      expect(html).toContain('type="A"');
     });
 
     it('should disable via env var', () => {
@@ -250,7 +250,44 @@ II.  Top level`;
       const input = 'A.  First\nB.  Second';
       const html = md.render(input);
 
-      expect(html).not.toContain('<ol type="A">');
+      expect(html).not.toContain('type="A"');
     });
+  });
+
+  describe('CSS class generation', () => {
+    it('should add list-upper-alpha class for uppercase letter lists', () => {
+      const md = createParser({ fancyLists: true });
+      const input = 'A.  First\nB.  Second';
+      const html = md.render(input);
+
+      expect(html).toContain('class="list-upper-alpha"');
+    });
+
+    it('should add list-lower-alpha class for lowercase letter lists', () => {
+      const md = createParser({ fancyLists: true });
+      const input = 'a. First\nb. Second';
+      const html = md.render(input);
+
+      expect(html).toContain('class="list-lower-alpha"');
+    });
+
+    it('should add list-upper-roman class for uppercase Roman lists', () => {
+      const md = createParser({ fancyLists: true });
+      const input = 'I.  First\nII.  Second';
+      const html = md.render(input);
+
+      expect(html).toContain('class="list-upper-roman"');
+    });
+
+    it('should add list-lower-roman class for lowercase Roman lists', () => {
+      const md = createParser({ fancyLists: true });
+      const input = 'i. First\nii. Second';
+      const html = md.render(input);
+
+      expect(html).toContain('class="list-lower-roman"');
+    });
+
+    // Note: Standard decimal lists (1., 2.) don't get a type attribute or class
+    // because decimal is the default browser behavior
   });
 });

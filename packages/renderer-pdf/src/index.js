@@ -166,19 +166,43 @@ export async function renderPdf(markdownPath, options = {}) {
     // Fallback: rewrite paths to absolute file:// URLs if base href fails
     const preparedHtml = prepareHtmlForRendering(injectedHtml, markdownPath, {
       useBaseHref: true,
-      rewritePaths: false // Enable as fallback if base href causes issues
+      rewritePaths: true // Rewrite relative paths to absolute file:// URLs
     });
 
     logger.debug('render.paths', 'success', 'HTML prepared for rendering', {
       baseUrl: buildBaseUrl(markdownPath)
     });
 
-    await page.setContent(preparedHtml, {
-      waitUntil: 'networkidle0',
-      timeout: 30000
-    });
+    // Write HTML to temp file and use page.goto() instead of setContent()
+    // This gives the page a proper file:// origin, allowing it to load local images
+    const markdownDir = path.dirname(path.resolve(markdownPath));
+    const tempHtmlPath = path.join(markdownDir, `.pagemd-render-${Date.now()}.html`);
 
-    logger.debug('render.page', 'success', 'Page content set');
+    try {
+      await fs.writeFile(tempHtmlPath, preparedHtml, 'utf-8');
+      logger.trace('render.temp', 'success', `Wrote temp HTML: ${tempHtmlPath}`);
+
+      // Convert to file:// URL (handle Windows paths)
+      const tempFileUrl = tempHtmlPath.replace(/\\/g, '/');
+      const gotoUrl = tempFileUrl.startsWith('/')
+        ? `file://${tempFileUrl}`
+        : `file:///${tempFileUrl}`;
+
+      await page.goto(gotoUrl, {
+        waitUntil: 'networkidle0',
+        timeout: 30000
+      });
+
+      logger.debug('render.page', 'success', 'Page loaded via file:// URL');
+    } finally {
+      // Clean up temp file
+      try {
+        await fs.unlink(tempHtmlPath);
+        logger.trace('render.temp', 'cleanup', 'Removed temp HTML file');
+      } catch {
+        // Ignore cleanup errors
+      }
+    }
 
     // Step 8: Wait for Paged.js to complete rendering
     logger.debug('render.pagedjs', 'started', 'Waiting for Paged.js to complete');

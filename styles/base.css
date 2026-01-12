@@ -417,6 +417,18 @@ ol {
 	list-style-type: decimal;
 }
 
+/* Fancy list types - use CSS classes for cross-browser case-sensitivity
+   Browser type attribute is case-insensitive, so we add classes in parser:
+   - .list-lower-alpha (from type="a")
+   - .list-upper-alpha (from type="A")
+   - .list-lower-roman (from type="i")
+   - .list-upper-roman (from type="I")
+*/
+ol.list-lower-alpha { list-style-type: lower-alpha !important; }
+ol.list-upper-alpha { list-style-type: upper-alpha !important; }
+ol.list-lower-roman { list-style-type: lower-roman !important; }
+ol.list-upper-roman { list-style-type: upper-roman !important; }
+
 li {
 	margin: 0.25em 0;
 }

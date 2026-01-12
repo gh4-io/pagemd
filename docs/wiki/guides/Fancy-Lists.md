@@ -117,21 +117,45 @@ iii. Third clause
 iv. Fourth clause
 ```
 
-### Continuation with #
+### Continuation with # (and Auto-Increment Reality)
 
-Use `#` to continue numbering without explicitly specifying the number:
+The `#.` marker is a placeholder that continues numbering:
 
 ```markdown
 1. First item
-2. Second item
-
-Some intervening paragraph text.
-
-#. Continues as 3
-#. Continues as 4
+#. Second item
+#. Third item
 ```
 
-This is useful when you need to split a list with other content but want the numbering to continue.
+**However:** Markers after the first item are **always ignored** - the list auto-increments regardless of what you write:
+
+```markdown
+a. First      → renders as a
+z. Second     → renders as b (z is ignored)
+m. Third      → renders as c (m is ignored)
+#. Fourth     → renders as d (# is ignored too)
+```
+
+This means `a. a. a. a.` and `a. b. c. d.` and `a. #. #. #.` all produce identical output: a, b, c, d.
+
+**What actually matters:**
+- **First marker** sets the list type (a, A, i, I, or 1)
+- **First marker** sets the start value (e.g., `c.` starts at c)
+- **All subsequent markers** are ignored - just need to be valid to continue the list
+
+**After content interruption**, `#.` starts a new list at `1` (not continuing previous):
+
+```markdown
+a. First
+b. Second
+
+[[WARNING]]
+Note here.
+[[/WARNING]]
+
+#. This becomes 1, NOT c
+c. Use explicit marker instead
+```
 
 ### Custom Start Value
 
@@ -243,6 +267,152 @@ C.  Post-deployment
    2. Verify functionality
 ````
 
+## Complete Syntax Rules
+
+### Marker Types
+
+| Marker | Type | Output |
+|--------|------|--------|
+| `1.` or `1)` | Decimal | 1, 2, 3... |
+| `a.` or `a)` | Lowercase alpha | a, b, c... |
+| `A.` or `A)` | Uppercase alpha | A, B, C... |
+| `i.` or `i)` | Lowercase Roman | i, ii, iii... |
+| `I.` or `I)` | Uppercase Roman | I, II, III... |
+| `#.` or `#)` | Auto-continue | Continues previous numbering |
+
+### Spacing After Marker (CRITICAL)
+
+| Marker Type | Required Spacing | Example | Valid? |
+|-------------|------------------|---------|--------|
+| Numbers (`1.`, `2.`) | 1+ spaces | `1. Item` | ✓ |
+| Lowercase letters (`a.`, `b.`) | 1+ spaces | `a. Item` | ✓ |
+| Lowercase Roman (`i.`, `ii.`) | 1+ spaces | `i. Item` | ✓ |
+| **Uppercase letters (`A.`, `B.`)** | **2+ spaces** | `A.  Item` | ✓ |
+| **Uppercase letters (`A.`, `B.`)** | **1 space** | `A. Item` | ✗ |
+| **Uppercase Roman (`I.`, `II.`)** | **2+ spaces** | `I.  Item` | ✓ |
+| **Uppercase Roman (`I.`, `II.`)** | **1 space** | `I. Item` | ✗ |
+
+**Why uppercase needs two spaces:** Prevents false positives like "A. Smith said..." from being parsed as lists.
+
+### Nesting Indentation
+
+Add **3-4 spaces relative to the parent level** to create sub-lists:
+
+```markdown
+1. Level 1 (0 spaces indent)
+   a. Level 2 (3 spaces from level 1)
+   b. Another level 2
+      i. Level 3 (3 spaces from level 2 = 6 total)
+      ii. Another level 3
+         A.  Level 4 (3 spaces from level 3 = 9 total, note 2 spaces after A.)
+```
+
+| Level | Indent From Parent | Total Indent | Example |
+|-------|-------------------|--------------|---------|
+| 1 | — | 0 spaces | `1. Item` |
+| 2 | +3-4 spaces | 3-4 spaces | `   a. Item` |
+| 3 | +3-4 spaces | 6-8 spaces | `      i. Item` |
+| 4 | +3-4 spaces | 9-12 spaces | `         A.  Item` |
+
+**Key point:** Indentation is **relative to the parent**, not absolute. If your level 1 starts at 4 spaces, level 2 must be at 7-8 spaces (4 + 3-4).
+
+**Important:** A blank line before a nested list helps the parser recognize it as a new list level.
+
+### List Behavior Rules
+
+1. **First item determines type** - `b.` starts at "b", continues c, d, e...
+2. **Subsequent markers are ignored** - `a. z. m.` renders as a, b, c (z and m ignored)
+3. **Changing marker type starts new list** - switching `a.` → `A.` or `.` → `)` creates a separate list
+4. **`I` or `i` first = Roman numerals** - `I.  ` starts Roman (1), not letter "I" (9th)
+5. **Other single letters = alpha** - `C.` = letter C (3rd), not Roman 100
+6. **`#` is just another valid marker** - no special "memory" across content breaks
+
+### Auto-Increment Behavior
+
+**Markers auto-increment regardless of what you write.** The actual marker values after the first item are ignored:
+
+```markdown
+a. First item
+a. Second item (renders as "b")
+a. Third item (renders as "c")
+```
+
+This means you can use any valid marker and the list will increment automatically. Only the **first marker** determines the starting value and list type.
+
+### Custom Start Values
+
+Start a list at any value by using that value as the first marker:
+
+```markdown
+c. Starts at c
+d. Continues as d
+e. Continues as e
+```
+
+```markdown
+5. Starts at 5
+6. Continues as 6
+```
+
+### Keeping Lists Continuous (Indentation Trick)
+
+Content **indented past the list level** becomes part of the current list item and does NOT break the list:
+
+````markdown
+a. First item
+b. Second item
+
+    [[WARNING]]
+    This callout is indented 4+ spaces, so it's inside item b.
+    [[/WARNING]]
+
+a. Continues as c (not restarted!)
+````
+
+The callout becomes part of item `b`, and the list continues unbroken.
+
+**Rule:** Indentation determines if content breaks the list:
+- Content at list level → breaks the list
+- Content indented past list level → stays inside current item
+
+### Restarting List Numbering
+
+To **intentionally** restart numbering (e.g., go back to "a"), place content at the list's indentation level:
+
+**Use `<!-- ::BREAK -->` at list level to restart:**
+
+````markdown
+a. First item
+b. Second item
+
+<!-- ::BREAK -->
+
+a. Restarts at a
+b. Continues as b
+````
+
+Other content that breaks lists (when at list indentation level):
+- Any PageMD directive: `<!-- ::BREAK -->`, `<!-- ::TOC -->`, etc.
+- Paragraph text
+- Headings
+- Horizontal rules (`---`)
+
+**Does NOT break lists:**
+- Blank lines alone
+- HTML comments (`<!-- comment -->`)
+- Content indented past list level (becomes part of list item)
+
+### Paragraph Interruption
+
+- **Can interrupt paragraphs:** `A`, `a`, `I`, `i`, `1`, `#` (first numerals)
+- **Cannot interrupt paragraphs:** `B.`, `ii.`, `2.` (non-first values) at top level
+- **Nested lists:** Any start value can interrupt within a list context
+
+### Not Supported
+
+- Parentheses around numbers: `(1)` ✗
+- Only right-paren or period after marker: `1)` ✓ or `1.` ✓
+
 ## Nested Lists
 
 Fancy lists work with nested lists and inherit from their parent:
@@ -294,14 +464,26 @@ C.  Check [[Test Plan]]
 
 ## Notes and Limitations
 
-- **Uppercase requires two spaces:** Uppercase letters (A-Z) and uppercase Roman numerals (I-IX) require **two spaces** after the period (e.g., `A.  Item` not `A. Item`). This prevents false positives like "A. Smith said..."
-- **Lowercase needs one space:** Lowercase letters (a-z) and lowercase Roman numerals (i-ix) only need one space (e.g., `a. Item` or `i. Item`)
+### Spacing Requirements
+- **Uppercase requires two spaces:** `A.  Item` ✓ (two spaces) vs `A. Item` ✗ (one space)
+- **Lowercase needs one space:** `a. Item` ✓ (one space is sufficient)
+
+### Nesting Requirements
+- **3-4 spaces per level:** Each nesting level needs 3-4 spaces of indentation
+- **Blank lines help:** A blank line before a nested list improves parser recognition
+
+### List Behavior
 - **First marker determines type:** The marker on the first item determines the list type for the entire list
-- **Mixing markers starts new list:** Using a different marker type starts a new list
+- **Mixing markers starts new list:** Using a different marker type (e.g., `a.` to `A.`) starts a new list
 - **Period or parenthesis:** Lists can use either `.` or `)` after the marker (e.g., `A.` or `A)`)
-- **Disabled by default:** Must be explicitly enabled to avoid unexpected behavior
+
+### Configuration
+- **Disabled by default:** Must be explicitly enabled via frontmatter, profile, or environment variable
+
+### Rendering
 - **Browser rendering:** All fancy list types are rendered natively by browsers via HTML `<ol type="">` attribute
 - **PDF support:** Paged.js fully supports all fancy list types in PDF output
+- **CSS required:** PageMD base.css includes rules to properly style all list types
 
 ## Troubleshooting
 
@@ -310,6 +492,39 @@ C.  Check [[Test Plan]]
 **Cause:** Fancy lists are not enabled.
 
 **Solution:** Add `fancy_lists: true` to frontmatter or enable via profile/environment variable.
+
+### Uppercase markers (A., I.) not recognized as list items
+
+**Cause:** Uppercase markers require **two spaces** after the period, not one.
+
+**Wrong:**
+```markdown
+A. First item
+B. Second item
+```
+
+**Correct:**
+```markdown
+A.  First item
+B.  Second item
+```
+
+### Nested list appearing as paragraph text
+
+**Cause:** Missing blank line before nested list, or insufficient indentation.
+
+**Solution:**
+1. Add a blank line after the parent item
+2. Use 3-4 spaces of indentation per nesting level
+3. For uppercase markers, remember two spaces after the period
+
+**Example:**
+```markdown
+1. Parent item
+
+   A.  Nested uppercase (blank line above, 3 spaces indent, 2 spaces after A.)
+   B.  Another nested item
+```
 
 ### Numbering resets unexpectedly
 
@@ -322,6 +537,57 @@ C.  Check [[Test Plan]]
 **Cause:** Fancy lists feature is disabled.
 
 **Solution:** Enable fancy lists. Standard Markdown only supports starting ordered lists at `1.`
+
+### List not continuing after callout/content
+
+**Cause:** Content at the list's indentation level breaks the list.
+
+**Solution 1 - Indent the content** (keeps list continuous):
+
+```markdown
+a. First item
+b. Second item
+
+    [[NOTE]]
+    Indented 4+ spaces - becomes part of item b.
+    [[/NOTE]]
+
+a. Continues as c (list not broken!)
+```
+
+**Solution 2 - Use explicit markers** (if content must be at list level):
+
+```markdown
+a. First item
+b. Second item
+
+[[NOTE]]
+At list level - breaks the list.
+[[/NOTE]]
+
+c. Explicitly start at c
+d. Next item
+```
+
+**Note:** Within a contiguous list, markers are ignored anyway (`a. z. m.` → a, b, c).
+
+### List numbering won't restart
+
+**Cause:** Blank lines and HTML comments (`<!-- comment -->`) do not break lists.
+
+**Solution:** Use `<!-- ::BREAK -->` or other actual content to separate lists:
+
+```markdown
+a. First list item a
+b. First list item b
+
+<!-- ::BREAK -->
+
+a. NEW list starts at a
+b. Continues as b
+```
+
+See [Restarting List Numbering](#restarting-list-numbering) above for details.
 
 ## See Also
 

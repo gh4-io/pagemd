@@ -192,6 +192,7 @@ export async function launchBrowser(options = {}) {
     '--disable-setuid-sandbox',
     '--disable-dev-shm-usage',
     '--disable-web-security',
+    '--allow-file-access-from-files',  // Required for loading local images with file:// URLs
     ...args
   ];
   // Note: debug flag no longer forces non-headless mode

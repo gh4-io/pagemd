@@ -238,6 +238,19 @@ Force a new page:
 <!-- ::BREAK -->
 ```
 
+**Tip:** `<!-- ::BREAK -->` also restarts list numbering. Use it to break a list and start fresh:
+
+```markdown
+a. First item
+b. Second item
+
+<!-- ::BREAK -->
+
+a. New list starts at a
+```
+
+See [Fancy Lists - Restarting List Numbering](Fancy-Lists.md#restarting-list-numbering) for more details.
+
 ### Named Page Layouts
 
 Switch to a different page layout:
