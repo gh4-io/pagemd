@@ -281,6 +281,8 @@ Insert images with automatic figure numbering, captions, and sizing options.
 
 ### Available Parameters
 
+#### Core Parameters
+
 | Parameter | Type | Required | Description | Values | Example |
 |-----------|------|----------|-------------|--------|---------|
 | `src` | string | No* | Image file path | Any relative or absolute path | `src="./images/diagram.png"` |
@@ -291,6 +293,34 @@ Insert images with automatic figure numbering, captions, and sizing options.
 ***Note on src:** If omitted, PageMD expects an image on the next line using standard markdown syntax: `![alt text](image.png)`
 
 ****Note on caption:** While optional for basic figures, the caption is required for figures to receive automatic numbering in the output.
+
+#### Accessibility & Performance Parameters
+
+| Parameter | Type | Description | Values | Example |
+|-----------|------|-------------|--------|---------|
+| `alt` | string | Alt text for screen readers (separate from caption) | Descriptive text | `alt="Bar chart showing Q3 revenue growth"` |
+| `loading` | string | Native lazy loading for images below the fold | `lazy`, `eager` | `loading="lazy"` |
+| `link` | string | Wrap image in clickable anchor tag | URL or path | `link="/images/full-size.png"` |
+
+**Note on alt:** If omitted, the `caption` value is used as alt text. For accessibility, provide descriptive alt text that describes what the image shows, while caption provides context for sighted readers.
+
+**Note on link:** External links (starting with `http://` or `https://`) automatically add `target="_blank"` and `rel="noopener noreferrer"` for security. Dangerous URL schemes (`javascript:`, `data:`, `vbscript:`) are blocked.
+
+#### Image Cropping Parameters
+
+Control how images are cropped within their container using CSS `object-fit` and `object-position`:
+
+| Parameter | Type | Description | Values | Default | Example |
+|-----------|------|-------------|--------|---------|---------|
+| `crop-fit` | string | How image fits in container | `cover`, `contain`, `fill`, `scale-down` | (none) | `crop-fit="cover"` |
+| `crop-x` | number | Horizontal focus point (%) | `0`-`100` | `50` | `crop-x="70"` |
+| `crop-y` | number | Vertical focus point (%) | `0`-`100` | `50` | `crop-y="30"` |
+
+**Crop-fit Values:**
+- `cover` - Image covers entire container, may be cropped (best for photos)
+- `contain` - Entire image visible, may have letterboxing
+- `fill` - Stretches to fill container (may distort)
+- `scale-down` - Like `contain`, but never scales up smaller images
 
 ### Width Parameter
 
@@ -373,9 +403,62 @@ More analysis here.
 
 Both figures are auto-numbered (Figure 1, Figure 2) and can be referenced by ID in cross-links.
 
+**Example 5: Accessible Figure with Separate Alt Text**
+```markdown
+<!-- ::FIGURE src="chart.png" alt="Bar chart showing 45% revenue increase" caption="Q3 Financial Results" -->
+```
+
+The `alt` text describes the image for screen readers, while the caption provides context for all readers.
+
+**Example 6: Lazy Loading for Performance**
+```markdown
+<!-- ::FIGURE src="large-photo.jpg" caption="High-res photo" loading="lazy" -->
+```
+
+Images with `loading="lazy"` are only loaded when they scroll into view, improving page load time.
+
+**Example 7: Clickable Image (Link to Full Size)**
+```markdown
+<!-- ::FIGURE src="thumbnail.png" caption="Click to enlarge" link="/images/full-size.png" -->
+```
+
+Wraps the image in an anchor tag. Click opens the full-size image.
+
+**Example 8: External Link**
+```markdown
+<!-- ::FIGURE src="preview.png" caption="Visit project site" link="https://example.com" -->
+```
+
+External links automatically add `target="_blank"` and security attributes.
+
+**Example 9: Cropped Portrait Photo**
+```markdown
+<!-- ::FIGURE src="photo.jpg" caption="Team Lead" crop-fit="cover" crop-x="50" crop-y="30" -->
+```
+
+Focuses on the upper portion of the image (30% from top), ideal for portraits where faces are near the top.
+
+**Example 10: Full-Featured Figure**
+```markdown
+<!-- ::FIGURE
+  src="dashboard.png"
+  alt="Analytics dashboard showing user metrics"
+  caption="User Analytics Dashboard"
+  id="fig-dashboard"
+  width="full"
+  loading="lazy"
+  link="/images/dashboard-full.png"
+  crop-fit="cover"
+  crop-x="50"
+  crop-y="20"
+-->
+```
+
+Combines all features: accessibility, performance, linking, and cropping.
+
 ### HTML Output
 
-**Directive Input:**
+**Basic Directive:**
 ```markdown
 <!-- ::FIGURE src="arch.png" caption="System Design" id="fig-arch" width="full" -->
 ```
@@ -385,6 +468,36 @@ Both figures are auto-numbered (Figure 1, Figure 2) and can be referenced by ID 
 <figure id="fig-arch" class="width-full">
   <img src="arch.png" alt="System Design">
   <figcaption>Figure <span class="fig-num">1</span>: System Design</figcaption>
+</figure>
+```
+
+**With New Parameters:**
+```markdown
+<!-- ::FIGURE src="photo.jpg" alt="Portrait photo" caption="Team Lead" loading="lazy" link="/full.jpg" crop-fit="cover" crop-x="50" crop-y="30" -->
+```
+
+**Generated HTML:**
+```html
+<figure style="--crop-fit: cover; --crop-x: 50%; --crop-y: 30%;">
+  <a href="/full.jpg">
+    <img src="photo.jpg" alt="Portrait photo" loading="lazy" style="object-fit: cover; object-position: 50% 30%;">
+  </a>
+  <figcaption>Figure <span class="fig-num">1</span>: Team Lead</figcaption>
+</figure>
+```
+
+**External Link (with security attributes):**
+```markdown
+<!-- ::FIGURE src="preview.png" caption="Visit site" link="https://example.com" -->
+```
+
+**Generated HTML:**
+```html
+<figure>
+  <a href="https://example.com" target="_blank" rel="noopener noreferrer">
+    <img src="preview.png" alt="Visit site">
+  </a>
+  <figcaption>Figure <span class="fig-num">1</span>: Visit site</figcaption>
 </figure>
 ```
 

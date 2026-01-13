@@ -181,7 +181,8 @@ function parseFigureAttributes(attrString) {
 
   // Match key="value" (double quotes) or key='value' (single quotes) or key=value (no quotes)
   // Order matters: try quoted patterns first, then unquoted
-  const attrRegex = /(\w+)=(?:"([^"]+)"|'([^']+)'|(\S+))/g;
+  // Use [\w-]+ to support hyphenated attribute names like crop-fit, crop-x, crop-y
+  const attrRegex = /([\w-]+)=(?:"([^"]+)"|'([^']+)'|(\S+))/g;
   let match;
 
   while ((match = attrRegex.exec(attrString)) !== null) {
@@ -233,6 +234,38 @@ export function figurePlugin(md) {
     const figId = attrs.id || '';
     const width = attrs.width || '';
 
+    // Extract crop parameters
+    const rawCropFit = attrs['crop-fit'] || '';
+    const rawCropX = attrs['crop-x'] || '';
+    const rawCropY = attrs['crop-y'] || '';
+
+    // Validate crop-fit: must be one of cover, contain, fill, scale-down
+    const validCropFits = ['cover', 'contain', 'fill', 'scale-down'];
+    const cropFit = validCropFits.includes(rawCropFit) ? rawCropFit : '';
+
+    // Validate crop-x and crop-y: must be 0-100 (percentage)
+    const validateCropPosition = (val) => {
+      const num = parseFloat(val);
+      return !isNaN(num) && num >= 0 && num <= 100 ? String(num) : '';
+    };
+    const cropX = validateCropPosition(rawCropX);
+    const cropY = validateCropPosition(rawCropY);
+
+    // Determine if any crop params are set (for conditional rendering)
+    const hasCrop = cropFit || cropX || cropY;
+
+    // Extract accessibility and enhancement parameters
+    // alt: separate alt text (falls back to caption if not provided)
+    const alt = attrs.alt || caption;
+
+    // loading: lazy loading support (lazy or eager, validated)
+    const rawLoading = attrs.loading || '';
+    const validLoadingValues = ['lazy', 'eager'];
+    const loading = validLoadingValues.includes(rawLoading) ? rawLoading : '';
+
+    // link: wrap image in anchor tag
+    const link = attrs.link || '';
+
     figureCounter++;
 
     // Look ahead for the next line (legacy: image on next line if no src)
@@ -248,12 +281,28 @@ export function figurePlugin(md) {
     // Create tokens
     const token_open = state.push('figure_open', 'figure', 1);
     token_open.markup = '<!-- ::FIGURE -->';
-    token_open.meta = { id: figId, width: width };
+    token_open.meta = {
+      id: figId,
+      width: width,
+      cropFit: cropFit,
+      cropX: cropX,
+      cropY: cropY,
+      hasCrop: hasCrop
+    };
 
     // If src is provided in directive, create image token
     if (src) {
       const img_token = state.push('figure_image', 'img', 0);
-      img_token.meta = { src: src, alt: caption };
+      img_token.meta = {
+        src: src,
+        alt: alt,           // Uses alt param or falls back to caption
+        cropFit: cropFit,
+        cropX: cropX,
+        cropY: cropY,
+        hasCrop: hasCrop,
+        loading: loading,   // lazy/eager loading
+        link: link          // URL to wrap image in anchor
+      };
     } else if (imageMarkdown && (imageMarkdown.startsWith('![[') || imageMarkdown.startsWith('!['))) {
       // Legacy: image on next line
       const inline_token = state.push('inline', '', 0);
@@ -277,6 +326,18 @@ export function figurePlugin(md) {
     const attrs = [];
     if (meta.id) attrs.push(`id="${md.utils.escapeHtml(meta.id)}"`);
     if (meta.width) attrs.push(`class="width-${md.utils.escapeHtml(meta.width)}"`);
+
+    // Add crop styles as CSS custom properties (only if crop params present)
+    if (meta.hasCrop) {
+      const styles = [];
+      if (meta.cropFit) styles.push(`--crop-fit: ${md.utils.escapeHtml(meta.cropFit)}`);
+      if (meta.cropX) styles.push(`--crop-x: ${md.utils.escapeHtml(meta.cropX)}%`);
+      if (meta.cropY) styles.push(`--crop-y: ${md.utils.escapeHtml(meta.cropY)}%`);
+      if (styles.length > 0) {
+        attrs.push(`style="${styles.join('; ')}"`);
+      }
+    }
+
     const attrStr = attrs.length > 0 ? ' ' + attrs.join(' ') : '';
     return `<figure${attrStr}>`;
   };
@@ -287,7 +348,56 @@ export function figurePlugin(md) {
     const meta = tokens[idx].meta || {};
     const src = md.utils.escapeHtml(meta.src || '');
     const alt = md.utils.escapeHtml(meta.alt || '');
-    return `<img src="${src}" alt="${alt}">`;
+
+    // Build image attributes
+    const imgAttrs = [`src="${src}"`, `alt="${alt}"`];
+
+    // Add loading attribute (lazy/eager) if specified
+    if (meta.loading) {
+      imgAttrs.push(`loading="${md.utils.escapeHtml(meta.loading)}"`);
+    }
+
+    // Add crop styles to image (only if crop params present)
+    if (meta.hasCrop) {
+      const styles = [];
+      // Add object-fit if cropFit is specified
+      if (meta.cropFit) {
+        styles.push(`object-fit: ${md.utils.escapeHtml(meta.cropFit)}`);
+      }
+      // Add object-position if either cropX or cropY is specified
+      if (meta.cropX || meta.cropY) {
+        const x = meta.cropX || '50';
+        const y = meta.cropY || '50';
+        styles.push(`object-position: ${md.utils.escapeHtml(x)}% ${md.utils.escapeHtml(y)}%`);
+      }
+      if (styles.length > 0) {
+        imgAttrs.push(`style="${styles.join('; ')}"`);
+      }
+    }
+
+    // Build the img tag
+    const imgTag = `<img ${imgAttrs.join(' ')}>`;
+
+    // Wrap in anchor if link is specified
+    if (meta.link) {
+      // Block dangerous URL schemes (javascript:, data:, vbscript:)
+      const isDangerous = /^(javascript|data|vbscript):/i.test(meta.link.trim());
+      if (isDangerous) {
+        // Skip link wrapper for dangerous URLs, just return the image
+        return imgTag;
+      }
+
+      const href = md.utils.escapeHtml(meta.link);
+      // Check if external link (starts with http:// or https://)
+      const isExternal = /^https?:\/\//i.test(meta.link);
+      const linkAttrs = [`href="${href}"`];
+      if (isExternal) {
+        linkAttrs.push('target="_blank"', 'rel="noopener noreferrer"');
+      }
+      return `<a ${linkAttrs.join(' ')}>${imgTag}</a>`;
+    }
+
+    return imgTag;
   };
 
   md.renderer.rules.figcaption = (tokens, idx) => {

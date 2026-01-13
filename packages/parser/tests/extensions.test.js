@@ -367,6 +367,286 @@ End text`;
     expect(html).not.toContain('<script>');
     expect(html).toContain('&lt;script&gt;');
   });
+
+  // FIGURE Crop Syntax Tests
+  describe('crop parameters', () => {
+    it('should render figure with crop-fit parameter', () => {
+      const input = `<!-- ::FIGURE src="test.png" caption="Test" crop-fit="contain" -->`;
+
+      const html = md.render(input);
+
+      expect(html).toContain('object-fit: contain');
+      expect(html).toContain('<figure');
+      expect(html).toContain('--crop-fit: contain');
+    });
+
+    it('should render figure with crop-x and crop-y parameters', () => {
+      const input = `<!-- ::FIGURE src="test.png" caption="Test" crop-x="70" crop-y="40" -->`;
+
+      const html = md.render(input);
+
+      expect(html).toContain('object-position: 70% 40%');
+      expect(html).toContain('--crop-x: 70%');
+      expect(html).toContain('--crop-y: 40%');
+    });
+
+    it('should render figure with all crop parameters', () => {
+      const input = `<!-- ::FIGURE src="test.png" caption="Test" crop-fit="cover" crop-x="60" crop-y="30" -->`;
+
+      const html = md.render(input);
+
+      expect(html).toContain('object-fit: cover');
+      expect(html).toContain('object-position: 60% 30%');
+      expect(html).toContain('--crop-fit: cover');
+      expect(html).toContain('--crop-x: 60%');
+      expect(html).toContain('--crop-y: 30%');
+    });
+
+    it('should not add crop styles when no crop parameters specified', () => {
+      const input = `<!-- ::FIGURE src="test.png" caption="Test" -->`;
+
+      const html = md.render(input);
+
+      expect(html).toContain('<img src="test.png" alt="Test">');
+      expect(html).not.toContain('object-fit');
+      expect(html).not.toContain('object-position');
+      expect(html).not.toContain('--crop-fit');
+      expect(html).not.toContain('--crop-x');
+      expect(html).not.toContain('--crop-y');
+    });
+
+    it('should use default position (50%) when only crop-fit is specified', () => {
+      const input = `<!-- ::FIGURE src="test.png" caption="Test" crop-fit="contain" -->`;
+
+      const html = md.render(input);
+
+      expect(html).toContain('object-fit: contain');
+      // Should NOT have object-position since neither crop-x nor crop-y specified
+      expect(html).not.toContain('object-position');
+    });
+
+    it('should use default for missing position when only one specified', () => {
+      const input = `<!-- ::FIGURE src="test.png" caption="Test" crop-x="70" -->`;
+
+      const html = md.render(input);
+
+      // Should default crop-y to 50%
+      expect(html).toContain('object-position: 70% 50%');
+    });
+
+    it('should work with crop-fit and width parameters together', () => {
+      const input = `<!-- ::FIGURE src="test.png" caption="Test" width="half" crop-fit="cover" crop-x="55" crop-y="45" -->`;
+
+      const html = md.render(input);
+
+      expect(html).toContain('class="width-half"');
+      expect(html).toContain('object-fit: cover');
+      expect(html).toContain('object-position: 55% 45%');
+    });
+
+    it('should work with crop parameters and id', () => {
+      const input = `<!-- ::FIGURE src="test.png" caption="Test Figure" id="fig-crop" crop-fit="scale-down" -->`;
+
+      const html = md.render(input);
+
+      expect(html).toContain('id="fig-crop"');
+      expect(html).toContain('object-fit: scale-down');
+      expect(html).toContain('Figure <span class="fig-num">1</span>: Test Figure');
+    });
+
+    it('should validate crop-fit values and ignore invalid ones', () => {
+      const input = `<!-- ::FIGURE src="test.png" caption="Test" crop-fit="invalid" -->`;
+
+      const html = md.render(input);
+
+      // Invalid crop-fit should be ignored, no styles added
+      expect(html).not.toContain('object-fit');
+      expect(html).not.toContain('--crop-fit');
+    });
+
+    it('should validate crop-x range (0-100) and ignore invalid values', () => {
+      const input = `<!-- ::FIGURE src="test.png" caption="Test" crop-x="150" crop-y="50" -->`;
+
+      const html = md.render(input);
+
+      // Invalid crop-x (>100) should be ignored
+      expect(html).not.toContain('150%');
+      // But crop-y should still work (defaults crop-x to 50%)
+      expect(html).toContain('object-position: 50% 50%');
+    });
+
+    it('should validate crop-y range (0-100) and ignore invalid values', () => {
+      const input = `<!-- ::FIGURE src="test.png" caption="Test" crop-x="50" crop-y="-10" -->`;
+
+      const html = md.render(input);
+
+      // Invalid crop-y (<0) should be ignored
+      expect(html).not.toContain('-10%');
+      // But crop-x should still work (defaults crop-y to 50%)
+      expect(html).toContain('object-position: 50% 50%');
+    });
+
+    it('should handle non-numeric crop values gracefully', () => {
+      const input = `<!-- ::FIGURE src="test.png" caption="Test" crop-x="abc" crop-y="def" -->`;
+
+      const html = md.render(input);
+
+      // Non-numeric values should be ignored
+      expect(html).not.toContain('object-position');
+      expect(html).not.toContain('abc');
+      expect(html).not.toContain('def');
+    });
+
+    it('should accept boundary values (0 and 100)', () => {
+      const input = `<!-- ::FIGURE src="test.png" caption="Test" crop-x="0" crop-y="100" -->`;
+
+      const html = md.render(input);
+
+      expect(html).toContain('object-position: 0% 100%');
+    });
+
+    it('should handle decimal crop positions', () => {
+      const input = `<!-- ::FIGURE src="test.png" caption="Test" crop-x="33.33" crop-y="66.67" -->`;
+
+      const html = md.render(input);
+
+      expect(html).toContain('object-position: 33.33% 66.67%');
+    });
+
+    it('should support all valid crop-fit values', () => {
+      const validFits = ['cover', 'contain', 'fill', 'scale-down'];
+
+      validFits.forEach((fit) => {
+        const input = `<!-- ::FIGURE src="test.png" caption="Test ${fit}" crop-fit="${fit}" -->`;
+        const html = md.render(input);
+
+        expect(html).toContain(`object-fit: ${fit}`);
+        expect(html).toContain(`--crop-fit: ${fit}`);
+      });
+    });
+
+    it('should escape crop parameter values in HTML output', () => {
+      // Attempt XSS via crop-fit (should be blocked by validation anyway)
+      const input = `<!-- ::FIGURE src="test.png" caption="Test" crop-fit="cover; background:red" -->`;
+
+      const html = md.render(input);
+
+      // Invalid crop-fit should be rejected entirely
+      expect(html).not.toContain('background');
+      expect(html).not.toContain('red');
+    });
+
+    // alt parameter tests
+    it('should use alt parameter when provided', () => {
+      const input = `<!-- ::FIGURE src="chart.png" alt="A bar chart" caption="Q3 Results" -->`;
+      const html = md.render(input);
+      expect(html).toContain('alt="A bar chart"');
+      expect(html).not.toContain('alt="Q3 Results"');
+    });
+
+    it('should fall back to caption for alt when alt not provided', () => {
+      const input = `<!-- ::FIGURE src="chart.png" caption="Q3 Results" -->`;
+      const html = md.render(input);
+      expect(html).toContain('alt="Q3 Results"');
+    });
+
+    it('should escape HTML in alt parameter', () => {
+      const input = `<!-- ::FIGURE src="test.png" alt="Test <script>alert('xss')</script>" caption="Caption" -->`;
+      const html = md.render(input);
+      expect(html).not.toContain('<script>');
+      expect(html).toContain('&lt;script&gt;');
+    });
+
+    // loading parameter tests
+    it('should add loading="lazy" attribute when specified', () => {
+      const input = `<!-- ::FIGURE src="large-image.png" caption="Hero Image" loading="lazy" -->`;
+      const html = md.render(input);
+      expect(html).toContain('loading="lazy"');
+    });
+
+    it('should add loading="eager" attribute when specified', () => {
+      const input = `<!-- ::FIGURE src="above-fold.png" caption="Header" loading="eager" -->`;
+      const html = md.render(input);
+      expect(html).toContain('loading="eager"');
+    });
+
+    it('should ignore invalid loading values', () => {
+      const input = `<!-- ::FIGURE src="test.png" caption="Test" loading="invalid" -->`;
+      const html = md.render(input);
+      expect(html).not.toContain('loading=');
+    });
+
+    // link parameter tests
+    it('should wrap image in anchor tag when link provided', () => {
+      const input = `<!-- ::FIGURE src="thumb.png" caption="Preview" link="/full-size.png" -->`;
+      const html = md.render(input);
+      expect(html).toContain('<a href="/full-size.png">');
+      expect(html).toContain('</a>');
+      // Anchor should wrap the img
+      expect(html).toMatch(/<a href="[^"]*"[^>]*>.*<img/s);
+    });
+
+    it('should add target and rel for external links (http)', () => {
+      const input = `<!-- ::FIGURE src="logo.png" caption="Brand" link="https://example.com" -->`;
+      const html = md.render(input);
+      expect(html).toContain('href="https://example.com"');
+      expect(html).toContain('target="_blank"');
+      expect(html).toContain('rel="noopener noreferrer"');
+    });
+
+    it('should add target and rel for external links (https)', () => {
+      const input = `<!-- ::FIGURE src="logo.png" caption="Brand" link="http://example.com/page" -->`;
+      const html = md.render(input);
+      expect(html).toContain('href="http://example.com/page"');
+      expect(html).toContain('target="_blank"');
+      expect(html).toContain('rel="noopener noreferrer"');
+    });
+
+    it('should NOT add target and rel for local links', () => {
+      const input = `<!-- ::FIGURE src="thumb.png" caption="Preview" link="./images/full.png" -->`;
+      const html = md.render(input);
+      expect(html).toContain('href="./images/full.png"');
+      expect(html).not.toContain('target="_blank"');
+      expect(html).not.toContain('rel="noopener noreferrer"');
+    });
+
+    it('should escape HTML in link parameter', () => {
+      const input = `<!-- ::FIGURE src="test.png" caption="Test" link="javascript:alert('xss')" -->`;
+      const html = md.render(input);
+      // Should escape or sanitize the dangerous link
+      expect(html).not.toContain('javascript:alert');
+    });
+
+    // Combination tests
+    it('should work with link and loading together', () => {
+      const input = `<!-- ::FIGURE src="thumb.png" caption="Gallery" link="/full.png" loading="lazy" -->`;
+      const html = md.render(input);
+      expect(html).toContain('<a href="/full.png">');
+      expect(html).toContain('loading="lazy"');
+    });
+
+    it('should work with link and crop parameters together', () => {
+      const input = `<!-- ::FIGURE src="photo.png" caption="Portrait" link="https://gallery.com/photo" crop-fit="cover" crop-x="50" crop-y="25" -->`;
+      const html = md.render(input);
+      expect(html).toContain('href="https://gallery.com/photo"');
+      expect(html).toContain('target="_blank"');
+      expect(html).toContain('object-fit: cover');
+      expect(html).toContain('object-position: 50% 25%');
+    });
+
+    it('should work with alt, link, loading, and crop together', () => {
+      const input = `<!-- ::FIGURE src="hero.jpg" alt="Mountain landscape" caption="Sunset at Mt. Rainier" link="https://photos.example.com/hero-full.jpg" loading="lazy" crop-fit="cover" crop-x="50" crop-y="30" -->`;
+      const html = md.render(input);
+      expect(html).toContain('alt="Mountain landscape"');
+      expect(html).toContain('<a href="https://photos.example.com/hero-full.jpg"');
+      expect(html).toContain('target="_blank"');
+      expect(html).toContain('rel="noopener noreferrer"');
+      expect(html).toContain('loading="lazy"');
+      expect(html).toContain('object-fit: cover');
+      expect(html).toContain('object-position: 50% 30%');
+      expect(html).toContain('Figure <span class="fig-num">1</span>: Sunset at Mt. Rainier');
+    });
+  });
 });
 
 describe('registerExtensions', () => {

@@ -897,11 +897,16 @@ figure {
 	text-align: center;
 	break-inside: avoid;
 	page-break-inside: avoid;
+	position: relative;
+	overflow: hidden; /* Essential: clips image to figure bounds for cropping */
 }
 
 figure img {
 	max-width: 100%;
 	height: auto;
+	display: block; /* Removes inline spacing */
+	margin-left: auto;
+	margin-right: auto;
 }
 
 figcaption {
