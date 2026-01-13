@@ -2279,6 +2279,755 @@ This feature is experimental [!WARNING] in v1.0.
 
 ---
 
+## Named Containers
+
+Create styled content blocks using predefined semantic container types.
+
+### Basic Syntax
+
+```markdown
+:::type
+Content here
+:::
+
+:::type Optional Title
+Content with title
+:::
+```
+
+### Available Container Types
+
+PageMD includes 15 predefined container types, each with built-in styling and semantic meaning:
+
+| Type | Purpose | Use Case |
+|------|---------|----------|
+| `warning` | Warning messages | Alert users about potential issues |
+| `caution` | Caution notices | Safety-related warnings |
+| `note` | Information notes | Important information |
+| `important` | Important notices | Critical information |
+| `tip` | Tips and hints | Helpful suggestions |
+| `details` | Expandable content | Show/hide additional details |
+| `summary` | Summary blocks | Overview sections |
+| `aside` | Sidebar content | Supplementary information |
+| `columns` | Multi-column layout | Two-column text distribution |
+| `spoiler` | Hidden content | Movie/book spoilers |
+| `document-header` | Document title area | Opening/cover section |
+| `title-block` | Title block | Main title styling |
+| `applicability-box` | Applicability information | Scope and applicability notes |
+| `approval-block` | Approval section | Signature and approval area |
+| `footer-notice` | Footer notices | Document closing section |
+
+### How It Works
+
+When you write:
+
+```markdown
+:::warning
+Do not proceed without confirmation!
+:::
+```
+
+PageMD generates:
+
+```html
+<div class="container container-warning">
+  <p>Do not proceed without confirmation!</p>
+</div>
+```
+
+The container automatically:
+- Wraps content in a `<div>` element
+- Applies `container` class (base styling)
+- Applies `container-{type}` class (type-specific styling)
+- Processes nested markdown (headings, lists, formatting)
+
+### Named Container Examples
+
+#### Warning Message
+
+```markdown
+:::warning
+This operation cannot be undone. Please proceed with caution.
+:::
+```
+
+**Output:**
+```html
+<div class="container container-warning">
+  <p>This operation cannot be undone. Please proceed with caution.</p>
+</div>
+```
+
+**Rendered as:** Red-tinted box with warning styling
+
+#### Aside (Sidebar Information)
+
+```markdown
+:::aside
+**Pro Tip:** You can also use the keyboard shortcut Ctrl+S to save.
+:::
+```
+
+**Output:**
+```html
+<div class="container container-aside">
+  <p><strong>Pro Tip:</strong> You can also use the keyboard shortcut Ctrl+S to save.</p>
+</div>
+```
+
+#### Expandable Details
+
+```markdown
+:::details Click to expand
+
+## Detailed Information
+
+This content is hidden by default and can be expanded by the user.
+
+- Point 1
+- Point 2
+- Point 3
+
+:::
+```
+
+**Output:**
+```html
+<div class="container container-details">
+  <h2>Detailed Information</h2>
+  <p>This content is hidden by default and can be expanded by the user.</p>
+  <ul>
+    <li>Point 1</li>
+    <li>Point 2</li>
+    <li>Point 3</li>
+  </ul>
+</div>
+```
+
+#### Multi-Column Layout
+
+```markdown
+:::columns
+## Column Layout Example
+
+This text is automatically balanced into two columns. The container-columns CSS rule uses CSS column properties to split content efficiently. Very useful for long paragraphs that benefit from narrower line length.
+
+## Second Column
+
+Content flows automatically into the second column, creating a balanced two-column layout for better readability.
+
+:::
+```
+
+**Output:**
+```html
+<div class="container container-columns">
+  <h2>Column Layout Example</h2>
+  <p>This text is automatically balanced into two columns...</p>
+  <h2>Second Column</h2>
+  <p>Content flows automatically into the second column...</p>
+</div>
+```
+
+#### Spoiler with Title
+
+```markdown
+:::spoiler Movie Ending
+
+The main character realizes they were the villain all along.
+
+:::
+```
+
+**Output:**
+```html
+<div class="container container-spoiler" data-title="Movie Ending">
+  <p>The main character realizes they were the villain all along.</p>
+</div>
+```
+
+**CSS renders:** Title appears before content via `::before` pseudo-element with `attr(data-title)`
+
+#### Tip Container
+
+```markdown
+:::tip Performance Optimization
+
+Use CSS `will-change: transform;` on animated elements to trigger GPU acceleration and improve performance significantly.
+
+:::
+```
+
+**Output:**
+```html
+<div class="container container-tip">
+  <p>Use CSS <code>will-change: transform;</code> on animated elements to trigger GPU acceleration and improve performance significantly.</p>
+</div>
+```
+
+### CSS Styling for Named Containers
+
+```css
+/* Base container styles applied to all types */
+.container {
+  padding: 1rem;
+  margin: 1rem 0;
+  border-radius: 6px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+}
+
+/* Warning container - red theme */
+.container-warning {
+  background: #fef2f2;
+  border-color: #fecaca;
+  border-left: 4px solid #dc2626;
+}
+
+.container-warning p {
+  color: #991b1b;
+}
+
+/* Caution container - orange theme */
+.container-caution {
+  background: #fffbeb;
+  border-color: #fce7b0;
+  border-left: 4px solid #d97706;
+}
+
+/* Note container - blue theme */
+.container-note {
+  background: #f0f9ff;
+  border-color: #bfdbfe;
+  border-left: 4px solid #0284c7;
+}
+
+/* Important container - yellow theme */
+.container-important {
+  background: #fef9c3;
+  border-color: #fef08a;
+  border-left: 4px solid #ca8a04;
+}
+
+/* Tip container - green theme */
+.container-tip {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+  border-left: 4px solid #22c55e;
+}
+
+/* Aside container - amber theme */
+.container-aside {
+  background: #fefce8;
+  border-color: #fde68a;
+  border-left: 4px solid #f59e0b;
+}
+
+/* Details container - light blue */
+.container-details {
+  background: #f0f9ff;
+  border-color: #bfdbfe;
+}
+
+/* Columns container - enable two-column layout */
+.container-columns {
+  column-count: 2;
+  column-gap: 2rem;
+  column-rule: 1px solid #e5e7eb;
+}
+
+@media (max-width: 768px) {
+  .container-columns {
+    column-count: 1;  /* Single column on mobile */
+  }
+}
+
+/* Spoiler container with title display */
+.container-spoiler {
+  background: #f3f4f6;
+  border-color: #d1d5db;
+}
+
+.container-spoiler::before {
+  content: "Spoiler: " attr(data-title);
+  display: block;
+  font-weight: 600;
+  margin: -1rem -1rem 0.5rem -1rem;
+  padding: 0.5rem 1rem;
+  background: #d1d5db;
+  color: #111827;
+  border-radius: 6px 6px 0 0;
+  border-bottom: 1px solid #9ca3af;
+}
+```
+
+### Common Mistakes
+
+**❌ Missing Container Type:**
+```markdown
+:::
+Content without type
+:::
+```
+
+**✅ Correct:**
+```markdown
+:::note
+Content with type
+:::
+```
+
+**❌ Invalid Type Name:**
+```markdown
+:::error
+Invalid type!
+:::
+```
+
+**✅ Valid Types Only:**
+```markdown
+:::warning   # ✓ Valid
+:::tip       # ✓ Valid
+:::note      # ✓ Valid
+```
+
+### Use Cases
+
+- **Documentation** - Highlight warnings and important notes
+- **Instructions** - Call out critical steps
+- **API Reference** - Mark deprecated or experimental features
+- **Blog Posts** - Add tips and cautions
+- **Reports** - Use title blocks and headers
+- **Formal Documents** - Use approval blocks and notices
+
+---
+
+## Attribute Containers
+
+Create custom styled divs by specifying CSS classes and HTML IDs directly in markdown.
+
+### Basic Syntax
+
+```markdown
+::: {.classname}
+Content here
+:::
+
+::: {.class1 .class2 #section-id}
+Content with multiple classes and ID
+:::
+
+::: {#unique-id}
+Content with just an ID
+:::
+```
+
+### How It Works
+
+When you write:
+
+```markdown
+::: {.highlight #intro}
+Important introduction
+:::
+```
+
+PageMD generates:
+
+```html
+<div class="highlight" id="intro">
+  <p>Important introduction</p>
+</div>
+```
+
+The container:
+- Creates a `<div>` element
+- Applies the specified CSS classes
+- Sets the HTML ID if provided
+- Processes nested markdown fully
+
+### Supported Attribute Syntax
+
+| Syntax | Purpose | Example |
+|--------|---------|---------|
+| `.classname` | Apply single CSS class | `::: {.highlight}` |
+| `.class1 .class2` | Multiple classes (space-separated) | `::: {.box .shadow}` |
+| `#idname` | Set HTML element ID | `::: {#section-1}` |
+| Combined | Classes and ID together | `::: {.box #main}` |
+
+### Attribute Container Examples
+
+#### Single Class
+
+```markdown
+::: {.blue-box}
+This content has the class "blue-box" applied.
+:::
+```
+
+**Output:**
+```html
+<div class="blue-box">
+  <p>This content has the class "blue-box" applied.</p>
+</div>
+```
+
+**You provide CSS:**
+```css
+.blue-box {
+  background-color: #e7f5ff;
+  border: 2px solid #339af0;
+  padding: 1.5rem;
+  border-radius: 8px;
+}
+```
+
+#### Multiple Classes
+
+```markdown
+::: {.alert .alert-danger .important}
+This content combines three CSS classes for sophisticated styling.
+:::
+```
+
+**Output:**
+```html
+<div class="alert alert-danger important">
+  <p>This content combines three CSS classes for sophisticated styling.</p>
+</div>
+```
+
+**Your CSS:**
+```css
+.alert {
+  padding: 1.5rem;
+  border-radius: 6px;
+  margin: 1rem 0;
+}
+
+.alert-danger {
+  background-color: #fee;
+  border: 1px solid #fcc;
+  color: #933;
+}
+
+.important {
+  font-weight: 600;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+```
+
+#### With ID for Linking
+
+```markdown
+::: {.featured-section #best-practices}
+
+## Best Practices
+
+You can link to this section: [Jump to best practices](#best-practices)
+
+- Always validate input
+- Use semantic HTML
+- Test across browsers
+
+:::
+```
+
+**Output:**
+```html
+<div class="featured-section" id="best-practices">
+  <h2>Best Practices</h2>
+  <p>You can link to this section: <a href="#best-practices">Jump to best practices</a></p>
+  <ul>
+    <li>Always validate input</li>
+    <li>Use semantic HTML</li>
+    <li>Test across browsers</li>
+  </ul>
+</div>
+```
+
+#### Complex Styled Card
+
+```markdown
+::: {.card .card-raised .card-blue #main-feature}
+
+## Feature Highlight
+
+Premium features designed for power users:
+
+- Advanced analytics
+- Custom themes
+- Priority support
+
+Available in Pro plan and above.
+
+:::
+```
+
+**Output:**
+```html
+<div class="card card-raised card-blue" id="main-feature">
+  <h2>Feature Highlight</h2>
+  <p>Premium features designed for power users:</p>
+  <ul>
+    <li>Advanced analytics</li>
+    <li>Custom themes</li>
+    <li>Priority support</li>
+  </ul>
+  <p>Available in Pro plan and above.</p>
+</div>
+```
+
+**Your CSS:**
+```css
+.card {
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 2rem;
+  margin: 1.5rem 0;
+  background: white;
+}
+
+.card-raised {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.card-blue {
+  border-left: 4px solid #2196f3;
+  background: #f5f9ff;
+}
+```
+
+#### ID Only (No Classes)
+
+```markdown
+::: {#appendix}
+
+## Appendix: Reference Data
+
+Additional information and reference materials.
+
+:::
+```
+
+**Output:**
+```html
+<div id="appendix">
+  <h2>Appendix: Reference Data</h2>
+  <p>Additional information and reference materials.</p>
+</div>
+```
+
+Use case: Link to sections without custom styling
+
+### Attribute Styling Patterns
+
+#### Alert Pattern
+
+```markdown
+::: {.alert .alert-info}
+This is an informational message.
+:::
+
+::: {.alert .alert-success}
+Operation completed successfully!
+:::
+
+::: {.alert .alert-warning}
+This action requires confirmation.
+:::
+```
+
+**CSS:**
+```css
+.alert {
+  padding: 1rem;
+  margin: 1rem 0;
+  border-radius: 4px;
+  border-left: 4px solid;
+}
+
+.alert-info {
+  background-color: #d1ecf1;
+  border-color: #0c5460;
+  color: #0c5460;
+}
+
+.alert-success {
+  background-color: #d4edda;
+  border-color: #155724;
+  color: #155724;
+}
+
+.alert-warning {
+  background-color: #fff3cd;
+  border-color: #856404;
+  color: #856404;
+}
+```
+
+#### Layout Pattern
+
+```markdown
+::: {.sidebar #sidebar-content}
+## Sidebar
+
+Navigation and links here.
+:::
+
+::: {.main-content #main-area}
+## Main Content
+
+Primary article or page content.
+:::
+```
+
+**CSS:**
+```css
+.sidebar {
+  width: 25%;
+  float: left;
+  padding: 1rem;
+}
+
+.main-content {
+  width: 75%;
+  float: left;
+  padding: 1rem;
+}
+
+@media (max-width: 768px) {
+  .sidebar, .main-content {
+    width: 100%;
+    float: none;
+  }
+}
+```
+
+### Common Mistakes
+
+**❌ Invalid Attribute Syntax:**
+```markdown
+::: .highlight
+Missing braces!
+:::
+
+::: { .highlight }
+Spaces around braces!
+:::
+
+::: {.highlight #id1 #id2}
+Two IDs (only one allowed)!
+:::
+```
+
+**✅ Correct Syntax:**
+```markdown
+::: {.highlight}
+Single class, no spaces.
+:::
+
+::: {.highlight #unique-id}
+Class and single ID.
+:::
+
+::: {.class1 .class2 #id}
+Multiple classes and one ID.
+:::
+```
+
+### Use Cases
+
+- **Custom Alerts** - Create branded alert boxes
+- **Cards** - Build card layouts for feature lists
+- **Sections** - Organize content with linkable sections
+- **Theme-Specific Styling** - Apply custom colors and layouts
+- **Navigation** - Build sidebars and navigation areas
+- **Responsive Layouts** - Combine with CSS media queries
+
+### Browser Support
+
+- ✅ All modern browsers support CSS classes and IDs
+- ✅ Responsive design works with media queries
+- ✅ Flexbox and Grid layouts supported
+- ✅ Print-friendly with proper CSS
+
+---
+
+## Containers: Named vs Attribute
+
+### Comparison
+
+| Feature | Named (`::: type`) | Attribute (`::: {.class}`) |
+|---------|-------------------|---------------------------|
+| **Syntax** | `::: warning` | `::: {.warning}` |
+| **CSS Classes** | Automatic (`container container-{type}`) | You specify (`.classname`) |
+| **Predefined Types** | 15 semantic types | Unlimited custom classes |
+| **Default Styling** | Built-in via base.css | You write CSS |
+| **Data Attributes** | Title support (`data-title`) | Not supported |
+| **Semantic HTML** | Yes (`container` class) | Custom class names |
+| **Learning Curve** | Easy - pick a type | Medium - requires CSS |
+| **Flexibility** | Limited to 15 types | Unlimited customization |
+| **Best For** | Standard alerts/messages | Custom styled blocks |
+
+### When to Use Each
+
+**Use Named Containers When:**
+- You need standard semantic containers (warning, note, tip)
+- You want built-in styling without writing CSS
+- You need rapid documentation without custom styling
+- Semantic meaning matters (warning vs note distinction)
+- Examples: alerts, tips, important notices
+
+**Use Attribute Containers When:**
+- You need custom styling not provided by named types
+- You're building complex layouts (cards, sidebars)
+- You need multiple classes for sophisticated design
+- You want full control over appearance
+- Examples: custom cards, theme-specific styling, complex layouts
+
+**Use Both Together:**
+```markdown
+:::warning
+Standard warning with built-in styling.
+:::
+
+::: {.container .container-warning .extra-styling}
+Warning with both semantic class and custom extras.
+:::
+```
+
+### Nesting
+
+Both types support nested markdown and containers:
+
+```markdown
+:::warning
+
+## Important Notice
+
+Use this alert in critical situations:
+
+::: {.highlight}
+Always use with caution!
+:::
+
+:::
+```
+
+Output:
+```html
+<div class="container container-warning">
+  <h2>Important Notice</h2>
+  <p>Use this alert in critical situations:</p>
+  <div class="highlight">
+    <p>Always use with caution!</p>
+  </div>
+</div>
+```
+
+---
+
 ## Inline Attributes
 
 Beyond directives, PageMD supports **inline attributes** for applying CSS classes, IDs, and HTML attributes directly to markdown elements.
