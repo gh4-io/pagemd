@@ -233,6 +233,116 @@ describe('template.js', () => {
     });
   });
 
+  describe('processTokens - default values', () => {
+    it('should use default value for missing key', () => {
+      const template = 'Type: {{doc_type ?? "How-To Guide"}}';
+      const data = {};
+
+      const result = processTokens(template, data);
+
+      expect(result).toBe('Type: How-To Guide');
+    });
+
+    it('should use default value for null key', () => {
+      const template = 'Author: {{author ?? "Unknown"}}';
+      const data = { author: null };
+
+      const result = processTokens(template, data);
+
+      expect(result).toBe('Author: Unknown');
+    });
+
+    it('should use actual value over default when present', () => {
+      const template = 'Author: {{author ?? "Unknown"}}';
+      const data = { author: 'John Doe' };
+
+      const result = processTokens(template, data);
+
+      expect(result).toBe('Author: John Doe');
+    });
+
+    it('should preserve falsey values (not use default)', () => {
+      const template = 'Count: {{count ?? "N/A"}}, Active: {{active ?? "yes"}}, Empty: {{empty ?? "default"}}';
+      const data = { count: 0, active: false, empty: '' };
+
+      const result = processTokens(template, data);
+
+      expect(result).toBe('Count: 0, Active: false, Empty: ');
+    });
+
+    it('should handle default values with nested keys', () => {
+      const template = 'Name: {{metadata.author.name ?? "N/A"}}';
+      const data = { metadata: {} };
+
+      const result = processTokens(template, data);
+
+      expect(result).toBe('Name: N/A');
+    });
+
+    it('should handle single-quoted default values', () => {
+      const template = "Type: {{type ?? 'Guide'}}";
+      const data = {};
+
+      const result = processTokens(template, data);
+
+      expect(result).toBe('Type: Guide');
+    });
+
+    it('should handle default values with spaces', () => {
+      const template = 'Status: {{status ?? "Not Available"}}';
+      const data = {};
+
+      const result = processTokens(template, data);
+
+      expect(result).toBe('Status: Not Available');
+    });
+
+    it('should handle default values with special characters', () => {
+      const template = 'Note: {{note ?? "N/A - TBD (pending)"}}';
+      const data = {};
+
+      const result = processTokens(template, data);
+
+      expect(result).toBe('Note: N/A - TBD (pending)');
+    });
+
+    it('should handle multiple default values in one template', () => {
+      const template = 'Author: {{author ?? "Unknown"}}, Type: {{type ?? "Document"}}';
+      const data = { author: 'Jane' };
+
+      const result = processTokens(template, data);
+
+      expect(result).toBe('Author: Jane, Type: Document');
+    });
+
+    it('should handle default value containing ?? operator', () => {
+      const template = 'Info: {{info ?? "Use ?? for defaults"}}';
+      const data = {};
+
+      const result = processTokens(template, data);
+
+      expect(result).toBe('Info: Use ?? for defaults');
+    });
+
+    it('should handle nested key with value that overrides default', () => {
+      const template = 'Title: {{metadata.title ?? "Untitled"}}';
+      const data = { metadata: { title: 'My Document' } };
+
+      const result = processTokens(template, data);
+
+      expect(result).toBe('Title: My Document');
+    });
+
+    it('should handle undefined value in nested path', () => {
+      const template = 'Value: {{meta.nested.deep.value ?? "default"}}';
+      const data = { meta: { nested: {} } };
+
+      const result = processTokens(template, data);
+
+      expect(result).toBe('Value: default');
+    });
+  });
+
   describe('renderTemplate', () => {
     it('should render complete template with all context', () => {
       const template = `

@@ -40,6 +40,7 @@
   },
   "metadata": {
     "defaults": {
+      "doc_type": "Letter",
       "status": "Draft",
       "revision": 0,
       "page_numbers": false,

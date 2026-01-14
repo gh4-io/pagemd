@@ -1,0 +1,23 @@
+{
+  "id": "sop",
+  "description": "Standard Operating Procedure with approval workflow defaults",
+  "extends": "standard_letter",
+
+  "metadata": {
+    "defaults": {
+      "doc_type": "Standard Operating Procedure",
+      "status": "Draft",
+      "review_status": "Pending Review",
+      "approver": "TBD",
+      "review_cycle": "Annual",
+      "effective_date": null,
+      "page_numbers": true,
+      "running_header": true,
+      "running_footer": true
+    }
+  },
+
+  "validation": {
+    "required_fields": ["document_id", "title", "owner", "approver"]
+  }
+}

@@ -3181,6 +3181,181 @@ Inline attributes complement directives:
 
 ---
 
+## Template Default Values
+
+> **Feature:** Inline default values for missing metadata using the `??` operator.
+
+Templates support default values for metadata fields that might be missing or null. This is especially useful for optional document metadata like author, status, or version.
+
+### Syntax
+
+```
+{{ key ?? "default value" }}
+```
+
+### How It Works
+
+- If `key` exists and has a value (including falsey values like `0`, `false`, or `""`), that value is used
+- If `key` is `undefined` or `null`, the default value is used
+- Supports both single quotes (`'`) and double quotes (`"`)
+- Works with nested keys (e.g., `{{ metadata.author.name ?? "Unknown" }}`)
+
+### Basic Example
+
+**Template:**
+```html
+<h1>{{ metadata.title ?? "Untitled Document" }}</h1>
+<p>Author: {{ metadata.author ?? "Unknown" }}</p>
+```
+
+**Document frontmatter:**
+```yaml
+---
+title: "My Report"
+---
+```
+
+**Output:**
+```html
+<h1>My Report</h1>
+<p>Author: Unknown</p>
+```
+
+The `author` field is missing, so the template uses the default value "Unknown".
+
+### Nested Keys
+
+Works with dot-notation for nested metadata:
+
+```html
+Department: {{ metadata.document.department ?? "General" }}
+Category: {{ metadata.document.category ?? "Uncategorized" }}
+```
+
+### Preserves Falsey Values
+
+The `??` operator only triggers for `null` or `undefined`. Other falsey values like `0`, `false`, or empty strings are preserved:
+
+**Template:**
+```html
+Count: {{ count ?? "N/A" }}
+Active: {{ active ?? "Unknown" }}
+```
+
+**Frontmatter:**
+```yaml
+---
+count: 0
+active: false
+---
+```
+
+**Output:**
+```
+Count: 0
+Active: false
+```
+
+The values `0` and `false` are used (not the defaults) because they are valid values, not `null`/`undefined`.
+
+### Comparison with Missing Values
+
+**Without default value:**
+```html
+Author: {{ author }}
+```
+
+If `author` is missing, output is empty: `Author: ` (just the label, no value).
+
+**With default value:**
+```html
+Author: {{ author ?? "Unknown" }}
+```
+
+If `author` is missing, output is: `Author: Unknown`.
+
+### Common Use Cases
+
+**1. Document metadata with sensible defaults:**
+```html
+<div class="metadata">
+  <p>Type: {{ doc_type ?? "How-To Guide" }}</p>
+  <p>Status: {{ status ?? "Draft" }}</p>
+  <p>Version: {{ version ?? "1.0" }}</p>
+</div>
+```
+
+**2. Author information:**
+```html
+<div class="byline">
+  <p>Author: {{ metadata.author ?? "Anonymous" }}</p>
+  <p>Email: {{ metadata.email ?? "N/A" }}</p>
+</div>
+```
+
+**3. Optional review workflow fields:**
+```html
+<p>Review Status: {{ metadata.review_status ?? "Pending Review" }}</p>
+<p>Approver: {{ metadata.approver ?? "TBD" }}</p>
+```
+
+### When to Use Profile vs Inline Defaults
+
+**Use [[guides/Profiles#Set-Metadata-Defaults|Profile Defaults]] When:**
+- ✅ Value applies to all documents using this profile
+- ✅ Organizational standard (author, department, confidentiality)
+- ✅ Document type convention (status, version, doc_type)
+- ✅ Need centralized management (change once, affects all)
+- ✅ Inheritance across related profiles
+
+**Use Inline Defaults When:**
+- ✅ Value specific to this template only
+- ✅ Template-local context (table of contents title, section labels)
+- ✅ Fallback for optional fields (review_status, approver)
+- ✅ One-off or rare use case
+- ✅ Quick prototyping or testing
+
+### Combined Approach Example
+
+**Profile defines organizational defaults:**
+```json
+{
+  "metadata": {
+    "defaults": {
+      "author": "Engineering Team",
+      "department": "Engineering"
+    }
+  }
+}
+```
+
+**Template adds template-specific defaults:**
+```html
+<h1>{{ metadata.title ?? "Untitled Document" }}</h1>
+<p>Author: {{ metadata.author }}</p>  <!-- Uses profile default -->
+<p>Department: {{ metadata.department }}</p>  <!-- Uses profile default -->
+<p>Review Status: {{ metadata.review_status ?? "Pending" }}</p>  <!-- Template-specific -->
+```
+
+**Merge Priority:**
+1. Profile defaults (lowest priority)
+2. Frontmatter values (override profile)
+3. Inline defaults (only for missing values)
+
+### Notes
+
+- Default values are resolved during HTML generation, working for all output formats (HTML, PDF, PNG, JPEG)
+- Default values appear in VS Code preview immediately
+- Missing tokens with no default value still generate a warning in logs (use `PAGEMD_LOG_LEVEL=WARN` to see them)
+- Always check profile defaults first before adding inline defaults for the same key (avoids duplication)
+
+### See Also
+
+- [[guides/Profiles#Set-Metadata-Defaults|Profile Metadata Defaults]] - Centralized defaults for all documents using a profile
+- [[reference/Profile-Schema#metadata|Profile Schema: metadata]] - Complete metadata field reference
+
+---
+
 ## Troubleshooting
 
 ### TOC not appearing

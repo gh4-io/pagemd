@@ -1,0 +1,20 @@
+{
+  "id": "technical-report",
+  "description": "Technical report with engineering defaults",
+  "extends": "standard_letter",
+
+  "metadata": {
+    "defaults": {
+      "doc_type": "Technical Report",
+      "department": "Engineering",
+      "status": "Draft",
+      "version": "1.0",
+      "author": "Engineering Team",
+      "confidentiality": "Internal Use Only"
+    }
+  },
+
+  "validation": {
+    "required_fields": ["document_id", "title", "author"]
+  }
+}

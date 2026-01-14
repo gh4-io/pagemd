@@ -119,30 +119,49 @@ export function processTokens(template, data, pathContext = null) {
   let rendered = template.replace(/\{\{([^}]+)\}\}/g, (match, token) => {
     const trimmed = token.trim();
 
+    // Parse key and optional default value (key ?? "default")
+    let key = trimmed;
+    let defaultValue = null;
+
+    if (trimmed.includes('??')) {
+      const parts = trimmed.split('??');
+      key = parts[0].trim();
+      defaultValue = parts.slice(1).join('??').trim();
+
+      // Strip quotes from default value
+      if ((defaultValue.startsWith('"') && defaultValue.endsWith('"')) ||
+          (defaultValue.startsWith("'") && defaultValue.endsWith("'"))) {
+        defaultValue = defaultValue.slice(1, -1);
+      }
+    }
+
     // Preserve path tokens for later expansion by expandTokens
-    if (pathTokens.includes(trimmed)) {
+    if (pathTokens.includes(key)) {
       return match; // Keep original {{TOKEN}} format
     }
 
+    let value;
+
     // Handle nested access (e.g., metadata.title, meta.document_id)
-    if (trimmed.includes('.')) {
-      const value = getNestedValue(data, trimmed);
+    if (key.includes('.')) {
+      value = getNestedValue(data, key);
+    } else if (key in data) {
+      // Direct access
+      value = data[key];
+    }
 
-      if (value === undefined || value === null) {
-        missingTokens.push(trimmed);
-        return '';
-      }
-
+    // Return value if found
+    if (value !== undefined && value !== null) {
       return String(value);
     }
 
-    // Direct access
-    if (trimmed in data) {
-      const value = data[trimmed];
-      return value === null || value === undefined ? '' : String(value);
+    // Fallback to default value if provided
+    if (defaultValue !== null) {
+      return defaultValue;
     }
 
-    missingTokens.push(trimmed);
+    // Only track as missing if no default provided
+    missingTokens.push(key);
     return '';
   });
 

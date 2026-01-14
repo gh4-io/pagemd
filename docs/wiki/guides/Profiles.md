@@ -147,6 +147,96 @@ pagemd build document.md -o pdf -p my-profile
 
 **If profile not found:** You'll see `[ERROR] Profile 'my-profile' not found`. See [[#Troubleshooting]] below.
 
+## Resource Path Resolution
+
+When specifying paths to templates, styles, or layouts in your profile, you have three options:
+
+### 1. Absolute Paths
+
+Full filesystem paths that work regardless of profile location:
+
+```json
+{
+  "resources": {
+    "template": "/home/user/my-project/.pagemd/templates/custom.html"
+  }
+}
+```
+
+### 2. Token-Based Paths (Recommended)
+
+Use path tokens for portable, project-relative paths:
+
+```json
+{
+  "resources": {
+    "template": "${workspacePath}/.pagemd/templates/custom.html",
+    "css": ["${workspacePath}/.pagemd/styles/theme.css"]
+  }
+}
+```
+
+Available tokens:
+- `${workspacePath}` - Your project root (detected via `.git`, `package.json`, or `.pagemdrc`)
+- `${workingPath}` - Directory containing the markdown file being processed
+- `${cliPath}` - PageMD installation directory (for referencing built-in resources)
+
+### 3. Relative Paths
+
+**Important:** Relative paths (starting with `./` or `../`) resolve **from the profile file's location**, not from the project root.
+
+If your profile is at `.pagemd/profiles/my-profile.json`:
+
+| Path in Profile | Resolves To |
+|-----------------|-------------|
+| `./templates/foo.html` | `.pagemd/profiles/templates/foo.html` |
+| `../templates/foo.html` | `.pagemd/templates/foo.html` |
+| `../../templates/foo.html` | `./templates/foo.html` (project root) |
+
+**Example - Custom template alongside profile:**
+
+```
+my-project/
+  .pagemd/
+    profiles/
+      my-profile.json
+      templates/           ← Templates next to profile
+        custom.html
+```
+
+```json
+{
+  "id": "my-profile",
+  "resources": {
+    "template": "./templates/custom.html"
+  }
+}
+```
+
+**Example - Templates in sibling folder:**
+
+```
+my-project/
+  .pagemd/
+    profiles/
+      my-profile.json
+    templates/             ← Templates as sibling
+      custom.html
+```
+
+```json
+{
+  "id": "my-profile",
+  "resources": {
+    "template": "../templates/custom.html"
+  }
+}
+```
+
+**Recommendation:** Use `${workspacePath}` for clarity and portability. Relative paths are useful for self-contained profile bundles where resources are shipped alongside the profile.
+
+See [[reference/Path-Resolution|Path Resolution Reference]] for complete details.
+
 ## Profile Inheritance
 
 Profiles can [[reference/Glossary#extends|extend]] other profiles to inherit their settings. This lets you build on existing configurations without duplicating them.
@@ -282,7 +372,12 @@ Ensure documents include required metadata:
 
 ### Set Metadata Defaults
 
-Provide default values for frontmatter fields when documents don't specify them:
+Provide default values for frontmatter fields when documents don't specify them. This is useful for organizational standards, document type conventions, and required fields.
+
+**Type:** `object` under `metadata.defaults`
+**Purpose:** Define default values for document metadata when not specified in frontmatter.
+
+#### Basic Example
 
 ```json
 {
@@ -301,6 +396,105 @@ Provide default values for frontmatter fields when documents don't specify them:
 ```
 
 **How defaults work:** If a document's frontmatter doesn't define `status`, it defaults to `"Draft"`. Explicit frontmatter values always override these defaults.
+
+#### Merge Behavior
+
+Profile defaults have the **lowest priority** in the merge order:
+
+1. **Profile defaults** (lowest priority) - Set in `metadata.defaults`
+2. **Frontmatter values** (override profile defaults) - Set in document YAML
+3. **CLI flags** (highest priority, future) - Command-line overrides
+
+**Example:**
+
+Profile defines:
+```json
+{
+  "metadata": {
+    "defaults": {
+      "author": "Engineering Team",
+      "department": "Engineering",
+      "status": "Draft"
+    }
+  }
+}
+```
+
+Document frontmatter:
+```yaml
+---
+title: "My Report"
+author: "Jane Doe"
+---
+```
+
+**Resulting metadata:**
+- `title`: "My Report" (from frontmatter)
+- `author`: "Jane Doe" (frontmatter overrides profile default)
+- `department`: "Engineering" (from profile defaults)
+- `status`: "Draft" (from profile defaults)
+
+#### Inheritance
+
+Profile defaults are inherited when using `extends`. Child profiles can override or extend parent defaults:
+
+```json
+{
+  "id": "eng-report",
+  "extends": "standard_letter",
+  "metadata": {
+    "defaults": {
+      "department": "Engineering",
+      "confidentiality": "Internal Use Only"
+    }
+  }
+}
+```
+
+This profile inherits all defaults from `standard_letter`, adds `department` and `confidentiality`.
+
+#### Common Use Cases
+
+1. **Organizational standards** - Enforce company name, department, confidentiality defaults
+   ```json
+   "defaults": {
+     "company": "ACME Corp",
+     "confidentiality": "Internal Use Only",
+     "department": "Engineering"
+   }
+   ```
+
+2. **Document type conventions** - Different defaults for reports vs SOPs vs guides
+   ```json
+   "defaults": {
+     "doc_type": "Standard Operating Procedure",
+     "status": "Draft",
+     "review_cycle": "Annual"
+   }
+   ```
+
+3. **Branding** - Default author, logo references, footer text
+   ```json
+   "defaults": {
+     "author": "Documentation Team",
+     "logo": "${workspaceFolder}/.pagemd/assets/logo.png",
+     "footer_text": "© 2026 ACME Corp"
+   }
+   ```
+
+4. **Workflow** - Default status values for document lifecycle
+   ```json
+   "defaults": {
+     "status": "Draft",
+     "approver": "TBD",
+     "review_status": "Pending Review"
+   }
+   ```
+
+#### See Also
+
+- [[guides/Extended-Syntax#Template-Default-Values|Template Default Values]] - Inline `??` operator for template-specific defaults
+- [[reference/Profile-Schema#metadata|Profile Schema: metadata]] - Complete metadata field reference
 
 ### Configure Output Modes
 
