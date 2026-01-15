@@ -19,12 +19,19 @@ export const RESOURCE_PATHS = {
 
 /**
  * Default file paths for base resources
+ *
+ * IMPORTANT: These paths should NOT include subdirectory prefixes like 'styles/' or 'styles/syntax/'.
+ * The path resolver's buildSearchPaths() already adds these prefixes when constructing search paths.
+ * Including them here would result in doubled paths like 'bin/styles/styles/base.css' which don't exist.
+ *
+ * Subdirectory search (e.g., 'syntax/' within 'styles/') is handled automatically via RESOURCE_SUBDIRS.
+ *
  * @constant {Object}
  */
 export const DEFAULT_FILES = {
-  baseCSS: 'styles/base.css',
-  primaryCSS: 'styles/primary.css',
-  syntaxCSS: 'styles/syntax/shiki-base.css',
+  baseCSS: 'base.css',        // Searched in: styles/base.css
+  primaryCSS: 'primary.css',  // Searched in: styles/primary.css
+  syntaxCSS: 'shiki-base.css', // Searched in: styles/syntax/shiki-base.css (via subdirs)
 };
 
 /**

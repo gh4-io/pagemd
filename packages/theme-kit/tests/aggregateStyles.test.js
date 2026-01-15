@@ -87,6 +87,10 @@ describe('theme-kit CSS aggregation', () => {
       mkdirSync(stylesDir, { recursive: true });
       writeFileSync(join(stylesDir, 'base.css'), 'body { margin: 0; }');
       writeFileSync(join(stylesDir, 'primary.css'), 'p { color: black; }');
+      // Also create syntax CSS (required when highlighting is enabled)
+      const syntaxDir = join(stylesDir, 'syntax');
+      mkdirSync(syntaxDir, { recursive: true });
+      writeFileSync(join(syntaxDir, 'shiki-base.css'), '.shiki { }');
 
       const profile = {
         id: 'test-layout',
@@ -97,7 +101,8 @@ describe('theme-kit CSS aggregation', () => {
 
       const context = {
         projectRoot: testDir,
-        searchPaths: [layoutsDir, stylesDir]
+        cliPath: testDir,  // Point to testDir so buildSearchPaths finds {cliPath}/styles/
+        workspacePath: testDir
       };
 
       const result = await aggregateStyles(profile, context);
@@ -115,6 +120,10 @@ describe('theme-kit CSS aggregation', () => {
       mkdirSync(stylesDir, { recursive: true });
       writeFileSync(join(stylesDir, 'base.css'), 'body { margin: 0; }');
       writeFileSync(join(stylesDir, 'primary.css'), 'p { color: black; }');
+      // Also create syntax CSS (required when highlighting is enabled)
+      const syntaxDir = join(stylesDir, 'syntax');
+      mkdirSync(syntaxDir, { recursive: true });
+      writeFileSync(join(syntaxDir, 'shiki-base.css'), '.shiki { }');
 
       const profile = {
         id: 'no-layout'
@@ -123,7 +132,8 @@ describe('theme-kit CSS aggregation', () => {
 
       const context = {
         projectRoot: testDir,
-        searchPaths: [stylesDir]
+        cliPath: testDir,  // Point to testDir so buildSearchPaths finds {cliPath}/styles/
+        workspacePath: testDir
       };
 
       const result = await aggregateStyles(profile, context);
@@ -143,6 +153,10 @@ describe('theme-kit CSS aggregation', () => {
       mkdirSync(stylesDir, { recursive: true });
       writeFileSync(join(stylesDir, 'base.css'), 'body { margin: 0; }');
       writeFileSync(join(stylesDir, 'primary.css'), 'p { color: black; }');
+      // Also create syntax CSS (required when highlighting is enabled)
+      const syntaxDir = join(stylesDir, 'syntax');
+      mkdirSync(syntaxDir, { recursive: true });
+      writeFileSync(join(syntaxDir, 'shiki-base.css'), '.shiki { }');
 
       const profile = {
         id: 'missing-layout',
@@ -153,7 +167,8 @@ describe('theme-kit CSS aggregation', () => {
 
       const context = {
         projectRoot: testDir,
-        searchPaths: [stylesDir]
+        cliPath: testDir,  // Point to testDir so buildSearchPaths finds {cliPath}/styles/
+        workspacePath: testDir
       };
 
       await expect(aggregateStyles(profile, context))
@@ -165,11 +180,14 @@ describe('theme-kit CSS aggregation', () => {
       // Create all CSS files
       const layoutsDir = join(testDir, 'layouts');
       const stylesDir = join(testDir, 'styles');
+      const syntaxDir = join(stylesDir, 'syntax');
       mkdirSync(layoutsDir, { recursive: true });
       mkdirSync(stylesDir, { recursive: true });
+      mkdirSync(syntaxDir, { recursive: true });
 
       writeFileSync(join(stylesDir, 'base.css'), '/* base */');
       writeFileSync(join(stylesDir, 'primary.css'), '/* primary */');
+      writeFileSync(join(syntaxDir, 'shiki-base.css'), '/* syntax */');
       writeFileSync(join(layoutsDir, 'layout.css'), '/* layout */');
 
       const profileCSSPath = join(testDir, 'profile.css');
@@ -187,7 +205,8 @@ describe('theme-kit CSS aggregation', () => {
 
       const context = {
         projectRoot: testDir,
-        searchPaths: [layoutsDir, stylesDir, testDir]
+        cliPath: testDir,  // Point to testDir so buildSearchPaths finds {cliPath}/styles/
+        workspacePath: testDir
       };
 
       const result = await aggregateStyles(profile, context);
@@ -195,10 +214,11 @@ describe('theme-kit CSS aggregation', () => {
       // Extract layer names in order
       const layerOrder = result.map(s => s.layer);
 
-      // Verify order: base, primary, layout, profile
+      // Verify order: base, primary, layout, syntax, profile
       expect(layerOrder.indexOf('base')).toBeLessThan(layerOrder.indexOf('primary'));
       expect(layerOrder.indexOf('primary')).toBeLessThan(layerOrder.indexOf('layout'));
-      expect(layerOrder.indexOf('layout')).toBeLessThan(layerOrder.indexOf('profile'));
+      expect(layerOrder.indexOf('layout')).toBeLessThan(layerOrder.indexOf('syntax'));
+      expect(layerOrder.indexOf('syntax')).toBeLessThan(layerOrder.indexOf('profile'));
     });
   });
 
@@ -206,16 +226,20 @@ describe('theme-kit CSS aggregation', () => {
     it('should include source, resolvedPath, and size for each layer', async () => {
       // Create CSS files
       const stylesDir = join(testDir, 'styles');
+      const syntaxDir = join(stylesDir, 'syntax');
       mkdirSync(stylesDir, { recursive: true });
+      mkdirSync(syntaxDir, { recursive: true });
       const baseCSS = 'body { margin: 0; }';
       writeFileSync(join(stylesDir, 'base.css'), baseCSS);
       writeFileSync(join(stylesDir, 'primary.css'), 'p { color: black; }');
+      writeFileSync(join(syntaxDir, 'shiki-base.css'), '.shiki { }');
 
       const profile = { id: 'metadata-test' };
 
       const context = {
         projectRoot: testDir,
-        searchPaths: [stylesDir]
+        cliPath: testDir,  // Point to testDir so buildSearchPaths finds {cliPath}/styles/
+        workspacePath: testDir
       };
 
       const result = await aggregateStyles(profile, context);

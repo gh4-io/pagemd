@@ -81,8 +81,8 @@ yargs(hideBin(process.argv))
     global: true
   })
   .middleware((argv) => {
-    // Pass projectRoot and cliPath to all commands
-    argv.projectRoot = PROJECT_ROOT;
+    // Pass cliPath to all commands (for finding bundled resources)
+    // Note: projectRoot is detected per-command from markdown file location via findProjectRoot()
     argv.cliPath = PROJECT_ROOT;
 
     if (argv.logLevel) {

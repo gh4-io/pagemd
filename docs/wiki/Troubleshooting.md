@@ -11,6 +11,7 @@ Common issues, error messages, and solutions for PageMD.
   - [Non-Headless Mode for Inspection](#non-headless-mode-for-inspection)
 - [Profile Not Found](#profile-not-found)
 - [Path Resolution Errors](#path-resolution-errors)
+  - [System Resource Errors](#system-resource-errors-2026-01-14-fix)
 - [PDF Rendering Issues](#pdf-rendering-issues)
   - [Browser Persistence](#browser-persistence)
   - [Images Not Displaying in PDF](#images-not-displaying-in-pdf)
@@ -419,6 +420,95 @@ Error: Missing referenced CSS resource: ${manifestDir}/styles/custom.css
    - Remove entries for unused resources
 
 **Note:** Profile-relative resources (like `${manifestDir}/styles/custom.css`) require the profile to be loaded from a file path, not just by ID.
+
+---
+
+### System Resource Errors (2026-01-14 Fix)
+
+**Symptom:** Build fails with errors about missing system stylesheets (base.css, primary.css, or shiki-base.css).
+
+**Example error:**
+```
+[ERROR] System base stylesheet not found: base.css. This indicates a misconfigured or incomplete installation.
+```
+
+**Root Cause (Fixed 2026-01-14):**
+
+This was caused by a path doubling bug in resource resolution:
+
+1. **Path Doubling Bug:** `DEFAULT_FILES` constants included subdirectory prefixes (`styles/base.css`), but the path resolver's `buildSearchPaths()` already added these prefixes when building search paths.
+   - Result: Resolver looked for `bin/styles/styles/base.css` (doubled path)
+   - Actual location: `bin/styles/base.css` (correct path)
+
+2. **Silent Failures:** Missing system stylesheets only logged warnings and continued building, resulting in broken output with missing styles.
+
+**What Changed:**
+
+- **DEFAULT_FILES paths now exclude subdirectory prefixes** (e.g., `base.css` instead of `styles/base.css`)
+- **Missing system resources now fail fast** with clear error messages instead of silently continuing
+- **System resources now load directly from CLI bundle** without searching (performance optimization)
+  - System stylesheets (base.css, primary.css, shiki-base.css) bypass the 26-path search algorithm
+  - Profile CSS, frontmatter CSS, and layout CSS still use full search hierarchy (as intended)
+- System stylesheets (base.css, primary.css, shiki-base.css) are **required** for all builds
+
+**If You Encounter This Error:**
+
+This error indicates a misconfigured or incomplete PageMD installation:
+
+1. **For CLI users:** Reinstall PageMD CLI
+   ```bash
+   npm install -g @pagemd/cli
+   ```
+
+2. **For VS Code extension users:** Reinstall the extension
+   - Uninstall PageMD extension
+   - Reload VS Code
+   - Reinstall from Marketplace or VSIX
+
+3. **For developers:** Verify bundled resources exist
+   ```bash
+   # Check CLI bundle includes required files
+   ls -la /path/to/cli/styles/base.css
+   ls -la /path/to/cli/styles/primary.css
+   ls -la /path/to/cli/styles/syntax/shiki-base.css
+   ```
+
+4. **Verify with debug logging:**
+   ```bash
+   PAGEMD_LOG_LEVEL=TRACE pagemd build doc.md
+   # Look for path-resolver messages showing search paths
+   ```
+
+**Technical Details:**
+
+**System resources (base.css, primary.css, shiki-base.css) are loaded directly:**
+
+Since 2026-01-14, system resources bypass the search algorithm and load directly from the CLI bundle:
+```javascript
+// Direct path construction (no search):
+const systemPath = path.join(cliPath, 'styles', filename);
+// For shiki-base.css: path.join(cliPath, 'styles', 'syntax', filename);
+```
+
+This eliminates the 26-path search that was occurring before. System resources are expected to exist at:
+- `{cliPath}/styles/base.css`
+- `{cliPath}/styles/primary.css`
+- `{cliPath}/styles/syntax/shiki-base.css`
+
+**User resources (profile CSS, layout CSS, frontmatter CSS) still use full search:**
+```
+# Search paths for user-provided resources:
+1. {workingPath}/styles/
+2. {workspacePath}/styles/
+3. {homePath}/.pagemd/styles/
+4. {cliPath}/styles/              ← Last resort
+```
+
+The fix ensures:
+- No path doubling (paths are constructed correctly)
+- Fast loading of system resources (direct path, no search)
+- Missing system resources fail fast with clear error messages
+- User resources maintain flexible search for maximum compatibility
 
 ---
 

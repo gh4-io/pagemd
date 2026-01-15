@@ -154,9 +154,9 @@ function generateProfile(name, baseProfile) {
  * @param {string} outputDir - Output directory
  * @param {string} templateId - Template profile ID
  * @param {boolean} force - Overwrite existing
- * @param {string} projectRoot - PageMD project root
+ * @param {string} cliPath - CLI package root for finding bundled templates
  */
-async function initProject(name, outputDir, templateId, force, projectRoot) {
+async function initProject(name, outputDir, templateId, force, cliPath) {
   const projectPath = path.join(outputDir, name);
 
   // Check if exists
@@ -176,7 +176,7 @@ async function initProject(name, outputDir, templateId, force, projectRoot) {
   // Load base profile for reference
   let baseProfile = null;
   try {
-    baseProfile = await loadAndMergeProfile(templateId, { searchFrom: projectRoot });
+    baseProfile = await loadAndMergeProfile(templateId, { searchFrom: cliPath });
   } catch {
     logger.warn('init', 'template', `Template profile '${templateId}' not found, using defaults`);
   }
@@ -217,9 +217,9 @@ async function initProject(name, outputDir, templateId, force, projectRoot) {
  * @param {string} outputDir - Output directory
  * @param {string} templateId - Template profile ID
  * @param {boolean} force - Overwrite existing
- * @param {string} projectRoot - PageMD project root
+ * @param {string} cliPath - CLI package root for finding bundled templates
  */
-async function initProfile(name, outputDir, templateId, force, projectRoot) {
+async function initProfile(name, outputDir, templateId, force, cliPath) {
   const profilePath = path.join(outputDir, `${name}.json`);
 
   // Check if exists
@@ -233,7 +233,7 @@ async function initProfile(name, outputDir, templateId, force, projectRoot) {
   // Load base profile
   let baseProfile = null;
   try {
-    baseProfile = await loadAndMergeProfile(templateId, { searchFrom: projectRoot });
+    baseProfile = await loadAndMergeProfile(templateId, { searchFrom: cliPath });
   } catch {
     logger.warn('init', 'template', `Template profile '${templateId}' not found, using defaults`);
   }
@@ -252,9 +252,9 @@ async function initProfile(name, outputDir, templateId, force, projectRoot) {
  * @param {string} outputDir - Output directory
  * @param {string} templateId - Base profile to extend
  * @param {boolean} force - Overwrite existing
- * @param {string} projectRoot - PageMD project root
+ * @param {string} cliPath - CLI package root for finding bundled templates
  */
-async function initMarkdown(name, outputDir, templateId, force, projectRoot) {
+async function initMarkdown(name, outputDir, templateId, force, cliPath) {
   const mdPath = path.join(outputDir, `${name}.md`);
   const profilePath = path.join(outputDir, `${name}.json`);
 
@@ -277,7 +277,7 @@ async function initMarkdown(name, outputDir, templateId, force, projectRoot) {
   // Load base profile for reference
   let baseProfile = null;
   try {
-    baseProfile = await loadAndMergeProfile(templateId, { searchFrom: projectRoot });
+    baseProfile = await loadAndMergeProfile(templateId, { searchFrom: cliPath });
   } catch {
     logger.warn('init', 'template', `Template profile '${templateId}' not found, using defaults`);
   }
@@ -304,7 +304,7 @@ async function initMarkdown(name, outputDir, templateId, force, projectRoot) {
  * @param {object} argv - Yargs arguments
  */
 export async function handler(argv) {
-  const { name, type, template, output, force, projectRoot } = argv;
+  const { name, type, template, output, force, cliPath } = argv;
 
   logger.trace('command', 'start', 'init command started', {
     name,
@@ -319,13 +319,13 @@ export async function handler(argv) {
 
     switch (type) {
       case 'project':
-        await initProject(name, outputDir, template, force, projectRoot);
+        await initProject(name, outputDir, template, force, cliPath);
         break;
       case 'profile':
-        await initProfile(name, outputDir, template, force, projectRoot);
+        await initProfile(name, outputDir, template, force, cliPath);
         break;
       case 'markdown':
-        await initMarkdown(name, outputDir, template, force, projectRoot);
+        await initMarkdown(name, outputDir, template, force, cliPath);
         break;
       default:
         throw new Error(`Unknown type: ${type}`);

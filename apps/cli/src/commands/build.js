@@ -380,6 +380,7 @@ export async function handler(argv) {
           pagedjs,
           stdout,
           projectRoot: argv.projectRoot,
+          cliPath,
           debugMetadata,
           // Stdin-specific options
           stdinContent: useStdin ? stdinContent : null,

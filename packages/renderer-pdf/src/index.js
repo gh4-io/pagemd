@@ -22,6 +22,7 @@ import {
   rewriteRelativePaths,
   buildBaseUrl
 } from './image-paths.js';
+import { setupRequestInterception } from './request-interceptor.js';
 
 const logger = createLogger('renderer.pdf');
 
@@ -173,36 +174,20 @@ export async function renderPdf(markdownPath, options = {}) {
       baseUrl: buildBaseUrl(markdownPath)
     });
 
-    // Write HTML to temp file and use page.goto() instead of setContent()
-    // This gives the page a proper file:// origin, allowing it to load local images
-    const markdownDir = path.dirname(path.resolve(markdownPath));
-    const tempHtmlPath = path.join(markdownDir, `.pagemd-render-${Date.now()}.html`);
+    // Setup request interception to serve local files (images, fonts, etc.)
+    // This allows page.setContent() to work while still loading file:// resources
+    await setupRequestInterception(page, {
+      baseDir: path.dirname(path.resolve(markdownPath))
+    });
 
-    try {
-      await fs.writeFile(tempHtmlPath, preparedHtml, 'utf-8');
-      logger.trace('render.temp', 'success', `Wrote temp HTML: ${tempHtmlPath}`);
+    // Set HTML content directly (no temp file needed)
+    // Request interception will handle file:// URLs for local resources
+    await page.setContent(preparedHtml, {
+      waitUntil: 'networkidle0',
+      timeout: 30000
+    });
 
-      // Convert to file:// URL (handle Windows paths)
-      const tempFileUrl = tempHtmlPath.replace(/\\/g, '/');
-      const gotoUrl = tempFileUrl.startsWith('/')
-        ? `file://${tempFileUrl}`
-        : `file:///${tempFileUrl}`;
-
-      await page.goto(gotoUrl, {
-        waitUntil: 'networkidle0',
-        timeout: 30000
-      });
-
-      logger.debug('render.page', 'success', 'Page loaded via file:// URL');
-    } finally {
-      // Clean up temp file
-      try {
-        await fs.unlink(tempHtmlPath);
-        logger.trace('render.temp', 'cleanup', 'Removed temp HTML file');
-      } catch {
-        // Ignore cleanup errors
-      }
-    }
+    logger.debug('render.page', 'success', 'Page content set with request interception');
 
     // Step 8: Wait for Paged.js to complete rendering
     logger.debug('render.pagedjs', 'started', 'Waiting for Paged.js to complete');

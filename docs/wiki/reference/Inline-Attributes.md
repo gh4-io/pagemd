@@ -59,6 +59,36 @@ Element content {.class #id attribute="value"}
 - **Spaces inside `{}`** - Separate multiple attributes with spaces
 - **No spaces around `=`** - Use `data-foo="bar"` not `data-foo = "bar"`
 
+### Single-Line Requirement
+
+**IMPORTANT:** All attributes must be on a single line. Line breaks inside the `{}` block will break parsing.
+
+```markdown
+<!-- ❌ WRONG: Multi-line breaks parsing -->
+![Image](path.png){style="
+    object-fit: cover;
+    width: 200px;
+"}
+
+<!-- ✅ CORRECT: Single line -->
+![Image](path.png){style="object-fit: cover; width: 200px;"}
+```
+
+For complex styles, use a CSS class instead:
+
+```css
+/* In your CSS file */
+.thumbnail-cover {
+  object-fit: cover;
+  width: 200px;
+  object-position: 50% 30%;
+}
+```
+
+```markdown
+![Image](path.png){.thumbnail-cover}
+```
+
 ### Valid Attribute Types
 
 | Type | Syntax | Example |
@@ -491,24 +521,33 @@ Improve accessibility with ARIA attributes:
 **Symptom:** Attribute syntax appears in output as literal text.
 
 **Diagnosis:**
-1. **Check spacing:** Ensure space before `{` for paragraphs
+1. **Check for line breaks:** Attributes must be on a single line
+   ```markdown
+   ![Image](path.png){style="
+       width: 200px;
+   "} ❌ Line breaks break parsing
+
+   ![Image](path.png){style="width: 200px;"} ✅
+   ```
+
+2. **Check spacing:** Ensure space before `{` for paragraphs
    ```markdown
    Text{.class} ❌
    Text {.class} ✅
    ```
 
-2. **Check syntax:** Quotes required for attribute values
+3. **Check syntax:** Quotes required for attribute values
    ```markdown
    {data-foo=bar} ❌
    {data-foo="bar"} ✅
    ```
 
-3. **Verify element type:** Not all elements support attributes
+4. **Verify element type:** Not all elements support attributes
    ```markdown
    `inline code` {.class} ❌ Limited support
    ```
 
-4. **Inspect HTML output:** Check if attributes rendered
+5. **Inspect HTML output:** Check if attributes rendered
    ```bash
    pagemd build doc.md -o html
    # Open output HTML, inspect element in DevTools

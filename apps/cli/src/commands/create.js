@@ -244,7 +244,7 @@ async function injectFrontmatter(mdPath, resourceType, resourcePath, force) {
  * @param {object} argv - Yargs arguments
  */
 export async function handler(argv) {
-  const { resource, source, output, input, force, projectRoot } = argv;
+  const { resource, source, output, input, force, cliPath } = argv;
 
   logger.trace('command', 'start', 'create command started', {
     resource,
@@ -288,7 +288,7 @@ export async function handler(argv) {
 
     if (source) {
       // Copy from existing resource
-      const sourceResource = await findResource(resource, source, projectRoot);
+      const sourceResource = await findResource(resource, source, cliPath);
       if (!sourceResource) {
         throw new Error(`Source resource not found: ${source}`);
       }

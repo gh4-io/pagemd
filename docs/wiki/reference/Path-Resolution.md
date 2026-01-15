@@ -258,6 +258,75 @@ This prevents ambiguity and ensures you know exactly which resource is being use
 
 ---
 
+## Relative Path Resolution
+
+Paths starting with `./` or `../` are resolved **relative to the source file**, not to the project root or working directory.
+
+### What is "Source Location"?
+
+The source location depends on **where the path is specified**:
+
+| Path Specified In | Source Location | Base Directory |
+|-------------------|-----------------|----------------|
+| **Profile manifest** | The profile's JSON/YAML file | The directory containing the profile |
+| **Frontmatter** | The markdown document | The directory containing the markdown |
+| **CLI argument** | Command line | Current working directory |
+
+### Profile Relative Paths
+
+When a profile at `.pagemd/profiles/my-profile.json` specifies a relative path:
+
+```json
+{
+  "resources": {
+    "template": "./templates/custom.html"
+  }
+}
+```
+
+The `./` resolves from the profile's directory (`.pagemd/profiles/`), so PageMD looks for:
+```
+.pagemd/profiles/templates/custom.html
+```
+
+**To reference resources in a sibling directory** (like `.pagemd/templates/`), use `../`:
+
+```json
+{
+  "resources": {
+    "template": "../templates/custom.html"
+  }
+}
+```
+
+This resolves to:
+```
+.pagemd/templates/custom.html
+```
+
+### Why This Behavior?
+
+Relative paths follow standard conventions (same as CSS `@import`, HTML `<link href>`, etc.):
+- A path is relative to the file that contains it
+- This enables self-contained, portable resource bundles
+- Profiles can be copied/moved with their resources intact
+
+### Recommendation
+
+For project-level resources, use path tokens instead of relative paths:
+
+```json
+{
+  "resources": {
+    "template": "${workspacePath}/.pagemd/templates/custom.html"
+  }
+}
+```
+
+This is explicit, portable, and doesn't depend on where the profile file is located.
+
+---
+
 ## Practical Example
 
 ### Scenario

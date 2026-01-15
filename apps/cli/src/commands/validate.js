@@ -17,7 +17,8 @@ import {
   loadAndMergeProfile,
   getDefaultProfile,
   createPathContext,
-  resolvePath
+  resolvePath,
+  findProjectRoot
 } from '@pagemd/core';
 import { parseFile } from '@pagemd/parser';
 
@@ -53,11 +54,11 @@ export const builder = {
  * @param {object} options - Validation options
  * @param {string} [options.profile] - Profile ID override
  * @param {boolean} [options.strict] - Strict mode
- * @param {string} [options.projectRoot] - Project root directory
+ * @param {string} [options.cliPath] - CLI package root for bundled resources
  * @returns {Promise<{valid: boolean, errors: string[], warnings: string[]}>} Validation result
  */
 async function validateMarkdownFile(filePath, options = {}) {
-  const { projectRoot } = options;
+  const { cliPath } = options;
   const errors = [];
   const warnings = [];
 
@@ -82,9 +83,10 @@ async function validateMarkdownFile(filePath, options = {}) {
     });
 
     // Load profile with inheritance (includes circular inheritance check)
+    const markdownDir = dirname(filePath);
     let profile;
     try {
-      profile = await loadAndMergeProfile(profileId, { cliPath: argv.cliPath });
+      profile = await loadAndMergeProfile(profileId, { searchFrom: markdownDir, cliPath });
     } catch (err) {
       errors.push(`Profile error: ${err.message}`);
       return { valid: false, errors, warnings };
@@ -129,11 +131,13 @@ async function validateMarkdownFile(filePath, options = {}) {
     }
 
     // Create path context for resource resolution
-    const markdownDir = dirname(filePath);
+    // Note: markdownDir already defined above for profile loading
+    const detectedProjectRoot = findProjectRoot(markdownDir);
     const pathContext = createPathContext({
       markdownDir,
-      projectRoot,
-      workspaceFolder: projectRoot
+      projectRoot: detectedProjectRoot,
+      workspaceFolder: detectedProjectRoot,
+      cliPath
     });
 
     // Validate layout file exists
@@ -292,7 +296,7 @@ export async function handler(argv) {
       const result = await validateMarkdownFile(filePath, {
         profile,
         strict,
-        projectRoot: argv.projectRoot
+        cliPath: argv.cliPath
       });
       results.push({ file: filePath, ...result });
     }

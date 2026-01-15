@@ -38,6 +38,54 @@ export const CSS_LAYER_ORDER = ['base', 'primary', 'layout', 'syntax', 'profile'
  */
 
 /**
+ * Load a system stylesheet directly from CLI bundle (no search)
+ * System resources (base.css, primary.css, shiki-base.css) are bundled with the CLI
+ * and should be loaded directly without searching user directories.
+ *
+ * @param {string} filename - System resource filename (e.g., 'base.css', 'shiki-base.css')
+ * @param {string} cliPath - CLI bundle directory path
+ * @param {string} [subdirectory=''] - Optional subdirectory within styles/ (e.g., 'syntax')
+ * @returns {Promise<StylesheetResult>}
+ * @throws {Error} If system resource is missing (indicates broken installation)
+ */
+async function loadSystemStylesheet(filename, cliPath, subdirectory = '') {
+  logger.trace('stylesheet', 'in-progress', `Loading system stylesheet: ${filename}`);
+
+  if (!cliPath) {
+    throw new Error(`Cannot load system stylesheet ${filename}: cliPath not provided in context`);
+  }
+
+  try {
+    // Construct direct path to bundled system resource (no search needed)
+    const systemPath = subdirectory
+      ? path.join(cliPath, 'styles', subdirectory, filename)
+      : path.join(cliPath, 'styles', filename);
+
+    const content = await fs.readFile(systemPath, 'utf-8');
+    const stats = await fs.stat(systemPath);
+
+    logger.debug('stylesheet', 'success', `Loaded system stylesheet (direct)`, {
+      filename,
+      resolved: systemPath,
+      size: stats.size
+    });
+
+    return {
+      content,
+      resolvedPath: systemPath,
+      size: stats.size
+    };
+  } catch (error) {
+    logger.error('stylesheet', 'failure', `Failed to load system stylesheet: ${filename}`, {
+      error: error.message,
+      filename,
+      cliPath
+    });
+    throw new Error(`System stylesheet not found: ${filename}. This indicates a broken installation. Please reinstall PageMD.`);
+  }
+}
+
+/**
  * Load a stylesheet file
  * @param {string} cssPath - Path to CSS file (may contain tokens)
  * @param {object} context - Path resolution context from @pagemd/core
@@ -104,10 +152,11 @@ export async function aggregateStyles(profile, context) {
 
   // ==========================================================================
   // Layer 1: Base CSS (engine-provided markdown defaults) - ALWAYS loaded
+  // System resource: loaded directly from CLI bundle (no search)
   // ==========================================================================
   const basePath = DEFAULT_FILES.baseCSS;
   try {
-    const baseResult = await loadStylesheet(basePath, context);
+    const baseResult = await loadSystemStylesheet(basePath, context.cliPath);
     styles.push({
       layer: 'base',
       content: baseResult.content,
@@ -115,20 +164,23 @@ export async function aggregateStyles(profile, context) {
       resolvedPath: baseResult.resolvedPath,
       size: baseResult.size
     });
-    logger.debug('aggregate', 'info', 'Loaded base stylesheet', { path: basePath });
+    logger.debug('aggregate', 'info', 'Loaded base stylesheet (system)', { path: basePath });
   } catch (error) {
-    // Base CSS is engine-provided; warn but continue if missing
-    logger.warn('aggregate', 'warning', 'Base stylesheet not found, continuing', {
-      path: basePath
+    // Base CSS is system-provided and REQUIRED - fail fast if missing
+    logger.error('aggregate', 'failure', 'System base stylesheet not found', {
+      path: basePath,
+      error: error.message
     });
+    throw new Error(`System base stylesheet not found: ${basePath}. This indicates a misconfigured or incomplete installation.`);
   }
 
   // ==========================================================================
   // Layer 2: Primary CSS (project overrides) - ALWAYS loaded
+  // System resource: loaded directly from CLI bundle (no search)
   // ==========================================================================
   const primaryPath = DEFAULT_FILES.primaryCSS;
   try {
-    const primaryResult = await loadStylesheet(primaryPath, context);
+    const primaryResult = await loadSystemStylesheet(primaryPath, context.cliPath);
     styles.push({
       layer: 'primary',
       content: primaryResult.content,
@@ -136,12 +188,14 @@ export async function aggregateStyles(profile, context) {
       resolvedPath: primaryResult.resolvedPath,
       size: primaryResult.size
     });
-    logger.debug('aggregate', 'info', 'Loaded primary stylesheet', { path: primaryPath });
+    logger.debug('aggregate', 'info', 'Loaded primary stylesheet (system)', { path: primaryPath });
   } catch (error) {
-    // Primary CSS is optional; warn but continue if missing
-    logger.warn('aggregate', 'warning', 'Primary stylesheet not found, continuing', {
-      path: primaryPath
+    // Primary CSS is system-provided and REQUIRED - fail fast if missing
+    logger.error('aggregate', 'failure', 'System primary stylesheet not found', {
+      path: primaryPath,
+      error: error.message
     });
+    throw new Error(`System primary stylesheet not found: ${primaryPath}. This indicates a misconfigured or incomplete installation.`);
   }
 
   // ==========================================================================
@@ -179,11 +233,13 @@ export async function aggregateStyles(profile, context) {
   // ==========================================================================
   // Layer 4: Syntax highlighting CSS (shiki base styles) - conditional
   // Only loaded if syntax highlighting is enabled (PAGEMD_SYNTAX_HIGHLIGHT != 0)
+  // System resource: loaded directly from CLI bundle (no search)
   // ==========================================================================
   if (getEnv('syntaxHighlight') !== false) {
     const syntaxPath = DEFAULT_FILES.syntaxCSS;
     try {
-      const syntaxResult = await loadStylesheet(syntaxPath, context);
+      // shiki-base.css is in styles/syntax/ subdirectory
+      const syntaxResult = await loadSystemStylesheet(syntaxPath, context.cliPath, 'syntax');
       styles.push({
         layer: 'syntax',
         content: syntaxResult.content,
@@ -191,12 +247,14 @@ export async function aggregateStyles(profile, context) {
         resolvedPath: syntaxResult.resolvedPath,
         size: syntaxResult.size
       });
-      logger.debug('aggregate', 'info', 'Loaded syntax stylesheet', { path: syntaxPath });
+      logger.debug('aggregate', 'info', 'Loaded syntax stylesheet (system)', { path: syntaxPath });
     } catch (error) {
-      // Syntax CSS is optional; warn but continue if missing
-      logger.warn('aggregate', 'warning', 'Syntax stylesheet not found, continuing', {
-        path: syntaxPath
+      // Syntax CSS is system-provided and REQUIRED when highlighting is enabled - fail fast if missing
+      logger.error('aggregate', 'failure', 'System syntax stylesheet not found', {
+        path: syntaxPath,
+        error: error.message
       });
+      throw new Error(`System syntax stylesheet not found: ${syntaxPath}. This indicates a misconfigured or incomplete installation.`);
     }
   }
 

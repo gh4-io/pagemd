@@ -3,9 +3,9 @@
   "description": "Standard US Letter layout for SOPs and documentation",
 
   "resources": {
-    "template": "${projectRoot}/templates/standard_letter.html",
-    "layout": "${projectRoot}/layouts/letter.css",
-    "css": ["${projectRoot}/styles/primary.css"],
+    "template": "${cliPath}/templates/standard_letter.html",
+    "layout": "${cliPath}/layouts/letter.css",
+    "css": ["${cliPath}/styles/primary.css"],
     "fonts": [],
     "assets": []
   },

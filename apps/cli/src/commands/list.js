@@ -166,7 +166,7 @@ function formatResourceJson(resources, type, verbose) {
  * @param {object} argv - Yargs arguments
  */
 export async function handler(argv) {
-  const { resource, json, verbose, all, projectRoot } = argv;
+  const { resource, json, verbose, all, cliPath } = argv;
 
   logger.trace('command', 'start', 'list command started', {
     resource,
@@ -176,8 +176,8 @@ export async function handler(argv) {
   });
 
   try {
-    // Discover resources
-    const resources = discoverResources(resource, projectRoot, {
+    // Discover resources (cliPath is the CLI package root where bundled resources live)
+    const resources = discoverResources(resource, cliPath, {
       includeWorkspace: all
     });
 

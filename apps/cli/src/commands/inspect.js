@@ -248,7 +248,7 @@ function formatOutputsSection(profile) {
  * @param {object} argv - Yargs arguments
  */
 export async function handler(argv) {
-  const { input, profile: profileOverride, json, section, projectRoot } = argv;
+  const { input, profile: profileOverride, json, section, cliPath } = argv;
 
   logger.trace('command', 'start', 'inspect command started', {
     input,
@@ -284,7 +284,7 @@ export async function handler(argv) {
     let profile = null;
     let profileError = null;
     try {
-      profile = await loadAndMergeProfile(profileId, { searchFrom: projectRoot });
+      profile = await loadAndMergeProfile(profileId, { searchFrom: path.dirname(inputPath), cliPath });
     } catch (err) {
       profileError = err.message;
       logger.warn('command', 'profile-error', `Profile '${profileId}' not found or invalid`, {

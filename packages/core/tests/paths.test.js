@@ -52,14 +52,19 @@ describe('paths.js', () => {
     it('should have all expected default files', () => {
       expect(DEFAULT_FILES).toHaveProperty('baseCSS');
       expect(DEFAULT_FILES).toHaveProperty('primaryCSS');
+      expect(DEFAULT_FILES).toHaveProperty('syntaxCSS');
     });
 
-    it('should map baseCSS to "styles/base.css"', () => {
-      expect(DEFAULT_FILES.baseCSS).toBe('styles/base.css');
+    it('should map baseCSS to "base.css" (without subdirectory prefix)', () => {
+      expect(DEFAULT_FILES.baseCSS).toBe('base.css');
     });
 
-    it('should map primaryCSS to "styles/primary.css"', () => {
-      expect(DEFAULT_FILES.primaryCSS).toBe('styles/primary.css');
+    it('should map primaryCSS to "primary.css" (without subdirectory prefix)', () => {
+      expect(DEFAULT_FILES.primaryCSS).toBe('primary.css');
+    });
+
+    it('should map syntaxCSS to "shiki-base.css" (without subdirectory prefix)', () => {
+      expect(DEFAULT_FILES.syntaxCSS).toBe('shiki-base.css');
     });
 
     it('should have exactly 3 default files', () => {
@@ -73,9 +78,12 @@ describe('paths.js', () => {
       });
     });
 
-    it('should have all paths in styles directory', () => {
+    it('should NOT include subdirectory prefixes (path resolver adds them)', () => {
+      // Paths should be simple filenames without 'styles/' prefix
+      // The path resolver's buildSearchPaths() adds subdirectory prefixes
       Object.values(DEFAULT_FILES).forEach(path => {
-        expect(path).toMatch(/^styles\//);
+        expect(path).not.toMatch(/^styles\//);
+        expect(path).not.toContain('/');
       });
     });
   });
@@ -149,9 +157,13 @@ describe('paths.js', () => {
       });
     });
 
-    it('should match RESOURCE_PATHS.styles in DEFAULT_FILES', () => {
+    it('should NOT include RESOURCE_PATHS prefix in DEFAULT_FILES (buildSearchPaths adds it)', () => {
+      // DEFAULT_FILES should be simple filenames without 'styles/' prefix
+      // The path resolver's buildSearchPaths() will add the subdirectory prefixes
+      // This prevents path doubling bugs (e.g., 'bin/styles/styles/base.css')
       Object.values(DEFAULT_FILES).forEach(path => {
-        expect(path).toMatch(new RegExp(`^${RESOURCE_PATHS.styles}/`));
+        expect(path).not.toMatch(new RegExp(`^${RESOURCE_PATHS.styles}/`));
+        expect(path).not.toContain('/'); // Simple filename only
       });
     });
   });
