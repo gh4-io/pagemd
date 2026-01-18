@@ -29,6 +29,30 @@ const logger = createLogger('renderer.web');
  */
 
 /**
+ * @typedef {Object} SplitCSSResult
+ * @property {string} sharedCSS - Shared layers (base, primary, syntax) - same for all profiles
+ * @property {string} profileCSS - Profile-specific layers (layout, profile) - varies per profile
+ * @property {string} frontmatterCSS - Per-document CSS (kept separate for inlining)
+ * @property {string} profileId - Profile ID for filename generation (e.g., 'alert' → 'styles-alert.css')
+ * @property {Array<{layer: string, source: string, resolvedPath: string, size: number}>} resources - CSS resource metadata (when returnMetadata is true)
+ */
+
+/**
+ * Layers that are shared across ALL profiles (identical content)
+ * These are system-provided and don't vary by profile choice
+ * @constant {string[]}
+ */
+const SHARED_LAYERS = ['base', 'primary', 'syntax'];
+
+/**
+ * Layers that are profile-specific (content varies by profile)
+ * layout: @page rules, margins - varies by profile
+ * profile: fonts, colors, visual styling - varies by profile
+ * @constant {string[]}
+ */
+const PROFILE_LAYERS = ['layout', 'profile'];
+
+/**
  * Build complete <style> block for injection into HTML templates
  * @param {object} profile - Profile manifest object
  * @param {object} context - Path resolution context from @pagemd/core
@@ -36,8 +60,11 @@ const logger = createLogger('renderer.web');
  * @param {boolean} [options.minify=false] - Minify CSS output
  * @param {string} [options.frontmatterCSS] - Optional frontmatter inline CSS
  * @param {boolean} [options.returnMetadata=false] - Return full result with metadata
- * @param {boolean} [options.extractCSS=false] - Extract CSS for external stylesheet instead of inline <style> tags
- * @returns {Promise<string|StyleBlockResult|ExtractedCSSResult>} HTML string, full result, or extracted CSS
+ * @param {boolean|'split'} [options.extractCSS=false] - Extract CSS for external stylesheet:
+ *   - false: Return inline <style> tags (default)
+ *   - true: Return all CSS combined in externalCSS (single styles.css)
+ *   - 'split': Return sharedCSS + profileCSS separately (multi-profile bundle support)
+ * @returns {Promise<string|StyleBlockResult|ExtractedCSSResult|SplitCSSResult>} HTML string, full result, or extracted CSS
  */
 export async function buildStyleBlock(profile, context, options = {}) {
   logger.trace('styles', 'in-progress', 'Building style block', {
@@ -64,9 +91,54 @@ export async function buildStyleBlock(profile, context, options = {}) {
       }
     }
 
-    // === EXTRACT CSS MODE ===
+    // === SPLIT CSS MODE (multi-profile bundle support) ===
+    // Separates shared layers (base, primary, syntax) from profile-specific (layout, profile)
+    // This enables multiple profiles to coexist in same bundle with shared foundation
+    if (options.extractCSS === 'split') {
+      // Shared layers: identical across all profiles (system-provided)
+      const sharedLayerOrder = '@layer base, primary, syntax;\n\n';
+      let sharedCSS = sharedLayerOrder;
+
+      // Profile layers: vary by profile (layout + profile visual styles)
+      const profileLayerOrder = '@layer layout, profile;\n\n';
+      let profileCSS = profileLayerOrder;
+
+      for (const { layer, content } of aggregated) {
+        const css = options.minify ? minifyCSS(content) : content;
+        const wrappedCSS = `@layer ${layer} {\n${css}\n}\n\n`;
+
+        if (SHARED_LAYERS.includes(layer)) {
+          sharedCSS += wrappedCSS;
+        } else if (PROFILE_LAYERS.includes(layer)) {
+          profileCSS += wrappedCSS;
+        }
+        // frontmatter is handled separately below
+      }
+
+      // Frontmatter CSS stays separate (per-document, inlined in HTML)
+      const frontmatterCSS = options.frontmatterCSS
+        ? (options.minify ? minifyCSS(options.frontmatterCSS) : options.frontmatterCSS)
+        : '';
+
+      logger.info('styles', 'success', 'Extracted split CSS for multi-profile bundling', {
+        profileId: profile?.id,
+        sharedSize: sharedCSS.length,
+        profileSize: profileCSS.length,
+        frontmatterSize: frontmatterCSS.length
+      });
+
+      return {
+        sharedCSS,             // styles-shared.css (base + primary + syntax)
+        profileCSS,            // styles-{profileId}.css (layout + profile)
+        frontmatterCSS,        // Per-document CSS (stays inlined)
+        profileId: profile?.id || 'default',
+        resources: options.returnMetadata ? resources : undefined
+      };
+    }
+
+    // === EXTRACT CSS MODE (single profile) ===
     // Returns CSS content separated from HTML for external stylesheet bundling
-    if (options.extractCSS) {
+    if (options.extractCSS === true) {
       // Build external CSS: layer declaration + all layers combined
       const layerOrder = '@layer base, primary, layout, syntax, profile;\n\n';
       let externalCSS = layerOrder;

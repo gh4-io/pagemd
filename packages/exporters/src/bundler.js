@@ -230,29 +230,44 @@ export function rewriteCSSAssetPaths(css, assetMap) {
 }
 
 /**
- * Inject external stylesheet link into HTML
- * Adds <link> tag to <head> - does NOT remove existing inline styles
+ * Inject external stylesheet link(s) into HTML
+ * Adds <link> tag(s) to <head> - does NOT remove existing inline styles
  * (inline styles may contain frontmatter CSS which is per-document)
+ *
  * @param {string} html - HTML content
- * @param {string} stylePath - Relative path to styles.css (e.g., './styles.css')
- * @returns {string} HTML with stylesheet link added
+ * @param {string|string[]} stylePaths - Single path or array of paths to stylesheets
+ *   For multi-profile bundles, pass: ['./styles-shared.css', './styles-{profileId}.css']
+ *   Order matters: shared CSS should come first, then profile-specific
+ * @returns {string} HTML with stylesheet link(s) added
+ *
+ * @example Single stylesheet (legacy)
+ * injectStylesheet(html, './styles.css')
+ *
+ * @example Multi-profile bundle
+ * injectStylesheet(html, ['./styles-shared.css', './styles-alert.css'])
  */
-export function injectStylesheet(html, stylePath) {
-  const linkTag = `<link rel="stylesheet" href="${stylePath}">`;
+export function injectStylesheet(html, stylePaths) {
+  // Normalize to array
+  const paths = Array.isArray(stylePaths) ? stylePaths : [stylePaths];
+
+  // Build link tags (shared first, then profile-specific)
+  const linkTags = paths
+    .map(p => `<link rel="stylesheet" href="${p}">`)
+    .join('\n  ');
 
   // Insert before </head>
   if (html.includes('</head>')) {
-    return html.replace('</head>', `  ${linkTag}\n</head>`);
+    return html.replace('</head>', `  ${linkTags}\n</head>`);
   }
 
   // Fallback: insert at start of <body>
   if (html.includes('<body')) {
-    return html.replace(/<body([^>]*)>/, `<body$1>\n  ${linkTag}`);
+    return html.replace(/<body([^>]*)>/, `<body$1>\n  ${linkTags}`);
   }
 
   // Last resort: prepend to HTML
-  logger.warn('bundler', 'no-head', 'No <head> or <body> found, prepending stylesheet link');
-  return linkTag + '\n' + html;
+  logger.warn('bundler', 'no-head', 'No <head> or <body> found, prepending stylesheet links');
+  return linkTags + '\n' + html;
 }
 
 /**

@@ -217,4 +217,69 @@ describe('bundler utilities', () => {
       expect(generateOutputFilename('/some/path/to/document.md')).toBe('document.html');
     });
   });
+
+  // ============================================================================
+  // Multi-Profile Bundle Support Tests
+  // Tests for per-profile CSS file generation (Option A implementation)
+  //
+  // Problem: When bundling files with DIFFERENT profiles (alerts, SOPs, etc.),
+  // a single shared styles.css would cause style collisions.
+  //
+  // Solution: Split CSS into:
+  // - styles-shared.css (base + primary + syntax) - identical for all profiles
+  // - styles-{profileId}.css (layout + profile) - varies per profile
+  // ============================================================================
+
+  describe('injectStylesheet (multi-profile)', () => {
+    it('should inject multiple stylesheet links as array', () => {
+      const html = '<html><head><title>Test</title></head><body></body></html>';
+      const stylesheets = ['./styles-shared.css', './styles-alert.css'];
+      const result = injectStylesheet(html, stylesheets);
+
+      // Both stylesheets should be injected
+      expect(result).toContain('<link rel="stylesheet" href="./styles-shared.css">');
+      expect(result).toContain('<link rel="stylesheet" href="./styles-alert.css">');
+
+      // Shared should come before profile-specific
+      const sharedIndex = result.indexOf('styles-shared.css');
+      const profileIndex = result.indexOf('styles-alert.css');
+      expect(sharedIndex).toBeLessThan(profileIndex);
+    });
+
+    it('should handle different profile CSS filenames', () => {
+      const html = '<html><head></head><body></body></html>';
+
+      // Test alert profile
+      const alertResult = injectStylesheet(html, ['./styles-shared.css', './styles-alert.css']);
+      expect(alertResult).toContain('./styles-alert.css');
+
+      // Test sop profile
+      const sopResult = injectStylesheet(html, ['./styles-shared.css', './styles-sop.css']);
+      expect(sopResult).toContain('./styles-sop.css');
+
+      // Test technical profile
+      const techResult = injectStylesheet(html, ['./styles-shared.css', './styles-technical.css']);
+      expect(techResult).toContain('./styles-technical.css');
+    });
+
+    it('should work with single stylesheet for backward compatibility', () => {
+      const html = '<html><head></head><body></body></html>';
+      const result = injectStylesheet(html, './styles.css');
+
+      expect(result).toContain('<link rel="stylesheet" href="./styles.css">');
+    });
+
+    it('should preserve order of stylesheets in output', () => {
+      const html = '<html><head></head><body></body></html>';
+      const stylesheets = ['./first.css', './second.css', './third.css'];
+      const result = injectStylesheet(html, stylesheets);
+
+      const firstIndex = result.indexOf('./first.css');
+      const secondIndex = result.indexOf('./second.css');
+      const thirdIndex = result.indexOf('./third.css');
+
+      expect(firstIndex).toBeLessThan(secondIndex);
+      expect(secondIndex).toBeLessThan(thirdIndex);
+    });
+  });
 });

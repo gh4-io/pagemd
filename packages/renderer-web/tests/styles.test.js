@@ -325,6 +325,156 @@ body { margin: 0; }`;
       // NOTE: frontmatter is intentionally NOT declared (undeclared layers have higher priority)
       expect(result).toContain('@layer base, primary, layout, syntax, profile;');
     });
+
+    // ========================================================================
+    // Multi-Profile Bundle Support: Split CSS Mode Tests
+    // ========================================================================
+    //
+    // Problem: When bundling files with DIFFERENT profiles (alerts, SOPs, etc.),
+    // a single shared styles.css would cause style collisions.
+    //
+    // Solution: extractCSS: 'split' mode separates CSS into:
+    // - sharedCSS (base + primary + syntax) - identical for all profiles
+    // - profileCSS (layout + profile) - varies per profile
+    // - frontmatterCSS - per-document (stays inlined)
+    //
+    // This enables multiple profiles to coexist in the same bundle.
+    // ========================================================================
+
+    describe('extractCSS split mode (multi-profile bundles)', () => {
+      it('should separate shared layers from profile layers', async () => {
+        const mockAggregated = [
+          { layer: 'base', content: 'body { margin: 0; }' },
+          { layer: 'primary', content: 'p { color: black; }' },
+          { layer: 'syntax', content: '.token { color: blue; }' },
+          { layer: 'layout', content: '@page { margin: 1in; }' },
+          { layer: 'profile', content: '.custom { border: 1px; }' }
+        ];
+
+        aggregateStyles.mockResolvedValue(mockAggregated);
+
+        const result = await buildStyleBlock(
+          { id: 'test-profile' },
+          {},
+          { extractCSS: 'split' }
+        );
+
+        // Should return object with split CSS
+        expect(result).toHaveProperty('sharedCSS');
+        expect(result).toHaveProperty('profileCSS');
+        expect(result).toHaveProperty('profileId');
+
+        // Shared layers: base + primary + syntax
+        expect(result.sharedCSS).toContain('@layer base');
+        expect(result.sharedCSS).toContain('@layer primary');
+        expect(result.sharedCSS).toContain('@layer syntax');
+        expect(result.sharedCSS).toContain('body { margin: 0; }');
+        expect(result.sharedCSS).toContain('p { color: black; }');
+        expect(result.sharedCSS).toContain('.token { color: blue; }');
+
+        // Shared should NOT contain profile-specific layers
+        expect(result.sharedCSS).not.toContain('@layer layout');
+        expect(result.sharedCSS).not.toContain('@layer profile');
+        expect(result.sharedCSS).not.toContain('@page');
+        expect(result.sharedCSS).not.toContain('.custom');
+
+        // Profile layers: layout + profile
+        expect(result.profileCSS).toContain('@layer layout');
+        expect(result.profileCSS).toContain('@layer profile');
+        expect(result.profileCSS).toContain('@page { margin: 1in; }');
+        expect(result.profileCSS).toContain('.custom { border: 1px; }');
+
+        // Profile should NOT contain shared layers
+        expect(result.profileCSS).not.toContain('body { margin: 0; }');
+        expect(result.profileCSS).not.toContain('p { color: black; }');
+      });
+
+      it('should include profileId from profile manifest', async () => {
+        aggregateStyles.mockResolvedValue([
+          { layer: 'base', content: '/* base */' }
+        ]);
+
+        const result = await buildStyleBlock(
+          { id: 'alert-profile' },
+          {},
+          { extractCSS: 'split' }
+        );
+
+        expect(result.profileId).toBe('alert-profile');
+      });
+
+      it('should keep frontmatter CSS separate for per-document inlining', async () => {
+        aggregateStyles.mockResolvedValue([
+          { layer: 'base', content: '/* base */' },
+          { layer: 'profile', content: '/* profile */' }
+        ]);
+
+        const result = await buildStyleBlock(
+          { id: 'test' },
+          {},
+          {
+            extractCSS: 'split',
+            frontmatterCSS: '.document-specific { color: red; }'
+          }
+        );
+
+        // Frontmatter should be separate
+        expect(result.frontmatterCSS).toBe('.document-specific { color: red; }');
+
+        // Frontmatter should NOT be in shared or profile CSS
+        expect(result.sharedCSS).not.toContain('.document-specific');
+        expect(result.profileCSS).not.toContain('.document-specific');
+      });
+
+      it('should handle layer declarations for split mode', async () => {
+        aggregateStyles.mockResolvedValue([
+          { layer: 'base', content: '/* base */' },
+          { layer: 'syntax', content: '/* syntax */' },
+          { layer: 'layout', content: '/* layout */' }
+        ]);
+
+        const result = await buildStyleBlock(
+          { id: 'test' },
+          {},
+          { extractCSS: 'split' }
+        );
+
+        // Shared CSS should declare its own layer order
+        expect(result.sharedCSS).toContain('@layer base, primary, syntax;');
+
+        // Profile CSS should declare its own layer order
+        expect(result.profileCSS).toContain('@layer layout, profile;');
+      });
+
+      it('should use default profileId when profile.id is missing', async () => {
+        aggregateStyles.mockResolvedValue([]);
+
+        const result = await buildStyleBlock(
+          { /* no id */ },
+          {},
+          { extractCSS: 'split' }
+        );
+
+        expect(result.profileId).toBe('default');
+      });
+
+      it('should work with minify option', async () => {
+        aggregateStyles.mockResolvedValue([
+          { layer: 'base', content: 'body { margin: 0; padding: 0; }' },
+          { layer: 'profile', content: '.box { width: 100%; height: 100%; }' }
+        ]);
+
+        const result = await buildStyleBlock(
+          { id: 'test' },
+          {},
+          { extractCSS: 'split', minify: true }
+        );
+
+        // Both CSS outputs should be minified
+        expect(result.sharedCSS).toContain('body{margin:0;padding:0}');
+        expect(result.profileCSS).toContain('.box{width:100%;height:100%}');
+      });
+    });
   });
 
   describe('inlineStyles', () => {

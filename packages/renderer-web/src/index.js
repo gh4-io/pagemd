@@ -148,9 +148,12 @@ export async function createRenderContext(options) {
  * @param {string} options.outputPath - Output path (optional)
  * @param {string} options.projectRoot - Project root (auto-detected if not provided)
  * @param {object} options.debugMetadata - Debug metadata collector (optional)
- * @param {boolean} options.extractCSS - Extract CSS for external stylesheet (for bundling)
+ * @param {boolean|'split'} options.extractCSS - Extract CSS for external stylesheet:
+ *   - false: Inline all CSS in <style> tags (default)
+ *   - true: Return all CSS combined in extractedCSS (single profile)
+ *   - 'split': Return splitCSS with sharedCSS + profileCSS (multi-profile bundles)
  * @param {boolean} options.wikilinkSlugs - Convert wikilinks to slugged .html links (for bundling)
- * @returns {Promise<{html: string, metadata: object, profile: object, extractedCSS?: string}>} Rendered document
+ * @returns {Promise<{html: string, metadata: object, profile: object, extractedCSS?: string, splitCSS?: object}>} Rendered document
  */
 export async function renderDocument(markdownPath, options = {}) {
   logger.info(`Rendering document: ${markdownPath}`);
@@ -234,9 +237,48 @@ export async function renderDocument(markdownPath, options = {}) {
 
   let styles;
   let extractedCSS = null;
+  let splitCSS = null;
 
-  if (extractCSS && typeof styleResult === 'object' && 'externalCSS' in styleResult) {
-    // Extract CSS mode: return CSS separately for external stylesheet
+  if (extractCSS === 'split' && typeof styleResult === 'object' && 'sharedCSS' in styleResult) {
+    // Split CSS mode (multi-profile bundles): return sharedCSS + profileCSS separately
+    // sharedCSS = base + primary + syntax (identical for all profiles)
+    // profileCSS = layout + profile (varies per profile)
+    splitCSS = {
+      sharedCSS: styleResult.sharedCSS,
+      profileCSS: styleResult.profileCSS,
+      profileId: styleResult.profileId,
+      frontmatterCSS: styleResult.frontmatterCSS
+    };
+
+    // Build minimal inline styles for the HTML (only frontmatter CSS)
+    if (styleResult.frontmatterCSS) {
+      styles = `<style data-layer="frontmatter">\n@layer frontmatter {\n${styleResult.frontmatterCSS}\n}\n</style>\n`;
+    } else {
+      styles = '';
+    }
+
+    // Add CSS resources to debug metadata
+    if (debugMetadata && styleResult.resources) {
+      for (const res of styleResult.resources) {
+        addResource(debugMetadata, {
+          name: res.source,
+          path: res.resolvedPath,
+          source: res.source,
+          layer: res.layer,
+          type: 'css',
+          size: res.size
+        });
+      }
+    }
+
+    logger.debug('Split CSS mode enabled for multi-profile bundling', {
+      profileId: splitCSS.profileId,
+      sharedSize: splitCSS.sharedCSS?.length,
+      profileSize: splitCSS.profileCSS?.length
+    });
+
+  } else if (extractCSS === true && typeof styleResult === 'object' && 'externalCSS' in styleResult) {
+    // Extract CSS mode (single profile): return CSS combined for external stylesheet
     extractedCSS = styleResult.externalCSS;
 
     // Build minimal inline styles for the HTML (only frontmatter CSS)
@@ -327,9 +369,14 @@ export async function renderDocument(markdownPath, options = {}) {
     profile
   };
 
-  // Include extractedCSS when in extract mode
+  // Include extractedCSS when in single-profile extract mode
   if (extractedCSS !== null) {
     result.extractedCSS = extractedCSS;
+  }
+
+  // Include splitCSS when in multi-profile split mode
+  if (splitCSS !== null) {
+    result.splitCSS = splitCSS;
   }
 
   return result;

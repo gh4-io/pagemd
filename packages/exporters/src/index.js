@@ -490,22 +490,41 @@ export async function exportToImage(markdownPath, format, options = {}) {
  * Export multiple markdown files to a bundled static site
  * Creates a self-contained directory with:
  * - HTML files with slugified names
- * - Shared styles.css for all CSS layers
+ * - Shared styles-shared.css for common CSS layers (base, primary, syntax)
+ * - Per-profile styles-{profileId}.css for profile-specific layers (layout, profile)
  * - assets/ directory with copied images, fonts, etc.
  * - Wikilinks converted to .html links with slugs
+ *
+ * ## Multi-Profile Support
+ *
+ * When bundling files with DIFFERENT profiles (e.g., alerts, SOPs, technical docs),
+ * the bundler creates separate CSS files for each profile:
+ *
+ * ```
+ * dist/
+ * ├── styles-shared.css     # base + primary + syntax (shared by all)
+ * ├── styles-alert.css      # layout + profile for alert-profile
+ * ├── styles-sop.css        # layout + profile for sop-profile
+ * ├── alert-doc.html        # <link href="styles-shared.css"> + <link href="styles-alert.css">
+ * └── sop-doc.html          # <link href="styles-shared.css"> + <link href="styles-sop.css">
+ * ```
+ *
+ * This prevents style collisions when different document types have different:
+ * - Page layouts (@page rules, margins)
+ * - Visual styling (fonts, colors, spacing)
  *
  * @param {string|string[]} markdownPaths - Single path or array of markdown file paths
  * @param {object} options - Export options
  * @param {string} [options.outputDir='./dist'] - Output directory for the bundle
- * @param {string} [options.profile='standard_letter'] - Profile ID to use
+ * @param {string} [options.profile] - Default profile ID (can be overridden per-file via frontmatter)
  * @param {boolean} [options.debug=false] - Enable debug mode
  * @param {string} [options.cliPath] - CLI path for resource resolution
- * @returns {Promise<{outputDir: string, files: Array<{input: string, output: string}>, stylesPath: string, assetsCount: number, errors: string[]}>}
+ * @returns {Promise<{outputDir: string, files: Array<{input: string, output: string, profile: string}>, sharedStylesPath: string, profileStyles: Map<string, string>, assetsCount: number, errors: string[]}>}
  */
 export async function exportToBundle(markdownPaths, options = {}) {
   const {
     outputDir = './dist',
-    profile: profileId = 'standard_letter',
+    profile: defaultProfileId = 'standard_letter',
     debug = false,
     cliPath = null
   } = options;
@@ -519,7 +538,7 @@ export async function exportToBundle(markdownPaths, options = {}) {
 
   logger.info('bundle.start', 'started', `Bundling ${paths.length} files to ${outputDir}`, {
     files: paths.length,
-    profile: profileId
+    defaultProfile: defaultProfileId
   });
 
   // Resolve output directory
@@ -528,8 +547,13 @@ export async function exportToBundle(markdownPaths, options = {}) {
 
   const files = [];
   const errors = [];
-  let sharedCSS = null;
   const allAssets = [];
+
+  // Track CSS by profile for multi-profile support
+  // Key: profileId, Value: { sharedCSS, profileCSS, written: boolean }
+  const profileCSS = new Map();
+  let sharedCSSWritten = false;
+  let sharedCSSContent = null;
 
   // Process each markdown file
   for (const mdPath of paths) {
@@ -539,22 +563,41 @@ export async function exportToBundle(markdownPaths, options = {}) {
     try {
       logger.debug('bundle.render', 'started', `Rendering: ${mdPath}`);
 
-      // Render with extractCSS and wikilinkSlugs enabled
-      const { html, metadata, profile, extractedCSS } = await renderDocument(absoluteMdPath, {
-        profile: profileId,
-        extractCSS: true,
+      // Render with split CSS extraction for multi-profile support
+      // Each file may use a different profile (via frontmatter or default)
+      const { html, metadata, profile, splitCSS } = await renderDocument(absoluteMdPath, {
+        profile: defaultProfileId,
+        extractCSS: 'split',  // Use split mode for multi-profile support
         wikilinkSlugs: true,
         debug,
         cliPath
       });
 
-      // Save shared CSS on first file (all files use same profile)
-      if (sharedCSS === null && extractedCSS) {
-        sharedCSS = extractedCSS;
+      const actualProfileId = splitCSS?.profileId || profile?.id || defaultProfileId;
+
+      // Track this profile's CSS if not already seen
+      if (!profileCSS.has(actualProfileId) && splitCSS) {
+        profileCSS.set(actualProfileId, {
+          sharedCSS: splitCSS.sharedCSS,
+          profileCSS: splitCSS.profileCSS,
+          written: false
+        });
+
+        // Save shared CSS content (identical for all profiles)
+        if (!sharedCSSContent && splitCSS.sharedCSS) {
+          sharedCSSContent = splitCSS.sharedCSS;
+        }
+
+        logger.debug('bundle.profile', 'new', `New profile detected: ${actualProfileId}`, {
+          profileId: actualProfileId,
+          sharedSize: splitCSS.sharedCSS?.length || 0,
+          profileSize: splitCSS.profileCSS?.length || 0
+        });
       }
 
       // Collect assets from this file's HTML
-      const assets = collectAssets(html, sharedCSS || '', markdownDir);
+      const cssForAssetScan = profileCSS.get(actualProfileId)?.profileCSS || '';
+      const assets = collectAssets(html, cssForAssetScan + (sharedCSSContent || ''), markdownDir);
       allAssets.push(...assets);
 
       // Generate output filename
@@ -567,19 +610,29 @@ export async function exportToBundle(markdownPaths, options = {}) {
       // Rewrite asset paths in HTML
       let processedHtml = rewriteAssetPaths(html, assetMap);
 
-      // Remove inline styles (except frontmatter), inject stylesheet link
+      // Remove inline styles (except frontmatter)
       processedHtml = removeInlineStyles(processedHtml, true);
-      processedHtml = injectStylesheet(processedHtml, './styles.css');
+
+      // Inject both stylesheet links: shared first, then profile-specific
+      // Order matters for CSS cascade (shared foundation, then profile customization)
+      const stylesheets = [
+        './styles-shared.css',
+        `./styles-${slugify(actualProfileId)}.css`
+      ];
+      processedHtml = injectStylesheet(processedHtml, stylesheets);
 
       // Write HTML file
       await fs.writeFile(outputPath, processedHtml, 'utf-8');
 
       files.push({
         input: mdPath,
-        output: outputFilename
+        output: outputFilename,
+        profile: actualProfileId
       });
 
-      logger.debug('bundle.render', 'success', `Rendered: ${mdPath} → ${outputFilename}`);
+      logger.debug('bundle.render', 'success', `Rendered: ${mdPath} → ${outputFilename}`, {
+        profile: actualProfileId
+      });
 
     } catch (error) {
       const msg = `Failed to process ${mdPath}: ${error.message}`;
@@ -588,31 +641,45 @@ export async function exportToBundle(markdownPaths, options = {}) {
     }
   }
 
-  // Write shared CSS if we have any
-  let stylesPath = null;
-  if (sharedCSS) {
-    stylesPath = path.join(absoluteOutputDir, 'styles.css');
+  // Build asset map for CSS path rewriting
+  const dedupedAssets = deduplicateAssets(allAssets);
+  const assetMap = createAssetMap(dedupedAssets);
 
-    // Rewrite CSS asset paths too
-    const dedupedAssets = deduplicateAssets(allAssets);
-    const assetMap = createAssetMap(dedupedAssets);
-    const processedCSS = rewriteCSSAssetPaths(sharedCSS, assetMap);
+  // Write shared CSS (once, identical for all profiles)
+  let sharedStylesPath = null;
+  if (sharedCSSContent) {
+    sharedStylesPath = path.join(absoluteOutputDir, 'styles-shared.css');
+    const processedSharedCSS = rewriteCSSAssetPaths(sharedCSSContent, assetMap);
+    await fs.writeFile(sharedStylesPath, processedSharedCSS, 'utf-8');
+    logger.info('bundle.css', 'success', `Wrote styles-shared.css (${processedSharedCSS.length} bytes)`);
+  }
 
-    await fs.writeFile(stylesPath, processedCSS, 'utf-8');
-    logger.info('bundle.css', 'success', `Wrote styles.css (${processedCSS.length} bytes)`);
+  // Write per-profile CSS files
+  const profileStylesWritten = new Map();
+  for (const [profileId, cssData] of profileCSS) {
+    if (cssData.profileCSS && !cssData.written) {
+      const profileStylesPath = path.join(absoluteOutputDir, `styles-${slugify(profileId)}.css`);
+      const processedProfileCSS = rewriteCSSAssetPaths(cssData.profileCSS, assetMap);
+      await fs.writeFile(profileStylesPath, processedProfileCSS, 'utf-8');
+      cssData.written = true;
+      profileStylesWritten.set(profileId, profileStylesPath);
+      logger.info('bundle.css', 'success', `Wrote styles-${slugify(profileId)}.css (${processedProfileCSS.length} bytes)`);
+    }
   }
 
   // Copy all assets (deduplicated)
-  const dedupedAssets = deduplicateAssets(allAssets);
   const copyResult = await copyAssets(dedupedAssets, absoluteOutputDir);
 
   if (copyResult.errors.length > 0) {
     errors.push(...copyResult.errors);
   }
 
-  logger.info('bundle.complete', 'success', `Bundle complete: ${files.length} files, ${copyResult.copied} assets`, {
+  // Summary logging
+  const uniqueProfiles = [...profileCSS.keys()];
+  logger.info('bundle.complete', 'success', `Bundle complete: ${files.length} files, ${uniqueProfiles.length} profiles, ${copyResult.copied} assets`, {
     outputDir: absoluteOutputDir,
     files: files.length,
+    profiles: uniqueProfiles,
     assets: copyResult.copied,
     errors: errors.length
   });
@@ -620,7 +687,8 @@ export async function exportToBundle(markdownPaths, options = {}) {
   return {
     outputDir: absoluteOutputDir,
     files,
-    stylesPath,
+    sharedStylesPath,
+    profileStyles: profileStylesWritten,
     assetsCount: copyResult.copied,
     errors
   };
