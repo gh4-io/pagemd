@@ -33,6 +33,19 @@ import {
   getScreenshotOptions
 } from './screenshots.js';
 
+import {
+  collectAssets,
+  deduplicateAssets,
+  copyAssets,
+  createAssetMap,
+  rewriteAssetPaths,
+  rewriteCSSAssetPaths,
+  injectStylesheet,
+  removeInlineStyles,
+  generateOutputFilename,
+  slugify
+} from './bundler.js';
+
 const logger = createLogger('exporter');
 
 /**
@@ -52,7 +65,8 @@ export async function exportDocument(markdownPath, options = {}) {
     formats = null,
     outputDir = null,
     debug = false,
-    modes = {}
+    modes = {},
+    cliPath = null
   } = options;
 
   logger.info('export.start', 'started', `Exporting document: ${markdownPath}`, {
@@ -144,7 +158,8 @@ export async function exportDocument(markdownPath, options = {}) {
           const result = await exportToPdf(absoluteMarkdownPath, {
             profile: profileId,
             outputDir,
-            debug
+            debug,
+            cliPath
           });
           outputs.push(result);
           metadata = result.metadata || metadata;
@@ -291,7 +306,8 @@ export async function exportToPdf(markdownPath, options = {}) {
     profile: profileId = 'standard_letter',
     outputDir = null,
     debug = false,
-    pdfOptions = {}
+    pdfOptions = {},
+    cliPath = null
   } = options;
 
   logger.info('export.pdf', 'started', `Exporting to PDF: ${markdownPath}`, {
@@ -322,7 +338,8 @@ export async function exportToPdf(markdownPath, options = {}) {
     profile: profileId,
     output: outputPath,
     debug,
-    pdfOptions
+    pdfOptions,
+    cliPath
   });
 
   const stats = await fs.stat(pdfPath);
@@ -469,6 +486,146 @@ export async function exportToImage(markdownPath, format, options = {}) {
   }
 }
 
+/**
+ * Export multiple markdown files to a bundled static site
+ * Creates a self-contained directory with:
+ * - HTML files with slugified names
+ * - Shared styles.css for all CSS layers
+ * - assets/ directory with copied images, fonts, etc.
+ * - Wikilinks converted to .html links with slugs
+ *
+ * @param {string|string[]} markdownPaths - Single path or array of markdown file paths
+ * @param {object} options - Export options
+ * @param {string} [options.outputDir='./dist'] - Output directory for the bundle
+ * @param {string} [options.profile='standard_letter'] - Profile ID to use
+ * @param {boolean} [options.debug=false] - Enable debug mode
+ * @param {string} [options.cliPath] - CLI path for resource resolution
+ * @returns {Promise<{outputDir: string, files: Array<{input: string, output: string}>, stylesPath: string, assetsCount: number, errors: string[]}>}
+ */
+export async function exportToBundle(markdownPaths, options = {}) {
+  const {
+    outputDir = './dist',
+    profile: profileId = 'standard_letter',
+    debug = false,
+    cliPath = null
+  } = options;
+
+  // Normalize to array
+  const paths = Array.isArray(markdownPaths) ? markdownPaths : [markdownPaths];
+
+  if (paths.length === 0) {
+    throw new Error('No markdown files provided for bundling');
+  }
+
+  logger.info('bundle.start', 'started', `Bundling ${paths.length} files to ${outputDir}`, {
+    files: paths.length,
+    profile: profileId
+  });
+
+  // Resolve output directory
+  const absoluteOutputDir = path.resolve(outputDir);
+  await fs.mkdir(absoluteOutputDir, { recursive: true });
+
+  const files = [];
+  const errors = [];
+  let sharedCSS = null;
+  const allAssets = [];
+
+  // Process each markdown file
+  for (const mdPath of paths) {
+    const absoluteMdPath = path.resolve(mdPath);
+    const markdownDir = path.dirname(absoluteMdPath);
+
+    try {
+      logger.debug('bundle.render', 'started', `Rendering: ${mdPath}`);
+
+      // Render with extractCSS and wikilinkSlugs enabled
+      const { html, metadata, profile, extractedCSS } = await renderDocument(absoluteMdPath, {
+        profile: profileId,
+        extractCSS: true,
+        wikilinkSlugs: true,
+        debug,
+        cliPath
+      });
+
+      // Save shared CSS on first file (all files use same profile)
+      if (sharedCSS === null && extractedCSS) {
+        sharedCSS = extractedCSS;
+      }
+
+      // Collect assets from this file's HTML
+      const assets = collectAssets(html, sharedCSS || '', markdownDir);
+      allAssets.push(...assets);
+
+      // Generate output filename
+      const outputFilename = generateOutputFilename(absoluteMdPath);
+      const outputPath = path.join(absoluteOutputDir, outputFilename);
+
+      // Create asset map for path rewriting
+      const assetMap = createAssetMap(assets);
+
+      // Rewrite asset paths in HTML
+      let processedHtml = rewriteAssetPaths(html, assetMap);
+
+      // Remove inline styles (except frontmatter), inject stylesheet link
+      processedHtml = removeInlineStyles(processedHtml, true);
+      processedHtml = injectStylesheet(processedHtml, './styles.css');
+
+      // Write HTML file
+      await fs.writeFile(outputPath, processedHtml, 'utf-8');
+
+      files.push({
+        input: mdPath,
+        output: outputFilename
+      });
+
+      logger.debug('bundle.render', 'success', `Rendered: ${mdPath} → ${outputFilename}`);
+
+    } catch (error) {
+      const msg = `Failed to process ${mdPath}: ${error.message}`;
+      errors.push(msg);
+      logger.error('bundle.render', 'failure', msg);
+    }
+  }
+
+  // Write shared CSS if we have any
+  let stylesPath = null;
+  if (sharedCSS) {
+    stylesPath = path.join(absoluteOutputDir, 'styles.css');
+
+    // Rewrite CSS asset paths too
+    const dedupedAssets = deduplicateAssets(allAssets);
+    const assetMap = createAssetMap(dedupedAssets);
+    const processedCSS = rewriteCSSAssetPaths(sharedCSS, assetMap);
+
+    await fs.writeFile(stylesPath, processedCSS, 'utf-8');
+    logger.info('bundle.css', 'success', `Wrote styles.css (${processedCSS.length} bytes)`);
+  }
+
+  // Copy all assets (deduplicated)
+  const dedupedAssets = deduplicateAssets(allAssets);
+  const copyResult = await copyAssets(dedupedAssets, absoluteOutputDir);
+
+  if (copyResult.errors.length > 0) {
+    errors.push(...copyResult.errors);
+  }
+
+  logger.info('bundle.complete', 'success', `Bundle complete: ${files.length} files, ${copyResult.copied} assets`, {
+    outputDir: absoluteOutputDir,
+    files: files.length,
+    assets: copyResult.copied,
+    errors: errors.length
+  });
+
+  return {
+    outputDir: absoluteOutputDir,
+    files,
+    stylesPath,
+    assetsCount: copyResult.copied,
+    errors
+  };
+}
+
 // Re-export all utility functions from internal modules
 
 // modes.js exports
@@ -495,4 +652,18 @@ export {
   saveScreenshot,
   capturePageScreenshots,
   getScreenshotOptions
+};
+
+// bundler.js exports
+export {
+  collectAssets,
+  deduplicateAssets,
+  copyAssets,
+  createAssetMap,
+  rewriteAssetPaths,
+  rewriteCSSAssetPaths,
+  injectStylesheet,
+  removeInlineStyles,
+  generateOutputFilename,
+  slugify
 };

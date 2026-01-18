@@ -4,7 +4,7 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import MarkdownIt from 'markdown-it';
-import { wikilinkPlugin } from '../src/wikilinks.js';
+import { wikilinkPlugin, slugify } from '../src/wikilinks.js';
 
 describe('wikilinkPlugin', () => {
   let md;
@@ -361,5 +361,117 @@ Paragraph with [[Link 1]] and [[Link 2|custom text]].
       expect(html).toContain('href="Link 3"');
       expect(html).toContain('href="Link 4"');
     });
+  });
+
+  describe('generateSlugs option (static site bundling)', () => {
+    it('should convert page names to slugged .html links', () => {
+      md.use(wikilinkPlugin, { generateSlugs: true });
+      const input = '[[Page Name]]';
+      const html = md.render(input);
+
+      expect(html).toContain('href="page-name.html"');
+      expect(html).toContain('>Page Name</a>');
+    });
+
+    it('should preserve fragment identifiers', () => {
+      md.use(wikilinkPlugin, { generateSlugs: true });
+      const input = '[[Page Name#Section]]';
+      const html = md.render(input);
+
+      expect(html).toContain('href="page-name.html#section"');
+    });
+
+    it('should not slugify external URLs', () => {
+      md.use(wikilinkPlugin, { generateSlugs: true });
+      const input = '[[https://example.com]]';
+      const html = md.render(input);
+
+      // External URL should remain unchanged
+      expect(html).toContain('href="https://example.com"');
+      expect(html).not.toContain('.html');
+    });
+
+    it('should handle display text with slugified href', () => {
+      md.use(wikilinkPlugin, { generateSlugs: true });
+      const input = '[[Page Name|Custom Display]]';
+      const html = md.render(input);
+
+      expect(html).toContain('href="page-name.html"');
+      expect(html).toContain('>Custom Display</a>');
+    });
+
+    it('should handle special characters in page names', () => {
+      md.use(wikilinkPlugin, { generateSlugs: true });
+      const input = '[[My Page Name 123]]';
+      const html = md.render(input);
+
+      expect(html).toContain('href="my-page-name-123.html"');
+    });
+
+    it('should not apply baseUrl when generateSlugs is enabled', () => {
+      md.use(wikilinkPlugin, { generateSlugs: true, baseUrl: '/wiki' });
+      const input = '[[Page Name]]';
+      const html = md.render(input);
+
+      // With generateSlugs, baseUrl is not used (slugs are relative)
+      expect(html).toContain('href="page-name.html"');
+    });
+
+    it('should handle accented characters', () => {
+      md.use(wikilinkPlugin, { generateSlugs: true });
+      const input = '[[Résumé Page]]';
+      const html = md.render(input);
+
+      expect(html).toContain('href="resume-page.html"');
+    });
+
+    it('should handle fragment with accented page name', () => {
+      md.use(wikilinkPlugin, { generateSlugs: true });
+      const input = '[[Café Guide#Brewing Tips]]';
+      const html = md.render(input);
+
+      expect(html).toContain('href="cafe-guide.html#brewing tips"');
+    });
+  });
+});
+
+describe('slugify', () => {
+  it('should convert text to lowercase slug', () => {
+    expect(slugify('Page Name')).toBe('page-name');
+  });
+
+  it('should replace spaces with hyphens', () => {
+    expect(slugify('hello world')).toBe('hello-world');
+  });
+
+  it('should replace non-alphanumeric characters with hyphens', () => {
+    expect(slugify('page@name!test')).toBe('page-name-test');
+  });
+
+  it('should trim leading and trailing hyphens', () => {
+    expect(slugify('--page--name--')).toBe('page-name');
+  });
+
+  it('should collapse multiple consecutive hyphens', () => {
+    expect(slugify('page   name')).toBe('page-name');
+  });
+
+  it('should handle accented characters', () => {
+    expect(slugify('Résumé')).toBe('resume');
+    expect(slugify('Café')).toBe('cafe');
+    expect(slugify('naïve')).toBe('naive');
+  });
+
+  it('should handle empty string', () => {
+    expect(slugify('')).toBe('');
+  });
+
+  it('should handle null/undefined', () => {
+    expect(slugify(null)).toBe('');
+    expect(slugify(undefined)).toBe('');
+  });
+
+  it('should preserve numbers', () => {
+    expect(slugify('Page 123 Test')).toBe('page-123-test');
   });
 });

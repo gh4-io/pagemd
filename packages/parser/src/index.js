@@ -271,7 +271,8 @@ export function isSyntaxHighlightingEnabled() {
  * @param {boolean} options.linkify - Auto-convert URLs to links (default: true)
  * @param {boolean} options.typographer - Enable smart quotes and typography (default: true)
  * @param {string} options.highlightTheme - Shiki theme for syntax highlighting (default: github-light)
- * @param {object} options.wikilinks - Wikilink plugin options (baseUrl, imageBaseUrl, linkClass, imageClass)
+ * @param {object} options.wikilinks - Wikilink plugin options (baseUrl, imageBaseUrl, linkClass, imageClass, generateSlugs)
+ * @param {boolean} options.wikilinks.generateSlugs - Convert page names to slugs with .html extension for static site bundling
  * @param {string} options.includeRoot - Root path for markdown-it-include (default: '.')
  * @returns {MarkdownIt} Configured markdown-it instance
  */
@@ -388,7 +389,7 @@ export async function parseFile(filePath, options = {}) {
 
 // Re-export utilities
 export { extractFrontmatter } from './frontmatter.js';
-export { wikilinkPlugin } from './wikilinks.js';
+export { wikilinkPlugin, slugify } from './wikilinks.js';
 export {
   normalizeMetadata,
   normalizeKey,

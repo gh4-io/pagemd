@@ -5,6 +5,30 @@
  */
 
 /**
+ * Convert text to URL-safe slug
+ * @param {string} text - Text to slugify
+ * @returns {string} URL-safe slug
+ */
+export function slugify(text) {
+  if (!text) return '';
+  return text
+    .toLowerCase()
+    .normalize('NFD')                    // Decompose accented chars
+    .replace(/[\u0300-\u036f]/g, '')     // Remove diacritics
+    .replace(/[^a-z0-9]+/g, '-')         // Replace non-alphanumeric with hyphens
+    .replace(/^-+|-+$/g, '');            // Trim hyphens from start/end
+}
+
+/**
+ * Check if URL is external (has protocol)
+ * @param {string} url - URL to check
+ * @returns {boolean} True if external
+ */
+function isExternalUrl(url) {
+  return /^[a-z][a-z0-9+.-]*:\/\//i.test(url);
+}
+
+/**
  * Create wiki-link plugin
  * @param {MarkdownIt} md - markdown-it instance
  * @param {object} options - Plugin configuration
@@ -12,13 +36,15 @@
  * @param {string} options.imageBaseUrl - Base URL for images (default: '')
  * @param {string} options.linkClass - CSS class for links (default: 'wikilink')
  * @param {string} options.imageClass - CSS class for images (default: 'embedded-image')
+ * @param {boolean} options.generateSlugs - Convert page names to slugs with .html extension (default: false)
  */
 export function wikilinkPlugin(md, options = {}) {
   const defaultOptions = {
     baseUrl: '',
     imageBaseUrl: '',
     linkClass: 'wikilink',
-    imageClass: 'embedded-image'
+    imageClass: 'embedded-image',
+    generateSlugs: false
   };
 
   const opts = { ...defaultOptions, ...options };
@@ -83,7 +109,23 @@ export function wikilinkPlugin(md, options = {}) {
     if (!silent) {
       const target = match[1].trim();
       const display = match[2] ? match[2].trim() : target;
-      const href = opts.baseUrl ? `${opts.baseUrl}/${target}` : target;
+
+      // Build href based on target type
+      let href;
+
+      if (isExternalUrl(target)) {
+        // External URL - use as-is (don't prepend baseUrl)
+        href = target;
+      } else if (opts.generateSlugs) {
+        // Generate slug with .html extension
+        // Handle fragments: [[Page#Section]] → page.html#section
+        const [page, fragment] = target.split('#');
+        const slug = slugify(page);
+        href = fragment ? `${slug}.html#${fragment.toLowerCase()}` : `${slug}.html`;
+      } else {
+        // Standard wikilink handling
+        href = opts.baseUrl ? `${opts.baseUrl}/${target}` : target;
+      }
 
       // Create link token
       const token_o = state.push('link_open', 'a', 1);

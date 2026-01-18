@@ -148,15 +148,25 @@ export async function createRenderContext(options) {
  * @param {string} options.outputPath - Output path (optional)
  * @param {string} options.projectRoot - Project root (auto-detected if not provided)
  * @param {object} options.debugMetadata - Debug metadata collector (optional)
- * @returns {Promise<{html: string, metadata: object, profile: object}>} Rendered document
+ * @param {boolean} options.extractCSS - Extract CSS for external stylesheet (for bundling)
+ * @param {boolean} options.wikilinkSlugs - Convert wikilinks to slugged .html links (for bundling)
+ * @returns {Promise<{html: string, metadata: object, profile: object, extractedCSS?: string}>} Rendered document
  */
 export async function renderDocument(markdownPath, options = {}) {
   logger.info(`Rendering document: ${markdownPath}`);
-  const { debugMetadata } = options;
+  const { debugMetadata, extractCSS, wikilinkSlugs } = options;
 
   // Step 1: Parse markdown file
+  // Pass wikilinkSlugs option to parser for static site bundling
   logger.debug('Step 1: Parsing markdown');
-  const { content, html, metadata } = await parseFile(markdownPath, options);
+  const parseOptions = {
+    ...options,
+    wikilinks: {
+      ...options.wikilinks,
+      generateSlugs: wikilinkSlugs || false
+    }
+  };
+  const { content, html, metadata } = await parseFile(markdownPath, parseOptions);
 
   // Step 1b: Resolve profile (frontmatter > options > default)
   // Frontmatter profile takes precedence over CLI -p flag for per-document choice
@@ -214,14 +224,42 @@ export async function renderDocument(markdownPath, options = {}) {
     .join('\n');
 
   // Step 6: Build CSS style block (with metadata if debug mode)
+  // In extractCSS mode, returns { externalCSS, frontmatterCSS, ... } instead of style block
   logger.debug('Step 6: Building styles');
   const styleResult = await buildStyleBlock(profile, pathContext, {
     returnMetadata: !!debugMetadata,
-    frontmatterCSS: combinedFrontmatterCSS || undefined
+    frontmatterCSS: combinedFrontmatterCSS || undefined,
+    extractCSS: extractCSS || false
   });
 
   let styles;
-  if (debugMetadata && typeof styleResult === 'object') {
+  let extractedCSS = null;
+
+  if (extractCSS && typeof styleResult === 'object' && 'externalCSS' in styleResult) {
+    // Extract CSS mode: return CSS separately for external stylesheet
+    extractedCSS = styleResult.externalCSS;
+
+    // Build minimal inline styles for the HTML (only frontmatter CSS)
+    if (styleResult.frontmatterCSS) {
+      styles = `<style data-layer="frontmatter">\n@layer frontmatter {\n${styleResult.frontmatterCSS}\n}\n</style>\n`;
+    } else {
+      styles = '';
+    }
+
+    // Add CSS resources to debug metadata
+    if (debugMetadata && styleResult.resources) {
+      for (const res of styleResult.resources) {
+        addResource(debugMetadata, {
+          name: res.source,
+          path: res.resolvedPath,
+          source: res.source,
+          layer: res.layer,
+          type: 'css',
+          size: res.size
+        });
+      }
+    }
+  } else if (debugMetadata && typeof styleResult === 'object' && 'styleBlock' in styleResult) {
     styles = styleResult.styleBlock;
     // Add CSS resources to debug metadata
     for (const res of styleResult.resources) {
@@ -283,11 +321,18 @@ export async function renderDocument(markdownPath, options = {}) {
 
   logger.info('Document rendered successfully');
 
-  return {
+  const result = {
     html: finalHtml,
     metadata,
     profile
   };
+
+  // Include extractedCSS when in extract mode
+  if (extractedCSS !== null) {
+    result.extractedCSS = extractedCSS;
+  }
+
+  return result;
 }
 
 /**

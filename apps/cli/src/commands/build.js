@@ -23,7 +23,7 @@ import {
 import { renderDocument, renderMarkdown } from '@pagemd/renderer-web';
 import { renderPdf } from '@pagemd/renderer-pdf';
 import { launchBrowser, closeBrowser } from '@pagemd/renderer-pdf';
-import { saveScreenshot, getScreenshotOptions } from '@pagemd/exporters';
+import { saveScreenshot, getScreenshotOptions, exportToBundle } from '@pagemd/exporters';
 
 const logger = createLogger('cli');
 
@@ -158,6 +158,11 @@ export const builder = {
     describe: 'Output HTML to stdout (single file, html format only)',
     type: 'boolean',
     default: false
+  },
+  bundle: {
+    describe: 'Bundle multiple files for static site hosting (shared CSS, assets)',
+    type: 'boolean',
+    default: false
   }
 };
 
@@ -180,6 +185,7 @@ export async function handler(argv) {
     debug,
     pagedjs,
     stdout,
+    bundle,
     cliPath
   } = argv;
 
@@ -192,6 +198,114 @@ export async function handler(argv) {
     console.error('Error: Cannot use both <input> and --stdin');
     process.exit(1);
   }
+
+  // === BUNDLE MODE ===
+  // Handle static site bundling separately from normal build flow
+  if (bundle) {
+    // Bundle mode validations
+    if (useStdin) {
+      console.error('Error: --bundle cannot be used with --stdin');
+      process.exit(1);
+    }
+    if (stdout) {
+      console.error('Error: --bundle cannot be used with --stdout');
+      process.exit(1);
+    }
+
+    // Require --output-dir for bundle mode (or use default)
+    const bundleOutputDir = outputDir || './dist';
+
+    logger.info('build', 'start', `Bundling markdown files to ${bundleOutputDir}`, {
+      input,
+      outputDir: bundleOutputDir,
+      profile,
+      debug
+    });
+
+    try {
+      // Resolve input path
+      const inputPath = path.isAbsolute(input)
+        ? input
+        : path.resolve(process.cwd(), input);
+
+      // Check if input exists
+      let inputStat;
+      try {
+        inputStat = await fs.stat(inputPath);
+      } catch (error) {
+        console.error(`Error: Input not found: ${inputPath}`);
+        process.exit(1);
+      }
+
+      // Collect markdown files
+      let markdownFiles = [];
+      if (inputStat.isDirectory()) {
+        markdownFiles = await findMarkdownFiles(inputPath);
+        if (markdownFiles.length === 0) {
+          console.warn(`Warning: No markdown files found in: ${inputPath}`);
+          return;
+        }
+      } else {
+        if (!inputPath.toLowerCase().endsWith('.md')) {
+          console.error(`Error: Input is not a markdown file: ${inputPath}`);
+          process.exit(1);
+        }
+        markdownFiles = [inputPath];
+      }
+
+      // Show bundle start message
+      if (shouldShowBuildOutput()) {
+        cliLog(`Bundling ${markdownFiles.length} files to ${bundleOutputDir}`);
+      }
+
+      // Call exportToBundle
+      const result = await exportToBundle(markdownFiles, {
+        outputDir: bundleOutputDir,
+        profile,
+        debug,
+        cliPath
+      });
+
+      // Calculate duration
+      const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+
+      // Show success message
+      if (shouldShowBuildOutput()) {
+        cliLog('Bundle Summary:');
+        cliLogIndent(`Files generated: ${result.files.length}`);
+        cliLogIndent(`Assets copied: ${result.assetsCount}`);
+        cliLogIndent(`Output directory: ${result.outputDir}`);
+        if (result.errors.length > 0) {
+          cliLogIndent(`Warnings: ${result.errors.length}`);
+          for (const err of result.errors) {
+            cliLogIndent(`  - ${err}`);
+          }
+        }
+        cliLogIndent(`Duration: ${duration}s`);
+      }
+
+      logger.info('build', 'success', `Bundle complete: ${result.files.length} files`, {
+        files: result.files.length,
+        assets: result.assetsCount,
+        duration: `${duration}s`
+      });
+
+      // Exit with error if any files failed
+      if (result.errors.length > 0 && result.files.length === 0) {
+        process.exit(1);
+      }
+
+      return; // Bundle mode complete
+    } catch (error) {
+      logger.fatal('build', 'failure', `Bundle failed: ${error.message}`, {
+        error: error.message,
+        stack: error.stack
+      });
+      console.error(`\nFatal error: ${error.message}`);
+      process.exit(1);
+    }
+  }
+  // === END BUNDLE MODE ===
 
   logger.info('build', 'start', `Building markdown: ${useStdin ? '<stdin>' : input}`, {
     input: useStdin ? '<stdin>' : input,
@@ -643,7 +757,8 @@ async function buildDocument(markdownPath, options) {
           pagedjs,
           headless: envHeadless,
           timeout: envTimeout,
-          debugMetadata
+          debugMetadata,
+          cliPath
         });
 
         outputs.push({
