@@ -562,13 +562,16 @@ pagemd build doc.md -o pdf
 
 ### Links Showing "()" or URL After Link Text (Fixed 2026-01-20)
 
-**Symptom:** In PDF output, links display with parentheses containing the href value after the link text, like:
+**Symptom:** In PDF output, links display with the URL repeated in parentheses:
 - `Click here (#section-name)` for internal links
-- `Visit site (https://example.com)` for external links
+- `https://example.com (https://example.com)` for URL-as-text links (autolinks)
+- `Visit site (https://example.com)` - this is intended behavior for named links
 
-**Root Cause (Fixed):**
+**Two Issues Fixed (2026-01-20):**
 
-The print CSS in `base.css` used an overly broad selector:
+#### Issue 1: Internal Anchor Links
+
+The print CSS used an overly broad selector that matched ALL links:
 
 ```css
 /* OLD (too broad) */
@@ -577,22 +580,34 @@ a[href]::after {
 }
 ```
 
-This matched ALL links, including internal anchor links (`#section-name`), which cluttered PDF output.
-
-**Fix Applied (2026-01-20):**
-
-Changed selector to only target external HTTP/HTTPS links:
+**Fix:** Changed selector to only target external HTTP/HTTPS links:
 
 ```css
-/* NEW (external links only) */
-a[href^="http"]::after {
+/* FIXED */
+a[href^="http"]::after { ... }
+```
+
+#### Issue 2: Autolinks (URL as Link Text)
+
+When the link text IS the URL itself (common in documentation), the URL was duplicated:
+
+```
+https://example.com (https://example.com)  ← Redundant!
+```
+
+**Fix:** The renderer now detects "autolinks" (links where text equals href) and adds a `.autolink` class. The CSS excludes these from the `::after` rule:
+
+```css
+/* FIXED */
+a[href^="http"]:not(.autolink)::after {
   content: " (" attr(href) ")";
 }
 ```
 
 **Current Behavior:**
-- External links (`https://...`) show URL in parentheses (intended for print)
-- Internal anchor links (`#section`) remain clean (no parentheses)
+- **Named links** (`[Click here](https://example.com)`) → show URL in parentheses ✓
+- **Autolinks** (`https://example.com` or `[https://example.com](https://example.com)`) → no duplication ✓
+- **Internal anchors** (`[Section](#section)`) → remain clean ✓
 
 **If You See This Issue:**
 

@@ -27,6 +27,53 @@ import { generatePageLayoutCSS } from './page-layout.js';
 const logger = createLogger('renderer.web');
 
 /**
+ * Mark links where href equals link text as "autolinks"
+ *
+ * These links don't need the URL shown in parentheses in print,
+ * since the text already IS the URL. This prevents duplication like:
+ *   https://example.com (https://example.com)
+ *
+ * Adds class="autolink" to matching links so CSS can exclude them
+ * from the a[href^="http"]::after print rule.
+ *
+ * @param {string} html - HTML string to process
+ * @returns {string} HTML with autolinks marked
+ */
+function markAutolinks(html) {
+  // Match <a href="URL">TEXT</a> and check if URL equals TEXT
+  // This handles both http:// and https:// URLs
+  return html.replace(
+    /<a\s+([^>]*?)href="(https?:\/\/[^"]+)"([^>]*)>([^<]*)<\/a>/gi,
+    (match, before, href, after, text) => {
+      // Normalize: trim whitespace and decode HTML entities for comparison
+      const normalizedText = text.trim();
+      const normalizedHref = href.trim();
+
+      // If text equals href, add autolink class
+      if (normalizedText === normalizedHref) {
+        // Check if class attribute already exists
+        const hasClass = /class="/.test(before + after);
+        if (hasClass) {
+          // Append to existing class
+          const combined = before + after;
+          const newAttrs = combined.replace(/class="([^"]*)"/, 'class="$1 autolink"');
+          // Split back into before/after href
+          const hrefIndex = newAttrs.indexOf('href=');
+          if (hrefIndex === -1) {
+            return `<a ${newAttrs}href="${href}">${text}</a>`;
+          }
+          return `<a ${newAttrs.substring(0, hrefIndex)}href="${href}"${newAttrs.substring(hrefIndex + 5)}>${text}</a>`;
+        } else {
+          // Add new class attribute
+          return `<a ${before}href="${href}"${after} class="autolink">${text}</a>`;
+        }
+      }
+      return match;
+    }
+  );
+}
+
+/**
  * Load frontmatter CSS files and concatenate content
  * @param {string[]} stylePaths - Array of CSS file paths from metadata.styles
  * @param {object} pathContext - Path resolution context
@@ -359,7 +406,12 @@ export async function renderDocument(markdownPath, options = {}) {
 
   // Step 9: Generate index skeleton if present (for proper pagination in PDF)
   logger.debug('Step 9: Processing index skeleton');
-  const finalHtml = generateIndexSkeleton(withToc, mergedMetadata);
+  const withIndex = generateIndexSkeleton(withToc, mergedMetadata);
+
+  // Step 10: Mark autolinks (links where text equals href) for CSS exclusion
+  // This prevents print CSS from showing redundant URLs like: https://... (https://...)
+  logger.debug('Step 10: Marking autolinks');
+  const finalHtml = markAutolinks(withIndex);
 
   logger.info('Document rendered successfully');
 
@@ -465,7 +517,12 @@ export async function renderMarkdown(markdown, options = {}) {
 
   // Step 9: Generate index skeleton if present (for proper pagination in PDF)
   logger.debug('Step 9: Processing index skeleton');
-  const finalHtml = generateIndexSkeleton(withToc, mergedMetadata);
+  const withIndex = generateIndexSkeleton(withToc, mergedMetadata);
+
+  // Step 10: Mark autolinks (links where text equals href) for CSS exclusion
+  // This prevents print CSS from showing redundant URLs like: https://... (https://...)
+  logger.debug('Step 10: Marking autolinks');
+  const finalHtml = markAutolinks(withIndex);
 
   logger.info('Markdown rendered successfully');
 

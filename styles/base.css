@@ -1162,13 +1162,20 @@ figcaption {
    ========================================================================== */
 
 @media print {
-	/* Show URLs for external links only (http/https)
-	 * Internal anchor links (#section) are excluded to keep output clean.
+	/* Show URLs for external links only (http/https), excluding autolinks
+	 *
+	 * Excluded links:
+	 * - Internal anchor links (#section) - clean TOC output
+	 * - Autolinks (.autolink class) - text already IS the URL, no need to repeat
+	 *
 	 * The ^= selector matches hrefs starting with "http".
-	 * Fix: 2026-01-20 - Changed from a[href] to a[href^="http"] to prevent
-	 * internal TOC links from showing "(#section-name)" after link text.
+	 * The :not(.autolink) excludes links where text equals href.
+	 *
+	 * Fix history:
+	 * - 2026-01-20: Changed from a[href] to a[href^="http"] for anchor exclusion
+	 * - 2026-01-20: Added :not(.autolink) to prevent URL duplication
 	 */
-	a[href^="http"]::after {
+	a[href^="http"]:not(.autolink)::after {
 		content: " (" attr(href) ")";
 		font-size: 0.8em;
 		color: var(--fgColor-muted);
