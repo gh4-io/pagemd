@@ -667,7 +667,8 @@ The butler did it.
 
     const { html } = parse(input);
     expect(html).toContain('<div class="container container-details">');
-    expect(html).toContain('<h2>');
+    // Headings now include auto-generated IDs via markdown-it-anchor
+    expect(html).toContain('<h2 id="nested-heading"');
     expect(html).toContain('<li>');
   });
 
@@ -727,7 +728,9 @@ Introduction section
 
     const { html } = parse(input);
     expect(html).toContain('<div class="title-block" id="main-title">');
-    expect(html).toContain('<h1>Main Title</h1>');
+    // Headings now include auto-generated IDs via markdown-it-anchor
+    expect(html).toContain('<h1 id="main-title"');
+    expect(html).toContain('>Main Title</h1>');
   });
 
   it('should handle all technical form container classes', () => {
@@ -765,7 +768,9 @@ Content
 
     const { html } = parse(input);
     expect(html).toContain('<div class="warning">');
-    expect(html).toContain('<h2>Warning Title</h2>');
+    // Headings now include auto-generated IDs via markdown-it-anchor
+    expect(html).toContain('<h2 id="warning-title"');
+    expect(html).toContain('>Warning Title</h2>');
     expect(html).toContain('<li>Point 1</li>');
     expect(html).toContain('<strong>Important:</strong>');
   });

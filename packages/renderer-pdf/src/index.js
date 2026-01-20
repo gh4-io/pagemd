@@ -48,7 +48,8 @@ export async function renderPdf(markdownPath, options = {}) {
     headless = true,
     pdfOptions = {},
     projectRoot,
-    debugMetadata
+    debugMetadata,
+    cliPath
   } = options;
 
   logger.info('render.start', 'started', `Rendering PDF from ${markdownPath}`, {
@@ -69,7 +70,8 @@ export async function renderPdf(markdownPath, options = {}) {
       profile,
       format: 'html',
       projectRoot,
-      debugMetadata
+      debugMetadata,
+      cliPath
     });
 
     if (!htmlResult || !htmlResult.html) {

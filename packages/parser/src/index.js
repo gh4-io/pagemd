@@ -1,5 +1,6 @@
 import MarkdownIt from 'markdown-it';
 import markdownItAttrs from 'markdown-it-attrs';
+import markdownItAnchor from 'markdown-it-anchor';
 import markdownItGithubAlerts from 'markdown-it-github-alerts';
 import markdownItInclude from 'markdown-it-include';
 import markdownItContainer from 'markdown-it-container';
@@ -7,7 +8,7 @@ import { createHighlighter } from 'shiki';
 import { readFile } from 'fs/promises';
 import { createLogger } from '@pagemd/core';
 import { extractFrontmatter } from './frontmatter.js';
-import { wikilinkPlugin } from './wikilinks.js';
+import { wikilinkPlugin, slugify } from './wikilinks.js';
 import { normalizeMetadata } from './metadata.js';
 import { registerExtensions } from './extensions.js';
 import { directivesPlugin } from './directives.js';
@@ -307,6 +308,16 @@ export function createParser(options = {}) {
   // Plugin registration order is important:
   // 1. markdown-it-attrs - Adds {.class #id} attribute syntax
   md.use(markdownItAttrs);
+
+  // 1.25. markdown-it-anchor - Auto-generates heading IDs for anchor links
+  // Uses the same slugify function as wikilinks for consistency
+  // This enables TOC links like [Section](#section-name) to work
+  md.use(markdownItAnchor, {
+    slugify: slugify,
+    permalink: false,           // No permalink icons (keep output clean)
+    level: [1, 2, 3, 4, 5, 6],  // Generate IDs for all heading levels
+    uniqueSlugStartIndex: 1     // Start suffix at 1 for duplicate headings
+  });
 
   // 1.5. markdown-it-fancy-lists - Letter and Roman numeral lists (opt-in)
   if (isFancyListsEnabled(options)) {

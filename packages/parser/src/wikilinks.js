@@ -5,9 +5,27 @@
  */
 
 /**
- * Convert text to URL-safe slug
+ * Convert text to URL-safe slug (GitHub-compatible)
+ *
+ * Produces heading IDs compatible with common markdown manual TOC patterns:
+ * - Converts to lowercase
+ * - Normalizes common separator patterns:
+ *   - ` & ` (space-ampersand-space) → `--` (double hyphen, signals conjunction)
+ *   - Other punctuation with adjacent spaces → single hyphen
+ * - Replaces remaining non-alphanumeric with hyphens
+ * - Trims leading/trailing hyphens
+ *
+ * The double-hyphen for ` & ` matches user expectations for manual TOC links
+ * like `[System Access & Passwords](#system-access--passwords)`.
+ *
  * @param {string} text - Text to slugify
  * @returns {string} URL-safe slug
+ *
+ * @example
+ * slugify("Hello World")               // "hello-world"
+ * slugify("System Access & Passwords") // "system-access--passwords"
+ * slugify("1. Welcome & Onboarding")   // "1-welcome--onboarding"
+ * slugify("What's New?")               // "whats-new"
  */
 export function slugify(text) {
   if (!text) return '';
@@ -15,7 +33,8 @@ export function slugify(text) {
     .toLowerCase()
     .normalize('NFD')                    // Decompose accented chars
     .replace(/[\u0300-\u036f]/g, '')     // Remove diacritics
-    .replace(/[^a-z0-9]+/g, '-')         // Replace non-alphanumeric with hyphens
+    .replace(/\s+&\s+/g, '--')           // ` & ` → `--` (preserve ampersand as double hyphen)
+    .replace(/[^a-z0-9-]+/g, '-')        // Replace runs of non-alphanumeric with single hyphen
     .replace(/^-+|-+$/g, '');            // Trim hyphens from start/end
 }
 

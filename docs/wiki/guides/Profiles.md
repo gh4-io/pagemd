@@ -354,6 +354,8 @@ Create `.pagemd/styles/brand-header.css`:
 }
 ```
 
+> **Note:** For dynamic text in headers/footers using `string-set`, see [[Troubleshooting#Running Headers/Footers Not Displaying (string-set)]] for important Paged.js limitations.
+
 ### Require Specific Frontmatter Fields
 
 Ensure documents include required metadata:

@@ -435,6 +435,10 @@ h1 {
 }
 ```
 
+> **Important Limitations:** See [[Troubleshooting#Running Headers/Footers Not Displaying (string-set)]] for critical Paged.js limitations:
+> 1. Source elements must NOT use `display: none` (use `height: 0; overflow: hidden;` instead)
+> 2. String concatenation (`content: string(var) " - suffix"`) does NOT work—pre-build concatenated strings in your HTML template
+
 ### First Page Different
 
 Suppress headers/footers on the first page:
@@ -722,16 +726,38 @@ h1, h2, h3 {
 
 **Symptom:** `@page` margin content is blank.
 
-**Fix:** Set the CSS variables (they default to `none`):
+**Possible causes:**
 
-```css
-:root {
-  --page-footer-center: counter(page);
-  --page-header-center: "My Document Title";
-}
-```
+1. **CSS variables not set** - Variables default to `none`:
+   ```css
+   :root {
+     --page-footer-center: counter(page);
+     --page-header-center: "My Document Title";
+   }
+   ```
 
-Or use traditional `@page` content directly in a layout CSS file.
+2. **For dynamic content using `string-set`** - Two Paged.js limitations:
+   - **`display: none` breaks capture** - Elements hidden with `display: none` are removed from the render tree and Paged.js cannot read them
+   - **String concatenation fails** - `content: string(var) " - suffix"` does NOT work
+
+**Fix for static content:** Use CSS variables or `@page` content directly.
+
+**Fix for dynamic content (string-set):**
+
+1. Hide source elements with `height: 0; overflow: hidden;` instead of `display: none`
+2. Pre-build any concatenated strings in your HTML template:
+   ```html
+   <span class="footer-text" style="height: 0; overflow: hidden;">
+     {{status}} - Uncontrolled Document
+   </span>
+   ```
+3. Reference the pre-built string in CSS (no concatenation):
+   ```css
+   .footer-text { string-set: footer-left content(); }
+   @page { @bottom-left { content: string(footer-left); } }
+   ```
+
+**See:** [[Troubleshooting#Running Headers/Footers Not Displaying (string-set)]] for complete details and working examples.
 
 ---
 

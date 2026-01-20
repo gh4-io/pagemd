@@ -8,6 +8,92 @@ PageMD extends standard Markdown with directives for TOC, Mermaid diagrams, and 
 
 Beyond standard Markdown, PageMD supports special directives that enable document features like automatic table of contents, diagrams, and indexing.
 
+## Automatic Heading IDs
+
+PageMD automatically generates HTML `id` attributes for all headings, enabling anchor links for navigation.
+
+### How It Works
+
+When you write:
+```markdown
+## My Section Title
+```
+
+PageMD generates:
+```html
+<h2 id="my-section-title" tabindex="-1">My Section Title</h2>
+```
+
+The ID is created by:
+1. Converting text to lowercase
+2. Replacing spaces with hyphens
+3. Removing special characters
+4. Ensuring uniqueness (duplicate headings get `-1`, `-2` suffixes)
+
+### Why This Matters
+
+Automatic heading IDs enable:
+- **TOC links** - Table of Contents entries link to sections
+- **Internal navigation** - `[Jump to section](#my-section-title)` works
+- **Bookmark sharing** - URLs like `document.html#my-section-title` link directly to sections
+- **PDF navigation** - PDF readers can use anchors for navigation
+
+### Manual TOC with Anchor Links
+
+You can create manual table of contents that link to sections:
+
+```markdown
+## Contents
+
+1. [Introduction](#introduction)
+2. [Getting Started](#getting-started)
+3. [Advanced Usage](#advanced-usage)
+
+## Introduction
+
+Welcome to the guide...
+
+## Getting Started
+
+First, install the dependencies...
+
+## Advanced Usage
+
+For power users...
+```
+
+All links work because headings automatically get matching IDs.
+
+### ID Generation Rules
+
+| Heading Text | Generated ID |
+|--------------|--------------|
+| `## Hello World` | `hello-world` |
+| `## 1. Introduction` | `1-introduction` |
+| `## What's New?` | `what-s-new` |
+| `## System Access & Passwords` | `system-access--passwords` |
+| `## Hello World` (second occurrence) | `hello-world-1` |
+
+**Note:** The ` & ` pattern (space-ampersand-space) produces a double hyphen (`--`) in the ID. This matches common manual TOC link conventions.
+
+### Linking to Headings
+
+```markdown
+<!-- Internal link to heading in same document -->
+See the [installation guide](#installation) for setup instructions.
+
+<!-- Reference specific section -->
+As mentioned in [Performance Tips](#performance-tips), caching improves speed.
+```
+
+### Compatibility
+
+- Works in HTML, PDF, and static bundle exports
+- Compatible with GitHub-style heading anchors
+- Consistent with Obsidian and other markdown tools
+
+---
+
 ## Table of Contents
 
 Generate an automatic table of contents from your document headings.

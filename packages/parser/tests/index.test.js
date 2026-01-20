@@ -127,7 +127,9 @@ Content here.`;
     expect(result.metadata.title).toBe('Test Document');
     expect(result.metadata.author).toBe('John Doe');
     expect(result.content).toContain('# Heading');
-    expect(result.html).toContain('<h1>Heading</h1>');
+    // Headings now include auto-generated IDs via markdown-it-anchor
+    expect(result.html).toContain('<h1 id="heading"');
+    expect(result.html).toContain('>Heading</h1>');
   });
 
   it('should normalize metadata by default', () => {
@@ -165,7 +167,9 @@ Content`;
 
     expect(result.metadata).toBeDefined();
     expect(result.content).toBe(markdown);
-    expect(result.html).toContain('<h1>Just a heading</h1>');
+    // Headings now include auto-generated IDs via markdown-it-anchor
+    expect(result.html).toContain('<h1 id="just-a-heading"');
+    expect(result.html).toContain('>Just a heading</h1>');
   });
 
   it('should return raw frontmatter string', () => {
@@ -317,7 +321,9 @@ title: File Test
 
     expect(readFile).toHaveBeenCalledWith('/test/file.md', 'utf-8');
     expect(result.metadata.title).toBe('File Test');
-    expect(result.html).toContain('<h1>Content from file</h1>');
+    // Headings now include auto-generated IDs via markdown-it-anchor
+    expect(result.html).toContain('<h1 id="content-from-file"');
+    expect(result.html).toContain('>Content from file</h1>');
   });
 
   it('should pass options to parse', async () => {

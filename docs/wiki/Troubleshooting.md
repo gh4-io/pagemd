@@ -13,8 +13,11 @@ Common issues, error messages, and solutions for PageMD.
 - [Path Resolution Errors](#path-resolution-errors)
   - [System Resource Errors](#system-resource-errors-2026-01-14-fix)
 - [PDF Rendering Issues](#pdf-rendering-issues)
+  - [Links Showing "()" or URL After Link Text](#links-showing--or-url-after-link-text-fixed-2026-01-20)
+  - [Internal Anchor Links Not Clickable in PDF](#internal-anchor-links-not-clickable-in-pdf-known-limitation)
   - [Browser Persistence](#browser-persistence)
   - [Images Not Displaying in PDF](#images-not-displaying-in-pdf)
+  - [Running Headers/Footers Not Displaying (string-set)](#running-headersfooters-not-displaying-string-set)
 - [Debug Mode](#debug-mode)
 - [Log Levels](#log-levels)
 - [Common Error Messages](#common-error-messages)
@@ -510,9 +513,144 @@ The fix ensures:
 - Missing system resources fail fast with clear error messages
 - User resources maintain flexible search for maximum compatibility
 
+#### Follow-Up Fix (2026-01-15)
+
+**Issue:** After the 2026-01-14 system resource optimization, PDF exports from VS Code extension failed with "cliPath not provided in context".
+
+**Root Cause:** The `cliPath` parameter was correctly threaded through HTML rendering but was **missing** from the PDF rendering call in `apps/cli/src/commands/build.js` (line 638).
+
+**Call Chain:**
+```
+CLI Entry (index.js:86)
+  ✓ Sets argv.cliPath = PROJECT_ROOT
+  ↓
+Build Command (build.js:562)
+  ✓ Extracts cliPath from options
+  ✓ Passes to renderDocument() [HTML] ✓
+  ✗ Missing from renderPdf() [PDF] ✗  ← BUG HERE
+  ↓
+renderPdf → renderDocument → createRenderContext
+  ✗ cliPath defaults to null
+  ✗ System stylesheet loading throws error
+```
+
+**Fix Applied:**
+- Added `cliPath` parameter to `renderPdf()` call in `build.js:647`
+- Added `cliPath` extraction in `renderPdf()` function (`renderer-pdf/src/index.js:52`)
+- Added `cliPath` forwarding to `renderDocument()` call inside `renderPdf()` (line 74)
+- Added `cliPath` parameter to `exportToPdf()` in `packages/exporters/src/index.js:329`
+- CLI bundle rebuilt to include complete fix
+
+**Why It Happened:**
+The system resource optimization made `cliPath` **required** for loading system stylesheets (previously failed silently). The PDF rendering path was overlooked during implementation - HTML worked because it already had `cliPath`, but PDF didn't.
+
+**Affected Versions:** Between 2026-01-14 and 2026-01-15 (system resource optimization to this fix)
+
+**Verification:**
+```bash
+# After fix, this should work:
+pagemd build doc.md -o pdf
+
+# VS Code extension PDF export should also work after:
+# 1. Rebuilding CLI bundle: npm run bundle-cli
+# 2. Reloading VS Code window
+```
+
 ---
 
 ## PDF Rendering Issues
+
+### Links Showing "()" or URL After Link Text (Fixed 2026-01-20)
+
+**Symptom:** In PDF output, links display with parentheses containing the href value after the link text, like:
+- `Click here (#section-name)` for internal links
+- `Visit site (https://example.com)` for external links
+
+**Root Cause (Fixed):**
+
+The print CSS in `base.css` used an overly broad selector:
+
+```css
+/* OLD (too broad) */
+a[href]::after {
+  content: " (" attr(href) ")";
+}
+```
+
+This matched ALL links, including internal anchor links (`#section-name`), which cluttered PDF output.
+
+**Fix Applied (2026-01-20):**
+
+Changed selector to only target external HTTP/HTTPS links:
+
+```css
+/* NEW (external links only) */
+a[href^="http"]::after {
+  content: " (" attr(href) ")";
+}
+```
+
+**Current Behavior:**
+- External links (`https://...`) show URL in parentheses (intended for print)
+- Internal anchor links (`#section`) remain clean (no parentheses)
+
+**If You See This Issue:**
+
+You may be using an older version of PageMD. Update to the latest version:
+
+```bash
+npm install -g @pagemd/cli
+```
+
+Or for VS Code extension users, reinstall the extension to get the updated CSS.
+
+---
+
+### Internal Anchor Links Not Clickable in PDF (Known Limitation)
+
+**Symptom:** TOC links and internal anchor links (like `#section-name`) are not clickable in the PDF output, but external links (https://...) work fine.
+
+**Root Cause:**
+
+This is a fundamental limitation of HTML-to-PDF conversion, not specific to PageMD:
+
+1. **HTML anchors** work because browsers maintain a mapping of `id` attributes to elements
+2. **PDF internal links** require explicit "named destinations" and "link annotations" - a different mechanism
+3. **Browser print-to-PDF** (used by Puppeteer) doesn't create these PDF-specific link structures
+
+**What Works:**
+- ✅ External links (`https://example.com`) are clickable in PDF
+- ✅ TOC links work in HTML output
+- ✅ TOC links work in VS Code preview
+
+**What Doesn't Work:**
+- ❌ Internal anchor links (`#section-name`) in PDF output
+- ❌ TOC links pointing to document sections in PDF
+
+**Workarounds:**
+
+1. **Use PDF viewer bookmarks:** Many PDF viewers generate bookmarks/outlines from heading structure automatically
+
+2. **Use page numbers in TOC:** Include page numbers in your TOC so readers can navigate manually:
+   ```markdown
+   1. [Introduction](#introduction) - Page 3
+   2. [Getting Started](#getting-started) - Page 5
+   ```
+
+3. **For electronic distribution:** Consider HTML output instead of PDF when clickable navigation is critical
+
+**Technical Background:**
+
+PDF internal links require:
+- Named destinations (targets) defined in the PDF structure
+- Link annotations pointing to those destinations
+- This is different from HTML where anchors are resolved at runtime
+
+Puppeteer's `page.pdf()` renders the visual appearance but doesn't post-process the PDF to add these link structures. Implementing this would require PDF post-processing with a library like `pdf-lib`.
+
+**Status:** Known limitation. May be addressed in future versions.
+
+---
 
 ### Paged.js Errors
 
@@ -715,6 +853,118 @@ $env:PAGEMD_KEEP_CHROME="1"
 <!-- Convert to data URI for guaranteed rendering -->
 ![](data:image/png;base64,iVBORw0KGgo...)
 ```
+
+---
+
+### Running Headers/Footers Not Displaying (string-set)
+
+**Symptom:** Dynamic content in running headers or footers (using CSS `string-set` and `string()`) doesn't appear, while static content like page numbers works fine.
+
+**Root Causes:** Two Paged.js limitations cause this issue:
+
+1. **`display: none` breaks string-set capture** - Elements hidden with `display: none` are removed from the render tree, preventing Paged.js from capturing their content with `string-set`.
+
+2. **String concatenation in CSS `content` doesn't work with `string()`** - Paged.js cannot concatenate `string()` values with literal text in CSS.
+
+**Example of broken patterns:**
+
+```css
+/* BROKEN: Source element uses display:none */
+.hidden-element {
+  display: none;  /* Paged.js can't read this! */
+  string-set: my-var content();
+}
+
+/* BROKEN: Concatenation in content property */
+@page {
+  @bottom-left {
+    content: string(status) " - Uncontrolled Document";  /* Fails! */
+  }
+}
+```
+
+**Solutions:**
+
+1. **Hide elements without `display: none`:**
+   ```css
+   /* Use this instead of display:none */
+   .string-capture {
+     height: 0;
+     overflow: hidden;
+     font-size: 0;
+   }
+   ```
+
+2. **Pre-build concatenated strings in HTML template:**
+   ```html
+   <!-- In your template, build the full string -->
+   <div class="string-capture" style="height: 0; overflow: hidden; font-size: 0;">
+     <!-- Individual values (if needed separately) -->
+     <span class="status-string">{{metadata.status}}</span>
+
+     <!-- Pre-built concatenated string -->
+     <span class="footer-left-string">{{metadata.status}} - Uncontrolled Document</span>
+   </div>
+   ```
+
+3. **Reference the pre-built string in CSS:**
+   ```css
+   /* Capture the pre-built string */
+   .footer-left-string {
+     string-set: footer-left content();
+   }
+
+   @page {
+     @bottom-left {
+       /* Use string() alone - no concatenation */
+       content: string(footer-left);
+     }
+
+     /* Page counters work fine with concatenation */
+     @bottom-right {
+       content: "Page " counter(page) " of " counter(pages);
+     }
+   }
+   ```
+
+**Why page numbers work but dynamic text doesn't:**
+- CSS `counter()` is native browser functionality that works with concatenation
+- Paged.js `string()` is a polyfill that doesn't support concatenation in `content`
+
+**Complete working example:**
+
+Template HTML:
+```html
+<div class="string-capture" style="height: 0; overflow: hidden; font-size: 0;">
+  <span class="footer-left-string">{{metadata.status}} - Uncontrolled Document</span>
+</div>
+```
+
+Layout CSS:
+```css
+.footer-left-string {
+  string-set: footer-left content();
+}
+
+@page {
+  @bottom-left {
+    content: string(footer-left);
+    font-size: 8pt;
+    color: #666;
+  }
+
+  @bottom-right {
+    content: "Page " counter(page) " of " counter(pages);
+    font-size: 9pt;
+  }
+}
+```
+
+**Debugging tips:**
+1. Use `--debug` mode and inspect the generated `.paged.html` file
+2. Look for CSS variables like `--pagedjs-string-first-*` to verify string capture
+3. If the variable value looks malformed (e.g., `&quot;Draft;`), the source element is likely hidden with `display: none`
+4. Test with hardcoded static text first to verify the `@page` rule works
 
 ---
 

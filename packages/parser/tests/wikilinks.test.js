@@ -448,12 +448,22 @@ describe('slugify', () => {
     expect(slugify('page@name!test')).toBe('page-name-test');
   });
 
-  it('should trim leading and trailing hyphens', () => {
-    expect(slugify('--page--name--')).toBe('page-name');
+  it('should trim leading and trailing hyphens (preserve internal)', () => {
+    // Internal double hyphens are preserved for patterns like " & " → "--"
+    expect(slugify('--page--name--')).toBe('page--name');
+    expect(slugify('---start')).toBe('start');
+    expect(slugify('end---')).toBe('end');
   });
 
-  it('should collapse multiple consecutive hyphens', () => {
+  it('should collapse multiple consecutive spaces', () => {
     expect(slugify('page   name')).toBe('page-name');
+  });
+
+  it('should preserve double hyphen for ampersand pattern', () => {
+    // " & " becomes "--" to match manual TOC link conventions
+    expect(slugify('System Access & Passwords')).toBe('system-access--passwords');
+    expect(slugify('1. Welcome & Onboarding')).toBe('1-welcome--onboarding');
+    expect(slugify('A & B & C')).toBe('a--b--c');
   });
 
   it('should handle accented characters', () => {

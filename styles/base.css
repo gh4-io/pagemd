@@ -1162,8 +1162,13 @@ figcaption {
    ========================================================================== */
 
 @media print {
-	/* Show URLs for external links */
-	a[href]::after {
+	/* Show URLs for external links only (http/https)
+	 * Internal anchor links (#section) are excluded to keep output clean.
+	 * The ^= selector matches hrefs starting with "http".
+	 * Fix: 2026-01-20 - Changed from a[href] to a[href^="http"] to prevent
+	 * internal TOC links from showing "(#section-name)" after link text.
+	 */
+	a[href^="http"]::after {
 		content: " (" attr(href) ")";
 		font-size: 0.8em;
 		color: var(--fgColor-muted);
