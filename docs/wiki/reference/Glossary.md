@@ -145,6 +145,19 @@ Extended syntax marker that creates a back-of-book index entry. Page numbers are
 
 ## L
 
+### Literal block scalar
+YAML syntax for multiline strings that preserves line breaks. Uses the `|` indicator.
+
+```yaml
+title: |
+  First Line
+  Second Line
+```
+
+**Important:** HTML collapses whitespace by default. Use `white-space: pre-line` CSS to display preserved line breaks.
+
+See [[guides/Templates#Multiline-Frontmatter-Values|Multiline Frontmatter Values]] for complete guide.
+
 ### Layout (CSS file)
 A CSS file containing `@page` rules that define page structure: size, margins, headers, footers, page numbers. Distinct from style CSS which controls visual appearance.
 
@@ -300,11 +313,39 @@ CSS layer 4. Contains code block styling from shiki. Source: `styles/syntax/shik
 ## T
 
 ### Template
-An HTML file that provides document structure. Markdown content is inserted into the template using tokens like `${content}`, `${title}`, `${author}`.
+An HTML file that provides document structure. Markdown content is inserted into the template using [[#Template token|template tokens]].
 
 Built-in templates:
 - `standard` - Simple single-column document
 - `report` - Title page followed by body content
+
+See [[guides/Templates|Working with Templates]] for detailed guide.
+
+### Template token
+A placeholder in templates using `{{token}}` syntax that is replaced with dynamic values during rendering. Supports four patterns:
+
+| Syntax | Purpose | Example |
+|--------|---------|---------|
+| `{{key}}` | Direct value | `{{content}}` |
+| `{{object.field}}` | Nested access | `{{metadata.title}}` |
+| `{{key ?? "default"}}` | Fallback value | `{{metadata.author ?? "Unknown"}}` |
+| `{{key ? "yes" : "no"}}` | Ternary conditional | `{{metadata.draft ? "DRAFT" : "FINAL"}}` |
+
+Available objects: `content`, `styles`, `metadata` (frontmatter), `profile`.
+
+See [[guides/Templates#Template-Token-Syntax|Template Token Syntax]] for full documentation.
+
+### Ternary conditional (template)
+Template token syntax that returns one of two values based on a condition's truthiness.
+
+```html
+{{metadata.controlled ? "Controlled" : "Uncontrolled"}}
+```
+
+**Truthy:** `true`, non-empty strings, non-zero numbers, objects
+**Falsy:** `false`, `0`, `""`, `null`, `undefined`
+
+See [[guides/Templates#4-Ternary-Conditionals|Ternary Conditionals]] for examples.
 
 ### TOC directive
 Extended syntax that generates a table of contents from document headings.

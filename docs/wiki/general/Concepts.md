@@ -41,7 +41,39 @@ A **template** is an HTML file that provides the structure for your document. Yo
 - `report` - Title page + body
 
 **Template tokens:**
-Templates use tokens like `${title}`, `${author}`, `${content}` that are replaced with actual values during rendering.
+Templates use `{{token}}` syntax for dynamic values. Tokens are replaced with actual values during rendering.
+
+| Syntax | Purpose | Example |
+|--------|---------|---------|
+| `{{key}}` | Direct replacement | `{{content}}` |
+| `{{metadata.field}}` | Nested access | `{{metadata.title}}` |
+| `{{key ?? "default"}}` | Default if null/undefined | `{{metadata.author ?? "Unknown"}}` |
+| `{{key ? "yes" : "no"}}` | Ternary conditional | `{{metadata.draft ? "DRAFT" : "FINAL"}}` |
+
+**Available token objects:**
+- `content` - Rendered Markdown HTML
+- `styles` - CSS style block
+- `metadata` - All frontmatter fields (any custom field accessible)
+- `profile` - Active profile object
+
+**Custom frontmatter fields:**
+Any field you define in frontmatter is accessible in templates via `{{metadata.your_field}}`.
+
+```yaml
+---
+title: My Document
+controlled_doc: true
+doc_version: 2.1
+---
+```
+
+```html
+<title>{{metadata.title}}</title>
+<span>{{metadata.controlled_doc ? "Controlled" : "Uncontrolled"}} Document</span>
+<span>Version {{metadata.doc_version ?? "1.0"}}</span>
+```
+
+See [[guides/Templates|Working with Templates]] for complete guide with examples.
 
 ## Layouts
 
@@ -103,5 +135,6 @@ Set in profile `outputs.mode` or via CLI flags.
 - [[general/Overview|Overview]] - What PageMD does
 - [[general/Architecture|Architecture]] - How components connect
 - [[guides/Profiles|Working with Profiles]] - Hands-on profile guide
+- [[guides/Templates|Working with Templates]] - Template customization guide
 - [[reference/Profile-Schema|Profile Schema]] - All profile fields
 - [[reference/Glossary|Glossary]] - Complete term definitions

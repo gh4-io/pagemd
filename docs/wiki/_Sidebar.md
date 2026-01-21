@@ -12,6 +12,7 @@
 - [[guides/Basic-Usage|Basic Usage]]
 - [[guides/Installation|Installation]]
 - [[guides/Profiles|Working with Profiles]]
+- [[guides/Templates|Working with Templates]]
 
 ### Styling & Syntax
 - [[guides/Extended-Syntax|Extended Syntax]]

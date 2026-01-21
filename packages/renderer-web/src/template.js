@@ -103,6 +103,11 @@ function getNestedValue(obj, path) {
  * Process template tokens with data
  * Handles {{token}} replacement including nested access and path expansion
  *
+ * Supported syntax:
+ * - {{key}} - direct replacement
+ * - {{key ?? "default"}} - fallback if null/undefined
+ * - {{key ? "truthy" : "falsy"}} - ternary conditional
+ *
  * @param {string} template - Template string with {{tokens}}
  * @param {object} data - Data object for token replacement
  * @param {object} [pathContext] - Optional path context for path token expansion
@@ -118,6 +123,31 @@ export function processTokens(template, data, pathContext = null) {
   // Replace {{token}} patterns
   let rendered = template.replace(/\{\{([^}]+)\}\}/g, (match, token) => {
     const trimmed = token.trim();
+
+    // Check for ternary syntax: key ? "truthy" : "falsy"
+    // Regex captures: key, truthy value, falsy value
+    const ternaryMatch = trimmed.match(/^([^?]+)\s*\?\s*["']([^"']*)["']\s*:\s*["']([^"']*)["']$/);
+    if (ternaryMatch) {
+      const [, ternaryKey, truthyValue, falsyValue] = ternaryMatch;
+      const key = ternaryKey.trim();
+
+      // Preserve path tokens
+      if (pathTokens.includes(key)) {
+        return match;
+      }
+
+      // Get the value
+      let value;
+      if (key.includes('.')) {
+        value = getNestedValue(data, key);
+      } else if (key in data) {
+        value = data[key];
+      }
+
+      // Return truthy or falsy value based on truthiness
+      // Treats: undefined, null, false, 0, "" as falsy
+      return value ? truthyValue : falsyValue;
+    }
 
     // Parse key and optional default value (key ?? "default")
     let key = trimmed;

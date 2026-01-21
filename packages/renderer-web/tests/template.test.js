@@ -343,6 +343,134 @@ describe('template.js', () => {
     });
   });
 
+  describe('processTokens - ternary conditionals', () => {
+    it('should return truthy value when condition is true', () => {
+      const template = '{{controlled ? "Controlled" : "Uncontrolled"}} Document';
+      const data = { controlled: true };
+
+      const result = processTokens(template, data);
+
+      expect(result).toBe('Controlled Document');
+    });
+
+    it('should return falsy value when condition is false', () => {
+      const template = '{{controlled ? "Controlled" : "Uncontrolled"}} Document';
+      const data = { controlled: false };
+
+      const result = processTokens(template, data);
+
+      expect(result).toBe('Uncontrolled Document');
+    });
+
+    it('should return falsy value when condition is undefined', () => {
+      const template = '{{controlled ? "Controlled" : "Uncontrolled"}} Document';
+      const data = {};
+
+      const result = processTokens(template, data);
+
+      expect(result).toBe('Uncontrolled Document');
+    });
+
+    it('should return falsy value when condition is null', () => {
+      const template = '{{controlled ? "Controlled" : "Uncontrolled"}} Document';
+      const data = { controlled: null };
+
+      const result = processTokens(template, data);
+
+      expect(result).toBe('Uncontrolled Document');
+    });
+
+    it('should handle nested key in ternary', () => {
+      const template = '{{metadata.is_draft ? "DRAFT" : "FINAL"}}';
+      const data = { metadata: { is_draft: true } };
+
+      const result = processTokens(template, data);
+
+      expect(result).toBe('DRAFT');
+    });
+
+    it('should handle missing nested key in ternary', () => {
+      const template = '{{metadata.is_draft ? "DRAFT" : "FINAL"}}';
+      const data = { metadata: {} };
+
+      const result = processTokens(template, data);
+
+      expect(result).toBe('FINAL');
+    });
+
+    it('should treat truthy string as truthy', () => {
+      const template = '{{status ? "Has Status" : "No Status"}}';
+      const data = { status: 'active' };
+
+      const result = processTokens(template, data);
+
+      expect(result).toBe('Has Status');
+    });
+
+    it('should treat empty string as falsy', () => {
+      const template = '{{status ? "Has Status" : "No Status"}}';
+      const data = { status: '' };
+
+      const result = processTokens(template, data);
+
+      expect(result).toBe('No Status');
+    });
+
+    it('should treat zero as falsy', () => {
+      const template = '{{count ? "Has Items" : "Empty"}}';
+      const data = { count: 0 };
+
+      const result = processTokens(template, data);
+
+      expect(result).toBe('Empty');
+    });
+
+    it('should treat non-zero number as truthy', () => {
+      const template = '{{count ? "Has Items" : "Empty"}}';
+      const data = { count: 5 };
+
+      const result = processTokens(template, data);
+
+      expect(result).toBe('Has Items');
+    });
+
+    it('should handle single-quoted values', () => {
+      const template = "{{active ? 'Yes' : 'No'}}";
+      const data = { active: true };
+
+      const result = processTokens(template, data);
+
+      expect(result).toBe('Yes');
+    });
+
+    it('should handle multiple ternaries in one template', () => {
+      const template = '{{draft ? "DRAFT" : "FINAL"}} - {{confidential ? "CONFIDENTIAL" : "PUBLIC"}}';
+      const data = { draft: true, confidential: false };
+
+      const result = processTokens(template, data);
+
+      expect(result).toBe('DRAFT - PUBLIC');
+    });
+
+    it('should handle ternary with whitespace', () => {
+      const template = '{{ controlled  ?  "Controlled"  :  "Uncontrolled" }}';
+      const data = { controlled: true };
+
+      const result = processTokens(template, data);
+
+      expect(result).toBe('Controlled');
+    });
+
+    it('should handle values with spaces', () => {
+      const template = '{{urgent ? "High Priority" : "Normal Priority"}}';
+      const data = { urgent: true };
+
+      const result = processTokens(template, data);
+
+      expect(result).toBe('High Priority');
+    });
+  });
+
   describe('renderTemplate', () => {
     it('should render complete template with all context', () => {
       const template = `
