@@ -41,14 +41,15 @@ const CONTAINER_TYPES = [
 ];
 
 /**
- * Parse attribute syntax {.class #id} into HTML attributes
- * @param {string} attrs - Attribute string like ".warning #id" (without braces)
- * @returns {string} HTML attribute string like 'class="warning" id="id"'
+ * Parse attribute syntax {.class #id key="value"} into HTML attributes
+ * @param {string} attrs - Attribute string like '.warning #id style="color: red"' (without braces)
+ * @returns {string} HTML attribute string like ' class="warning" id="id" style="color: red"'
  */
 function parseAttributes(attrs) {
   const parts = [];
   const classes = [];
   let id = null;
+  const kvPairs = {};
 
   // Match .class and #id patterns
   const classMatches = attrs.match(/\.([a-zA-Z0-9_-]+)/g);
@@ -61,11 +62,23 @@ function parseAttributes(attrs) {
     id = idMatch[1];
   }
 
+  // Match key="value" and key='value' patterns
+  const kvRegex = /([a-zA-Z][a-zA-Z0-9_-]*)=(?:"([^"]*)"|'([^']*)')/g;
+  let kvMatch;
+  while ((kvMatch = kvRegex.exec(attrs)) !== null) {
+    const key = kvMatch[1];
+    const value = kvMatch[2] ?? kvMatch[3];
+    if (!(key in kvPairs)) kvPairs[key] = value;
+  }
+
   if (classes.length > 0) {
     parts.push(`class="${classes.join(' ')}"`);
   }
   if (id) {
     parts.push(`id="${id}"`);
+  }
+  for (const [key, value] of Object.entries(kvPairs)) {
+    parts.push(`${key}="${value}"`);
   }
 
   return parts.length > 0 ? ' ' + parts.join(' ') : '';
@@ -139,19 +152,13 @@ function attributeContainerRule(state, startLine, endLine, silent) {
   // Parse attributes and add to token
   const attrMatch = firstLine.match(/^\{(.+)\}$/);
   if (attrMatch) {
-    const attrs = parseAttributes(attrMatch[1]);
-    // Convert attrs string "class=\"foo\" id=\"bar\"" to token attrs array
-    const attrPairs = [];
-    const classMatch = attrs.match(/class="([^"]+)"/);
-    const idMatch = attrs.match(/id="([^"]+)"/);
-    if (classMatch) attrPairs.push(['class', classMatch[1]]);
-    if (idMatch) attrPairs.push(['id', idMatch[1]]);
-    tokenOpen.attrSet = (name, value) => {
+    const attrStr = parseAttributes(attrMatch[1]);
+    // Extract all key="value" pairs from the attribute string
+    const pairRegex = /([a-zA-Z][a-zA-Z0-9_-]*)="([^"]*)"/g;
+    let pair;
+    while ((pair = pairRegex.exec(attrStr)) !== null) {
       if (!tokenOpen.attrs) tokenOpen.attrs = [];
-      tokenOpen.attrs.push([name, value]);
-    };
-    for (const [name, value] of attrPairs) {
-      tokenOpen.attrSet(name, value);
+      tokenOpen.attrs.push([pair[1], pair[2]]);
     }
   }
 
