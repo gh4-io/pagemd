@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { preprocessMermaid, isMermaidEnabled } from '../src/mermaid.js';
+import { preprocessMermaid, isMermaidEnabled, extractMermaidBlocks, parseFenceAttributes } from '../src/mermaid.js';
 
 describe('Mermaid Preprocessor', () => {
   const originalEnv = process.env.PAGEMD_MERMAID;
@@ -100,6 +100,136 @@ graph TD
       const result = await preprocessMermaid(markdown);
       expect(result).toContain('# Before');
       expect(result).toContain('# After');
+    });
+  });
+
+  describe('extractMermaidBlocks', () => {
+    it('should extract standard mermaid block', () => {
+      const md = '```mermaid\ngraph LR\n  A --> B\n```';
+      const blocks = extractMermaidBlocks(md);
+      expect(blocks).toHaveLength(1);
+      expect(blocks[0].code).toBe('graph LR\n  A --> B');
+      expect(blocks[0].attrs).toBeNull();
+    });
+
+    it('should handle trailing whitespace after mermaid keyword', () => {
+      const md = '```mermaid   \ngraph LR\n  A --> B\n```';
+      const blocks = extractMermaidBlocks(md);
+      expect(blocks).toHaveLength(1);
+      expect(blocks[0].code).toBe('graph LR\n  A --> B');
+      expect(blocks[0].attrs).toBeNull();
+    });
+
+    it('should capture attributes on opening fence', () => {
+      const md = '```mermaid {.custom-class}\ngraph LR\n  A --> B\n```';
+      const blocks = extractMermaidBlocks(md);
+      expect(blocks).toHaveLength(1);
+      expect(blocks[0].code).toBe('graph LR\n  A --> B');
+      expect(blocks[0].attrs).toBe('.custom-class');
+    });
+
+    it('should capture attributes on closing fence', () => {
+      const md = '```mermaid\ngraph LR\n  A --> B\n``` {style="max-width: 200px"}';
+      const blocks = extractMermaidBlocks(md);
+      expect(blocks).toHaveLength(1);
+      expect(blocks[0].code).toBe('graph LR\n  A --> B');
+      expect(blocks[0].attrs).toBe('style="max-width: 200px"');
+    });
+
+    it('should merge attributes from both fences (opening first)', () => {
+      const md = '```mermaid {.diagram}\ngraph LR\n  A --> B\n``` {style="max-width: 200px"}';
+      const blocks = extractMermaidBlocks(md);
+      expect(blocks).toHaveLength(1);
+      expect(blocks[0].attrs).toBe('.diagram style="max-width: 200px"');
+    });
+
+    it('should capture complex attributes on opening fence', () => {
+      const md = '```mermaid {.flow-chart #fig-1 style="max-width: 200px; margin: 0 auto;"}\ngraph LR\n  A --> B\n```';
+      const blocks = extractMermaidBlocks(md);
+      expect(blocks).toHaveLength(1);
+      expect(blocks[0].attrs).toBe('.flow-chart #fig-1 style="max-width: 200px; margin: 0 auto;"');
+    });
+
+    it('should extract multiple mermaid blocks', () => {
+      const md = '# Title\n\n```mermaid {.a}\ngraph LR\n  A --> B\n```\n\nText\n\n```mermaid\nsequenceDiagram\n  A->>B: Hi\n``` {.b}';
+      const blocks = extractMermaidBlocks(md);
+      expect(blocks).toHaveLength(2);
+      expect(blocks[0].attrs).toBe('.a');
+      expect(blocks[0].code).toBe('graph LR\n  A --> B');
+      expect(blocks[1].attrs).toBe('.b');
+      expect(blocks[1].code).toBe('sequenceDiagram\n  A->>B: Hi');
+    });
+
+    it('should not match non-mermaid code blocks', () => {
+      const md = '```javascript\nconst x = 1;\n```';
+      const blocks = extractMermaidBlocks(md);
+      expect(blocks).toHaveLength(0);
+    });
+  });
+
+  describe('parseFenceAttributes', () => {
+    it('should return default class when attrs is null', () => {
+      expect(parseFenceAttributes(null)).toBe(' class="mermaid-diagram"');
+    });
+
+    it('should return default class when attrs is empty string', () => {
+      expect(parseFenceAttributes('')).toBe(' class="mermaid-diagram"');
+    });
+
+    it('should parse .class-name', () => {
+      const result = parseFenceAttributes('.custom-class');
+      expect(result).toBe(' class="mermaid-diagram custom-class"');
+    });
+
+    it('should parse multiple classes', () => {
+      const result = parseFenceAttributes('.flow-chart .centered');
+      expect(result).toBe(' class="mermaid-diagram flow-chart centered"');
+    });
+
+    it('should parse #id', () => {
+      const result = parseFenceAttributes('#fig-1');
+      expect(result).toContain('id="fig-1"');
+      expect(result).toContain('class="mermaid-diagram"');
+    });
+
+    it('should parse key="value" attributes', () => {
+      const result = parseFenceAttributes('style="max-width: 200px"');
+      expect(result).toContain('style="max-width: 200px"');
+      expect(result).toContain('class="mermaid-diagram"');
+    });
+
+    it('should parse key=\'value\' (single quotes)', () => {
+      const result = parseFenceAttributes("style='color: red'");
+      expect(result).toContain('style="color: red"');
+    });
+
+    it('should parse combined class + id + style', () => {
+      const result = parseFenceAttributes('.flow-chart #fig-1 style="max-width: 200px; margin: 0 auto;"');
+      expect(result).toContain('class="mermaid-diagram flow-chart"');
+      expect(result).toContain('id="fig-1"');
+      expect(result).toContain('style="max-width: 200px; margin: 0 auto;"');
+    });
+
+    it('should use first id when duplicates exist (opening fence precedence)', () => {
+      const result = parseFenceAttributes('#opening-id #closing-id');
+      expect(result).toContain('id="opening-id"');
+      expect(result).not.toContain('closing-id');
+    });
+
+    it('should use first value for duplicate keys (opening fence precedence)', () => {
+      const result = parseFenceAttributes('style="color: red" style="color: blue"');
+      expect(result).toContain('style="color: red"');
+      expect(result).not.toContain('color: blue');
+    });
+
+    it('should combine classes from both fences', () => {
+      const result = parseFenceAttributes('.from-opening .from-closing');
+      expect(result).toBe(' class="mermaid-diagram from-opening from-closing"');
+    });
+
+    it('should handle data attributes', () => {
+      const result = parseFenceAttributes('data-caption="Flow diagram"');
+      expect(result).toContain('data-caption="Flow diagram"');
     });
   });
 });

@@ -106,18 +106,80 @@ async function renderMermaidToSVG(mermaidCode, timeout = 30000) {
 }
 
 /**
- * Extract mermaid code blocks from markdown
- * @param {string} markdown - Markdown content
- * @returns {Array<{code: string, fullMatch: string, start: number, end: number}>} Mermaid blocks
+ * Parse fence attributes from a `{...}` string into an HTML attribute string.
+ * Supports `.class-name`, `#id-name`, and `key="value"` / `key='value'` syntax.
+ * Always includes `mermaid-diagram` as a base class.
+ *
+ * @param {string|null} attrsRaw - Merged attribute content (inner text from `{...}` braces, without braces)
+ * @returns {string} HTML attribute string with leading space, e.g. ` class="mermaid-diagram custom" id="fig-1"`
  */
-function extractMermaidBlocks(markdown) {
+export function parseFenceAttributes(attrsRaw) {
+  const classes = ['mermaid-diagram'];
+  if (!attrsRaw) return ` class="${classes.join(' ')}"`;
+
+  const inner = attrsRaw.trim();
+  if (!inner) return ` class="${classes.join(' ')}"`;
+
+  let id = null;
+  const attrs = {};
+
+  // Match .class, #id, key="value", key='value'
+  const tokenRegex = /\.([a-zA-Z0-9_-]+)|#([a-zA-Z0-9_-]+)|([a-zA-Z][a-zA-Z0-9_-]*)=(?:"([^"]*)"|'([^']*)')/g;
+  let m;
+  while ((m = tokenRegex.exec(inner)) !== null) {
+    if (m[1]) {
+      classes.push(m[1]);
+    } else if (m[2]) {
+      // First id wins (opening fence takes precedence)
+      if (!id) id = m[2];
+    } else if (m[3]) {
+      // First value wins for duplicate keys (opening fence takes precedence)
+      if (!(m[3] in attrs)) attrs[m[3]] = m[4] ?? m[5];
+    }
+  }
+
+  let result = ` class="${classes.join(' ')}"`;
+  if (id) result += ` id="${id}"`;
+  for (const [key, value] of Object.entries(attrs)) {
+    result += ` ${key}="${value}"`;
+  }
+  return result;
+}
+
+/**
+ * Extract mermaid code blocks from markdown, including optional fence attributes.
+ *
+ * Supports:
+ * - Standard:           ```mermaid\n...\n```
+ * - Trailing whitespace: ```mermaid  \n...\n```
+ * - Opening attrs:      ```mermaid {.class style="..."}\n...\n```
+ * - Closing attrs:      ```\n...\n``` {style="..."}
+ * - Both:               Opening attrs take precedence for conflicts
+ *
+ * @param {string} markdown - Markdown content
+ * @returns {Array<{code: string, attrs: string|null, fullMatch: string, start: number, end: number}>} Mermaid blocks
+ */
+export function extractMermaidBlocks(markdown) {
   const blocks = [];
-  const regex = /```mermaid\n([\s\S]*?)```/g;
+  const regex = /```mermaid[^\S\n]*(?:\{([^}]*)\})?[^\S\n]*\n([\s\S]*?)```[^\S\n]*(?:\{([^}]*)\})?/g;
   let match;
 
   while ((match = regex.exec(markdown)) !== null) {
+    const openAttrs = match[1] || null;  // Inner content of opening {…}
+    const code = match[2].trim();
+    const closeAttrs = match[3] || null; // Inner content of closing {…}
+
+    // Merge attributes: opening first (takes precedence for conflicts)
+    let mergedAttrs = null;
+    if (openAttrs && closeAttrs) {
+      mergedAttrs = `${openAttrs} ${closeAttrs}`;
+    } else {
+      mergedAttrs = openAttrs || closeAttrs;
+    }
+
     blocks.push({
-      code: match[1].trim(),
+      code,
+      attrs: mergedAttrs,
       fullMatch: match[0],
       start: match.index,
       end: match.index + match[0].length
@@ -154,8 +216,9 @@ export async function preprocessMermaid(markdown, options = {}) {
     try {
       const svg = await renderMermaidToSVG(block.code, timeout);
 
-      // Wrap SVG in figure element with class for styling
-      const replacement = `<figure class="mermaid-diagram">\n${svg}\n</figure>`;
+      // Wrap SVG in figure element with attributes for styling
+      const attrString = parseFenceAttributes(block.attrs);
+      const replacement = `<figure${attrString}>\n${svg}\n</figure>`;
 
       // Replace the code block with SVG
       processed =

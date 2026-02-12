@@ -449,7 +449,7 @@ export async function renderMarkdown(markdown, options = {}) {
 
   // Step 1: Parse markdown string
   logger.debug('Step 1: Parsing markdown');
-  const { content, html, metadata: parsedMetadata } = parse(markdown, options);
+  const { content, html, metadata: parsedMetadata } = await parse(markdown, options);
 
   // Step 1b: Resolve profile (frontmatter > options > default)
   // Frontmatter profile takes precedence over CLI -p flag for per-document choice

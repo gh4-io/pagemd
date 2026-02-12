@@ -247,6 +247,311 @@ sequenceDiagram
 ```
 ````
 
+### Controlling Diagram Size
+
+Mermaid diagrams can be configured using initialization blocks to control their size and appearance.
+
+#### Prevent Width Stretching
+
+By default, Mermaid diagrams may stretch to fill the full container width. To use the diagram's natural size:
+
+````markdown
+```mermaid
+%%{init: {'flowchart': {'useMaxWidth': false}}}%%
+graph TD
+    A[Start] --> B[Process]
+    B --> C[End]
+```
+````
+
+#### Set Explicit Dimensions
+
+For precise control over diagram dimensions:
+
+````markdown
+```mermaid
+%%{init: {
+  'flowchart': {
+    'useMaxWidth': false,
+    'width': '600px'
+  },
+  'themeVariables': {
+    'fontSize': '14px'
+  }
+}}%%
+graph TD
+    A[Login] --> B[Dashboard]
+    B --> C[Logout]
+```
+````
+
+#### Configuration Options Reference
+
+**Top-Level Options**
+
+| Option | Type | Purpose | Values | Example |
+|--------|------|---------|--------|---------|
+| `theme` | string | Visual theme | `base`, `dark`, `forest`, `neutral`, `default` | `'theme': 'base'` |
+| `look` | string | Visual rendering style | `classic`, `handDrawn` | `'look': 'handDrawn'` |
+| `themeVariables` | object | Customize theme colors and styles | See Theme Variables below | `'themeVariables': {...}` |
+| `flowchart` | object | Flowchart-specific settings | See Flowchart Options below | `'flowchart': {...}` |
+| `securityLevel` | string | Control script execution | `strict`, `loose`, `antiscript` | `'securityLevel': 'loose'` |
+| `startOnLoad` | boolean | Auto-render on page load | `true`, `false` | `'startOnLoad': false` |
+| `logLevel` | number | Debug logging level | `1` (error), `2` (warn), `3` (info), `5` (debug) | `'logLevel': 1` |
+
+**Flowchart Options**
+
+| Option | Type | Purpose | Default | Example |
+|--------|------|---------|---------|---------|
+| `useMaxWidth` | boolean | Stretch to container width | `true` | `'useMaxWidth': false` |
+| `width` | string | Explicit diagram width | `undefined` | `'width': '800px'` |
+| `height` | string | Explicit diagram height | `undefined` | `'height': '600px'` |
+| `htmlLabels` | boolean | Use HTML in node labels | `true` | `'htmlLabels': true` |
+| `curve` | string | Edge curve style | `basis` | `'curve': 'linear'` |
+| `padding` | number | Padding around diagram (px) | `15` | `'padding': 20` |
+| `nodeSpacing` | number | Space between nodes (px) | `50` | `'nodeSpacing': 75` |
+| `rankSpacing` | number | Space between ranks (px) | `50` | `'rankSpacing': 100` |
+| `diagramPadding` | number | Outer diagram padding (px) | `8` | `'diagramPadding': 10` |
+| `wrappingWidth` | number | Max width before text wraps (px) | `200` | `'wrappingWidth': 150` |
+
+**Curve Style Values**
+
+| Value | Description |
+|-------|-------------|
+| `basis` | Smooth curved lines (default) |
+| `linear` | Straight lines |
+| `cardinal` | Smooth curves with tension |
+| `monotoneX` | Monotonic in X direction |
+| `monotoneY` | Monotonic in Y direction |
+| `natural` | Natural cubic spline |
+| `step` | Step function |
+| `stepAfter` | Step after each point |
+| `stepBefore` | Step before each point |
+
+**Theme Variables**
+
+Common theme customization options:
+
+| Variable | Purpose | Example Value |
+|----------|---------|---------------|
+| `primaryColor` | Main diagram color | `'#ff6b6b'` |
+| `primaryTextColor` | Text on primary elements | `'#ffffff'` |
+| `primaryBorderColor` | Border of primary elements | `'#c92a2a'` |
+| `secondaryColor` | Secondary element color | `'#4ecdc4'` |
+| `tertiaryColor` | Tertiary element color | `'#ffe66d'` |
+| `background` | Diagram background | `'#f8f9fa'` |
+| `mainBkg` | Main node background | `'#ffffff'` |
+| `nodeBorder` | Node border color | `'#333333'` |
+| `clusterBkg` | Subgraph background | `'#ffffde'` |
+| `clusterBorder` | Subgraph border | `'#aaaa33'` |
+| `lineColor` | Edge/arrow color | `'#333333'` |
+| `edgeLabelBackground` | Label background on edges | `'#ffffff'` |
+| `fontSize` | Base font size | `'16px'` |
+| `fontFamily` | Font family | `'Arial, sans-serif'` |
+
+**Sequence Diagram Options**
+
+| Option | Type | Purpose | Default | Example |
+|--------|------|---------|---------|---------|
+| `diagramMarginX` | number | Horizontal margin (px) | `50` | `'diagramMarginX': 30` |
+| `diagramMarginY` | number | Vertical margin (px) | `10` | `'diagramMarginY': 20` |
+| `actorMargin` | number | Space between actors (px) | `50` | `'actorMargin': 75` |
+| `width` | number | Diagram width (px) | `150` | `'width': 200` |
+| `height` | number | Actor height (px) | `65` | `'height': 80` |
+| `boxMargin` | number | Box margin (px) | `10` | `'boxMargin': 15` |
+| `boxTextMargin` | number | Text margin in boxes (px) | `5` | `'boxTextMargin': 8` |
+| `noteMargin` | number | Note margin (px) | `10` | `'noteMargin': 12` |
+| `messageMargin` | number | Message spacing (px) | `35` | `'messageMargin': 45` |
+
+**Gantt Diagram Options**
+
+| Option | Type | Purpose | Default | Example |
+|--------|------|---------|---------|---------|
+| `leftPadding` | number | Left padding (px) | `75` | `'leftPadding': 100` |
+| `gridLineStartPadding` | number | Grid start padding (px) | `35` | `'gridLineStartPadding': 40` |
+| `fontSize` | number | Base font size (px) | `11` | `'fontSize': 14` |
+| `sectionFontSize` | number | Section header size (px) | `11` | `'sectionFontSize': 16` |
+| `numberSectionStyles` | number | Section style variations | `4` | `'numberSectionStyles': 6` |
+| `axisFormat` | string | Date format | `'%Y-%m-%d'` | `'axisFormat': '%m/%d'` |
+| `topPadding` | number | Top padding (px) | `50` | `'topPadding': 60` |
+| `barHeight` | number | Task bar height (px) | `20` | `'barHeight': 25` |
+| `barGap` | number | Gap between bars (px) | `4` | `'barGap': 6` |
+| `topAxis` | boolean | Show top axis | `false` | `'topAxis': true` |
+
+#### Comprehensive Configuration Example
+
+A fully customized flowchart using multiple configuration options:
+
+````markdown
+```mermaid
+%%{init: {
+  'theme': 'base',
+  'themeVariables': {
+    'primaryColor': '#4a90e2',
+    'primaryTextColor': '#ffffff',
+    'primaryBorderColor': '#2c5aa0',
+    'lineColor': '#333333',
+    'secondaryColor': '#50c878',
+    'tertiaryColor': '#ff6b6b',
+    'fontSize': '14px',
+    'fontFamily': 'Arial, sans-serif'
+  },
+  'flowchart': {
+    'useMaxWidth': false,
+    'htmlLabels': true,
+    'curve': 'basis',
+    'padding': 20,
+    'nodeSpacing': 60,
+    'rankSpacing': 80,
+    'diagramPadding': 12,
+    'wrappingWidth': 180
+  },
+  'securityLevel': 'loose'
+}}%%
+graph TD
+    A[User Authentication] --> B{Valid Credentials?}
+    B -->|Yes| C[Load Dashboard]
+    B -->|No| D[Show Error]
+    C --> E[Display Data]
+    D --> A
+```
+````
+
+#### Quick Reference: Common Use Cases
+
+**Compact Diagram (Tight Spacing)**
+```
+%%{init: {'flowchart': {'nodeSpacing': 30, 'rankSpacing': 40, 'padding': 10}}}%%
+```
+
+**Large, Readable Diagram**
+```
+%%{init: {'themeVariables': {'fontSize': '18px'}, 'flowchart': {'nodeSpacing': 100, 'rankSpacing': 120}}}%%
+```
+
+**Dark Theme**
+```
+%%{init: {'theme': 'dark', 'themeVariables': {'darkMode': true}}}%%
+```
+
+**Natural Width (No Stretching)**
+```
+%%{init: {'flowchart': {'useMaxWidth': false}}}%%
+```
+
+**Straight Lines (No Curves)**
+```
+%%{init: {'flowchart': {'curve': 'linear'}}}%%
+```
+
+**Hand-Drawn Style**
+```
+%%{init: {'theme': 'base', 'look': 'handDrawn'}}%%
+```
+
+**Custom Brand Colors**
+```
+%%{init: {'themeVariables': {
+  'primaryColor': '#your-brand-color',
+  'primaryBorderColor': '#your-border-color',
+  'lineColor': '#your-line-color'
+}}}%%
+```
+
+**Custom Background Color**
+```
+%%{init: {'themeVariables': {'background': '#f0f0f0'}}}%%
+```
+
+**Combined: Hand-Drawn, Small Font, Tight Spacing, Custom Background**
+```
+%%{init: {
+  'theme': 'base',
+  'look': 'handDrawn',
+  'themeVariables': { 'fontSize': '12px', 'background': '#f0f0f0' },
+  'flowchart': { 'nodeSpacing': 20, 'rankSpacing': 30, 'padding': 8 }
+}}%%
+```
+
+#### Fence Attributes
+
+You can add HTML attributes (classes, IDs, inline styles) directly to the mermaid code fence. These are applied to the `<figure>` wrapper element around the rendered SVG.
+
+**Attributes on the opening fence:**
+
+````markdown
+```mermaid {.custom-class #fig-1 style="max-width: 400px; margin: 0 auto;"}
+graph LR
+    A --> B
+```
+````
+
+**Attributes on the closing fence:**
+
+````markdown
+```mermaid
+graph LR
+    A --> B
+``` {style="max-width: 400px;"}
+````
+
+**Supported attribute syntax:**
+
+| Syntax | What It Does | Example |
+|--------|-------------|---------|
+| `.class-name` | Adds CSS class (in addition to `mermaid-diagram`) | `{.flow-chart}` |
+| `#id-name` | Sets HTML ID on the figure | `{#fig-architecture}` |
+| `key="value"` | Sets any HTML attribute | `{style="max-width: 300px;"}` |
+| Combined | Multiple attributes together | `{.centered #fig-1 style="max-width: 500px;"}` |
+
+**Precedence:** If attributes appear on both the opening and closing fence, both are merged. For conflicts (duplicate keys or IDs), the opening fence takes precedence. Classes from both are combined.
+
+**Note:** Fence attributes control the `<figure>` wrapper element. To control the SVG content itself (font size, node colors, spacing), use the `%%{init: {...}}%%` directive inside the code block instead. The two approaches complement each other — use init directives for diagram content and fence attributes for container styling.
+
+#### Combined with CSS
+
+For additional control beyond Mermaid configuration, style the diagram container in your profile CSS:
+
+```css
+/* Prevent stretching and center diagrams */
+figure.mermaid-diagram {
+  width: auto;
+  max-width: 100%;
+  margin: 1rem auto;
+  display: flex;
+  justify-content: center;
+}
+
+/* Ensure SVG respects container */
+figure.mermaid-diagram svg {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Add subtle shadow (optional) */
+figure.mermaid-diagram svg {
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+}
+
+/* Responsive sizing */
+@media print {
+  figure.mermaid-diagram {
+    page-break-inside: avoid;
+  }
+}
+```
+
+**Where to add CSS:**
+- Profile styles: `.pagemd/styles/your-profile.css`
+- Layout styles: `.pagemd/layouts/your-layout.css`
+
+**CSS Class Reference:**
+- `figure.mermaid-diagram` - The wrapper element
+- `.mermaid-diagram svg` - The actual diagram
+- `.node` - Individual nodes (if targeting with CSS)
+- `.edgePath` - Connection lines
+- `.edgeLabel` - Labels on edges
+
 ### Disabling Mermaid
 
 If Mermaid causes issues, disable it:
@@ -1228,7 +1533,7 @@ Include external markdown files to reuse content across documents - ideal for sh
 ### Basic Syntax
 
 ```markdown
-!!!include(./path/to/file.md)!!!
+&#33;&#33;&#33;include(./path/to/file.md)&#33;&#33;&#33;
 ```
 
 **Three exclamation marks** on each side, with file path in parentheses.
@@ -1241,7 +1546,7 @@ Include external markdown files to reuse content across documents - ideal for sh
 
 ### How It Works
 
-1. Parser encounters `!!!include(path)!!!`
+1. Parser encounters `&#33;&#33;&#33;include(path)&#33;&#33;&#33;`
 2. Resolves path relative to `includeRoot`
 3. Reads file from filesystem
 4. Renders content as markdown (inline with document)
@@ -1261,13 +1566,13 @@ docs/
 
 **guide.md:**
 ```markdown
-!!!include(./shared/header.md)!!!
+&#33;&#33;&#33;include(./shared/header.md)&#33;&#33;&#33;
 
 # Main Content
 
 This is the main documentation.
 
-!!!include(./shared/footer.md)!!!
+&#33;&#33;&#33;include(./shared/footer.md)&#33;&#33;&#33;
 ```
 
 **shared/header.md:**
@@ -1301,7 +1606,7 @@ See LICENSE for full terms.
 ```markdown
 # API Documentation
 
-!!!include(./shared/disclaimer.md)!!!
+&#33;&#33;&#33;include(./shared/disclaimer.md)&#33;&#33;&#33;
 
 ## Getting Started
 
@@ -1315,15 +1620,15 @@ Combine multiple chapters into one document:
 ```markdown
 # Complete Guide
 
-!!!include(./chapters/01-introduction.md)!!!
+&#33;&#33;&#33;include(./chapters/01-introduction.md)&#33;&#33;&#33;
 
-!!!include(./chapters/02-getting-started.md)!!!
+&#33;&#33;&#33;include(./chapters/02-getting-started.md)&#33;&#33;&#33;
 
-!!!include(./chapters/03-core-concepts.md)!!!
+&#33;&#33;&#33;include(./chapters/03-core-concepts.md)&#33;&#33;&#33;
 
-!!!include(./chapters/04-advanced-topics.md)!!!
+&#33;&#33;&#33;include(./chapters/04-advanced-topics.md)&#33;&#33;&#33;
 
-!!!include(./appendix/glossary.md)!!!
+&#33;&#33;&#33;include(./appendix/glossary.md)&#33;&#33;&#33;
 ```
 
 **Example 4: Release Notes from Templates**
@@ -1331,19 +1636,19 @@ Combine multiple chapters into one document:
 ```markdown
 # Version 2.0 Release Notes
 
-!!!include(./releases/v2.0-summary.md)!!!
+&#33;&#33;&#33;include(./releases/v2.0-summary.md)&#33;&#33;&#33;
 
 ## New Features
 
-!!!include(./releases/v2.0-features.md)!!!
+&#33;&#33;&#33;include(./releases/v2.0-features.md)&#33;&#33;&#33;
 
 ## Bug Fixes
 
-!!!include(./releases/v2.0-bugfixes.md)!!!
+&#33;&#33;&#33;include(./releases/v2.0-bugfixes.md)&#33;&#33;&#33;
 
 ## Breaking Changes
 
-!!!include(./releases/v2.0-breaking.md)!!!
+&#33;&#33;&#33;include(./releases/v2.0-breaking.md)&#33;&#33;&#33;
 ```
 
 **Example 5: Legal Documents**
@@ -1351,15 +1656,15 @@ Combine multiple chapters into one document:
 ```markdown
 # Terms of Service
 
-!!!include(./legal/intro.md)!!!
+&#33;&#33;&#33;include(./legal/intro.md)&#33;&#33;&#33;
 
 ## Usage Terms
 
-!!!include(./legal/usage.md)!!!
+&#33;&#33;&#33;include(./legal/usage.md)&#33;&#33;&#33;
 
-!!!include(./legal/liability.md)!!!
+&#33;&#33;&#33;include(./legal/liability.md)&#33;&#33;&#33;
 
-!!!include(./legal/dispute-resolution.md)!!!
+&#33;&#33;&#33;include(./legal/dispute-resolution.md)&#33;&#33;&#33;
 ```
 
 **Example 6: Nested Includes**
@@ -1370,9 +1675,9 @@ Included files can themselves contain includes:
 ```markdown
 ## Chapter 1: Basics
 
-!!!include(./section1.md)!!!
+&#33;&#33;&#33;include(./section1.md)&#33;&#33;&#33;
 
-!!!include(./section2.md)!!!
+&#33;&#33;&#33;include(./section2.md)&#33;&#33;&#33;
 ```
 
 When chapter1.md is included, its nested includes are also processed.
@@ -1392,14 +1697,14 @@ const md = createParser({
 
 | Include Syntax | Resolves To |
 |----------------|-------------|
-| `!!!include(./header.md)!!!` | `./docs/shared/header.md` |
-| `!!!include(./footer.md)!!!` | `./docs/shared/footer.md` |
-| `!!!include(../legal/tos.md)!!!` | `./docs/legal/tos.md` |
+| `&#33;&#33;&#33;include(./header.md)&#33;&#33;&#33;` | `./docs/shared/header.md` |
+| `&#33;&#33;&#33;include(./footer.md)&#33;&#33;&#33;` | `./docs/shared/footer.md` |
+| `&#33;&#33;&#33;include(../legal/tos.md)&#33;&#33;&#33;` | `./docs/legal/tos.md` |
 
 **Default (includeRoot = '.'):**
 ```javascript
 const md = createParser();
-// !!!include(./file.md)!!! resolves to ./file.md
+// &#33;&#33;&#33;include(./file.md)&#33;&#33;&#33; resolves to ./file.md
 ```
 
 ### File Requirements
@@ -1431,29 +1736,29 @@ Included files must be:
 
 **✅ Correct (exactly 3 on each side):**
 ```markdown
-!!!include(./file.md)!!!
+&#33;&#33;&#33;include(./file.md)&#33;&#33;&#33;
 ```
 
 **❌ File doesn't exist:**
 ```markdown
-!!!include(./missing.md)!!!  # Will cause error or placeholder
+&#33;&#33;&#33;include(./missing.md)&#33;&#33;&#33;  # Will cause error or placeholder
 ```
 
 **✅ Verify file exists:**
 ```markdown
-!!!include(./existing-file.md)!!!
+&#33;&#33;&#33;include(./existing-file.md)&#33;&#33;&#33;
 ```
 
 **❌ Path outside includeRoot:**
 ```markdown
 # If includeRoot is './docs'
-!!!include(/etc/passwd)!!!  # Security boundary - won't work
+&#33;&#33;&#33;include(/etc/passwd)&#33;&#33;&#33;  # Security boundary - won't work
 ```
 
 **✅ Use relative paths within includeRoot:**
 ```markdown
 # If includeRoot is './docs'
-!!!include(./shared/file.md)!!!  # ✅ Resolves to ./docs/shared/file.md
+&#33;&#33;&#33;include(./shared/file.md)&#33;&#33;&#33;  # ✅ Resolves to ./docs/shared/file.md
 ```
 
 ### Use Cases
@@ -1485,6 +1790,35 @@ Included files must be:
 4. **File must exist** - Missing files cause errors/placeholders
 5. **Circular includes** - Avoid file A including B while B includes A
 6. **No encoding options** - Files must be UTF-8
+7. **Pre-parse processing** - Includes are processed before markdown parsing (see below)
+
+### Escaping Include Syntax in Documentation
+
+The include directive uses regex on raw text **before** markdown parsing. This means code blocks do NOT protect include syntax from being processed.
+
+**Problem:** When documenting include syntax, examples get processed:
+```markdown
+# This will try to include the file!
+&#33;&#33;&#33;include(./example.md)&#33;&#33;&#33;
+```
+
+**Solution:** Use HTML entities to escape exclamation marks:
+- Replace `!` with `&#38;#33;` (HTML entity for `!`)
+- The text renders correctly as the include syntax but won't be processed
+
+**Example - Safe documentation:**
+```
+&#38;#33;&#38;#33;&#38;#33;include(./path/to/file.md)&#38;#33;&#38;#33;&#38;#33;
+```
+
+Renders as the include directive syntax (three exclamation marks on each side)
+
+**When to use escaping:**
+- Writing documentation that shows include syntax
+- Creating tutorials or guides about file inclusion
+- Any time you want to display the syntax without triggering it
+
+> **Note:** This page uses escaped examples throughout the File Inclusion section.
 
 ### Best Practices
 
@@ -1506,13 +1840,13 @@ Included files must be:
 
 3. **Use simple relative paths:**
    ```markdown
-   !!!include(./header.md)!!!
+   &#33;&#33;&#33;include(./header.md)&#33;&#33;&#33;
    ```
 
 4. **Document your includes with comments:**
    ```markdown
    <!-- Includes shared header from docs/shared/header.md -->
-   !!!include(./header.md)!!!
+   &#33;&#33;&#33;include(./header.md)&#33;&#33;&#33;
    ```
 
 5. **Use meaningful filenames:**

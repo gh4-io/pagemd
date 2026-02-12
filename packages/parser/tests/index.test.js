@@ -112,7 +112,7 @@ describe('createParser', () => {
 });
 
 describe('parse', () => {
-  it('should parse markdown with frontmatter', () => {
+  it('should parse markdown with frontmatter', async () => {
     const markdown = `---
 title: Test Document
 author: John Doe
@@ -122,7 +122,7 @@ author: John Doe
 
 Content here.`;
 
-    const result = parse(markdown);
+    const result = await parse(markdown);
 
     expect(result.metadata.title).toBe('Test Document');
     expect(result.metadata.author).toBe('John Doe');
@@ -132,7 +132,7 @@ Content here.`;
     expect(result.html).toContain('>Heading</h1>');
   });
 
-  it('should normalize metadata by default', () => {
+  it('should normalize metadata by default', async () => {
     const markdown = `---
 docId: DOC-001
 rev: 5
@@ -140,13 +140,13 @@ rev: 5
 
 Content`;
 
-    const result = parse(markdown);
+    const result = await parse(markdown);
 
     expect(result.metadata.document_id).toBe('DOC-001');
     expect(result.metadata.revision).toBe(5);
   });
 
-  it('should skip normalization when option is false', () => {
+  it('should skip normalization when option is false', async () => {
     const markdown = `---
 docId: DOC-001
 rev: 5
@@ -154,16 +154,16 @@ rev: 5
 
 Content`;
 
-    const result = parse(markdown, { normalizeMetadata: false });
+    const result = await parse(markdown, { normalizeMetadata: false });
 
     expect(result.metadata.docId).toBe('DOC-001');
     expect(result.metadata.rev).toBe(5);
     expect(result.metadata.document_id).toBeUndefined();
   });
 
-  it('should parse markdown without frontmatter', () => {
+  it('should parse markdown without frontmatter', async () => {
     const markdown = '# Just a heading\n\nSome content.';
-    const result = parse(markdown);
+    const result = await parse(markdown);
 
     expect(result.metadata).toBeDefined();
     expect(result.content).toBe(markdown);
@@ -172,7 +172,7 @@ Content`;
     expect(result.html).toContain('>Just a heading</h1>');
   });
 
-  it('should return raw frontmatter string', () => {
+  it('should return raw frontmatter string', async () => {
     const markdown = `---
 key1: value1
 key2: value2
@@ -180,37 +180,37 @@ key2: value2
 
 Content`;
 
-    const result = parse(markdown);
+    const result = await parse(markdown);
 
     expect(result.raw).toContain('key1: value1');
     expect(result.raw).toContain('key2: value2');
   });
 
-  it('should render wikilinks in HTML', () => {
+  it('should render wikilinks in HTML', async () => {
     const markdown = 'See [[Documentation]] for details.';
-    const result = parse(markdown);
+    const result = await parse(markdown);
 
     expect(result.html).toContain('class="wikilink"');
     expect(result.html).toContain('href="Documentation"');
   });
 
-  it('should render callouts in HTML', () => {
+  it('should render callouts in HTML', async () => {
     const markdown = '[[WARNING]] This is important';
-    const result = parse(markdown);
+    const result = await parse(markdown);
 
     expect(result.html).toContain('callout-warning');
   });
 
-  it('should render figures in HTML', () => {
+  it('should render figures in HTML', async () => {
     const markdown = `<!-- ::FIGURE caption="Test" -->
 ![](img.png)`;
-    const result = parse(markdown);
+    const result = await parse(markdown);
 
     expect(result.html).toContain('<figure>');
     expect(result.html).toContain('Figure <span class="fig-num">1</span>: Test');
   });
 
-  it('should handle complex markdown with all features', () => {
+  it('should handle complex markdown with all features', async () => {
     const markdown = `---
 title: Complex Document
 revision: 3
@@ -233,7 +233,7 @@ Paragraph with [[Internal Link]] and **bold text**.
 
 > Quote with [!DANGER] inline callout`;
 
-    const result = parse(markdown);
+    const result = await parse(markdown);
 
     // Metadata
     expect(result.metadata.title).toBe('Complex Document');
@@ -250,7 +250,7 @@ Paragraph with [[Internal Link]] and **bold text**.
     expect(result.html).toContain('callout-danger'); // inline callouts
   });
 
-  it('should preserve content structure', () => {
+  it('should preserve content structure', async () => {
     const markdown = `---
 title: Test
 ---
@@ -261,7 +261,7 @@ Paragraph 2
 
 Paragraph 3`;
 
-    const result = parse(markdown);
+    const result = await parse(markdown);
 
     expect(result.content).toContain('Paragraph 1');
     expect(result.content).toContain('Paragraph 2');
@@ -269,8 +269,8 @@ Paragraph 3`;
     expect(result.html).toContain('<p>Paragraph 1</p>');
   });
 
-  it('should handle empty markdown', () => {
-    const result = parse('');
+  it('should handle empty markdown', async () => {
+    const result = await parse('');
 
     expect(result.content).toBe('');
     expect(result.html).toBe('');
@@ -278,17 +278,17 @@ Paragraph 3`;
     expect(result.raw).toBe('');
   });
 
-  it('should pass parser options to createParser', () => {
+  it('should pass parser options to createParser', async () => {
     const markdown = '<div>HTML</div>';
-    const result = parse(markdown, { html: false });
+    const result = await parse(markdown, { html: false });
 
     expect(result.html).toContain('&lt;div&gt;');
     expect(result.html).not.toContain('<div>HTML</div>');
   });
 
-  it('should handle wikilink options', () => {
+  it('should handle wikilink options', async () => {
     const markdown = '[[Page]]';
-    const result = parse(markdown, {
+    const result = await parse(markdown, {
       wikilinks: {
         baseUrl: '/wiki',
         linkClass: 'internal'
@@ -390,7 +390,7 @@ See [[Link]] for details.
 });
 
 describe('integration tests', () => {
-  it('should handle full document workflow', () => {
+  it('should handle full document workflow', async () => {
     const markdown = `---
 document_id: SOP-2024-001
 title: Safety Procedures
@@ -424,7 +424,7 @@ This document outlines [[Standard Operating Procedures]] for safety.
 
 > Reference: See [[Safety Manual]] for details.`;
 
-    const result = parse(markdown);
+    const result = await parse(markdown);
 
     // Verify metadata normalization
     expect(result.metadata.document_id).toBe('SOP-2024-001');
@@ -466,7 +466,7 @@ This document outlines [[Standard Operating Procedures]] for safety.
     expect(html).toContain('<blockquote>');
   });
 
-  it('should maintain figure numbering across multiple figures', () => {
+  it('should maintain figure numbering across multiple figures', async () => {
     const markdown = `<!-- ::FIGURE caption="First" -->
 ![](img1.png)
 
@@ -480,7 +480,7 @@ More text
 <!-- ::FIGURE caption="Third" -->
 ![](img3.png)`;
 
-    const result = parse(markdown);
+    const result = await parse(markdown);
 
     // Figure numbers now wrapped in span
     expect(result.html).toContain('Figure <span class="fig-num">1</span>: First');
@@ -488,7 +488,7 @@ More text
     expect(result.html).toContain('Figure <span class="fig-num">3</span>: Third');
   });
 
-  it('should handle nested markdown in callouts', () => {
+  it('should handle nested markdown in callouts', async () => {
     const markdown = `[[WARNING]]
 This has **bold**, *italic*, and [[links]].
 
@@ -497,7 +497,7 @@ This has **bold**, *italic*, and [[links]].
 
 [[/WARNING]]`;
 
-    const result = parse(markdown);
+    const result = await parse(markdown);
 
     expect(result.html).toContain('callout-warning');
     expect(result.html).toContain('<strong>bold</strong>');

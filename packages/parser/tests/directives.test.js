@@ -451,7 +451,7 @@ describe('GFM Alerts integration', () => {
 });
 
 describe('parse() with extended syntax', () => {
-  it('should parse markdown with directives', () => {
+  it('should parse markdown with directives', async () => {
     const markdown = `---
 title: Test Document
 ---
@@ -465,7 +465,7 @@ title: Test Document
 
 <!-- ::FIGURE src="test.png" caption="Test Figure" id="fig-1" -->`;
 
-    const { html, metadata } = parse(markdown);
+    const { html, metadata } = await parse(markdown);
 
     expect(metadata.title).toBe('Test Document');
     expect(html).toContain('<div class="break-page">');
@@ -474,12 +474,12 @@ title: Test Document
     expect(html).toContain('<img src="test.png"');
   });
 
-  it('should handle attributes syntax', () => {
+  it('should handle attributes syntax', async () => {
     const markdown = `# Title {#main-title .hero}
 
 Paragraph with {.highlight} class.`;
 
-    const { html } = parse(markdown);
+    const { html } = await parse(markdown);
 
     // markdown-it-attrs should add the id and class
     expect(html).toContain('id="main-title"');
@@ -488,7 +488,7 @@ Paragraph with {.highlight} class.`;
 });
 
 describe('Extended Syntax Integration', () => {
-  it('should parse combined extended markdown syntax (prompt verification)', () => {
+  it('should parse combined extended markdown syntax (prompt verification)', async () => {
     // This test exactly matches the verification case from implement_extended_syntax.md
     const markdown = `---
 title: Extended Syntax Test
@@ -503,7 +503,7 @@ title: Extended Syntax Test
 
 <!-- ::FIGURE src="test.png" caption="Test" -->`;
 
-    const { html, metadata } = parse(markdown);
+    const { html, metadata } = await parse(markdown);
 
     // Frontmatter parsed
     expect(metadata.title).toBe('Extended Syntax Test');
@@ -525,16 +525,16 @@ title: Extended Syntax Test
     expect(html).toContain('Test');
   });
 
-  it('should handle all GFM alert types', () => {
+  it('should handle all GFM alert types', async () => {
     const types = ['NOTE', 'TIP', 'IMPORTANT', 'WARNING', 'CAUTION'];
     for (const type of types) {
       const input = `> [!${type}]\n> Content`;
-      const { html } = parse(input);
+      const { html } = await parse(input);
       expect(html).toContain(`markdown-alert-${type.toLowerCase()}`);
     }
   });
 
-  it('should handle nested directives within sections', () => {
+  it('should handle nested directives within sections', async () => {
     const input = `<!-- ::SECTION_START class="outer" -->
 
 <!-- ::FIGURE src="inner.png" caption="Nested figure" -->
@@ -543,14 +543,14 @@ title: Extended Syntax Test
 
 <!-- ::SECTION_END -->`;
 
-    const { html } = parse(input);
+    const { html } = await parse(input);
     expect(html).toContain('<div class="outer">');
     expect(html).toContain('<figure');
     expect(html).toContain('<div class="break-page">');
     expect(html).toContain('</div>');
   });
 
-  it('should handle complex document structure', () => {
+  it('should handle complex document structure', async () => {
     const markdown = `---
 title: Complex Document
 author: Test Author
@@ -583,7 +583,7 @@ This content is in two columns.
 
 <!-- ::SECTION_END -->`;
 
-    const { html, metadata } = parse(markdown);
+    const { html, metadata } = await parse(markdown);
 
     // Metadata
     expect(metadata.title).toBe('Complex Document');
@@ -615,47 +615,47 @@ This content is in two columns.
 });
 
 describe('markdown-it-container integration', () => {
-  it('should render details container', () => {
+  it('should render details container', async () => {
     const input = `:::details
 This is detailed content.
 :::`;
 
-    const { html } = parse(input);
+    const { html } = await parse(input);
     expect(html).toContain('<div class="container container-details">');
     expect(html).toContain('This is detailed content.');
     expect(html).toContain('</div>');
   });
 
-  it('should render aside container', () => {
+  it('should render aside container', async () => {
     const input = `:::aside
 Sidebar content here.
 :::`;
 
-    const { html } = parse(input);
+    const { html } = await parse(input);
     expect(html).toContain('<div class="container container-aside">');
     expect(html).toContain('Sidebar content here.');
   });
 
-  it('should render columns container', () => {
+  it('should render columns container', async () => {
     const input = `:::columns
 Content that flows into two columns.
 :::`;
 
-    const { html } = parse(input);
+    const { html } = await parse(input);
     expect(html).toContain('<div class="container container-columns">');
   });
 
-  it('should render spoiler container with title', () => {
+  it('should render spoiler container with title', async () => {
     const input = `:::spoiler Movie ending
 The butler did it.
 :::`;
 
-    const { html } = parse(input);
+    const { html } = await parse(input);
     expect(html).toContain('<div class="container container-spoiler"');
     expect(html).toContain('data-title="Movie ending"');
   });
 
-  it('should handle container with nested markdown', () => {
+  it('should handle container with nested markdown', async () => {
     const input = `:::details
 
 ## Nested heading
@@ -665,14 +665,14 @@ The butler did it.
 
 :::`;
 
-    const { html } = parse(input);
+    const { html } = await parse(input);
     expect(html).toContain('<div class="container container-details">');
     // Headings now include auto-generated IDs via markdown-it-anchor
     expect(html).toContain('<h2 id="nested-heading"');
     expect(html).toContain('<li>');
   });
 
-  it('should work alongside other extended syntax', () => {
+  it('should work alongside other extended syntax', async () => {
     const markdown = `# Title {.main-title}
 
 :::aside
@@ -682,7 +682,7 @@ The butler did it.
 
 <!-- ::PAGEBREAK -->`;
 
-    const { html } = parse(markdown);
+    const { html } = await parse(markdown);
     expect(html).toContain('class="main-title"');
     expect(html).toContain('container-aside');
     expect(html).toContain('markdown-alert-note');
@@ -690,50 +690,50 @@ The butler did it.
   });
 
   // Attribute syntax tests
-  it('should render container with single class attribute', () => {
+  it('should render container with single class attribute', async () => {
     const input = `::: {.warning}
 This is a warning message.
 :::`;
 
-    const { html } = parse(input);
+    const { html } = await parse(input);
     expect(html).toContain('<div class="warning">');
     expect(html).toContain('This is a warning message.');
     expect(html).toContain('</div>');
   });
 
-  it('should render container with multiple classes', () => {
+  it('should render container with multiple classes', async () => {
     const input = `::: {.document-header .primary}
 Header content
 :::`;
 
-    const { html } = parse(input);
+    const { html } = await parse(input);
     expect(html).toContain('<div class="document-header primary">');
     expect(html).toContain('Header content');
   });
 
-  it('should render container with id attribute', () => {
+  it('should render container with id attribute', async () => {
     const input = `::: {#section-intro}
 Introduction section
 :::`;
 
-    const { html } = parse(input);
+    const { html } = await parse(input);
     expect(html).toContain('<div id="section-intro">');
     expect(html).toContain('Introduction section');
   });
 
-  it('should render container with both class and id', () => {
+  it('should render container with both class and id', async () => {
     const input = `::: {.title-block #main-title}
 # Main Title
 :::`;
 
-    const { html } = parse(input);
+    const { html } = await parse(input);
     expect(html).toContain('<div class="title-block" id="main-title">');
     // Headings now include auto-generated IDs via markdown-it-anchor
     expect(html).toContain('<h1 id="main-title"');
     expect(html).toContain('>Main Title</h1>');
   });
 
-  it('should handle all technical form container classes', () => {
+  it('should handle all technical form container classes', async () => {
     const containers = [
       '.document-header',
       '.title-block',
@@ -749,13 +749,13 @@ Introduction section
       const input = `::: {${className}}
 Content
 :::`;
-      const { html } = parse(input);
+      const { html } = await parse(input);
       const expectedClass = className.slice(1); // Remove leading dot
       expect(html).toContain(`<div class="${expectedClass}">`);
     }
   });
 
-  it('should handle nested markdown inside attribute containers', () => {
+  it('should handle nested markdown inside attribute containers', async () => {
     const input = `::: {.warning}
 
 ## Warning Title
@@ -766,7 +766,7 @@ Content
 **Important:** Read this carefully.
 :::`;
 
-    const { html } = parse(input);
+    const { html } = await parse(input);
     expect(html).toContain('<div class="warning">');
     // Headings now include auto-generated IDs via markdown-it-anchor
     expect(html).toContain('<h2 id="warning-title"');
@@ -775,7 +775,7 @@ Content
     expect(html).toContain('<strong>Important:</strong>');
   });
 
-  it('should prefer named containers over attribute syntax when both match', () => {
+  it('should prefer named containers over attribute syntax when both match', async () => {
     // 'warning' is both a named container and can be used with {.warning}
     const namedInput = `:::warning
 Named container
@@ -785,8 +785,8 @@ Named container
 Attribute container
 :::`;
 
-    const { html: namedHtml } = parse(namedInput);
-    const { html: attrHtml } = parse(attrInput);
+    const { html: namedHtml } = await parse(namedInput);
+    const { html: attrHtml } = await parse(attrInput);
 
     // Named should use container-warning class
     expect(namedHtml).toContain('<div class="container container-warning">');

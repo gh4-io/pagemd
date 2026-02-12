@@ -340,7 +340,7 @@ describe('index.js', () => {
       const mockTemplate = '<html>{{content}}</html>';
       const mockStyles = '<style>body{margin:0}</style>';
 
-      parse.mockReturnValue({
+      parse.mockResolvedValue({
         content: '# Test',
         html: '<p>Test content</p>',
         metadata: { title: 'From Parser' }
@@ -376,7 +376,7 @@ describe('index.js', () => {
     it('should merge provided metadata with parsed metadata', async () => {
       setupMocks();
 
-      parse.mockReturnValue({
+      parse.mockResolvedValue({
         content: '# Test',
         html: '<p>Content</p>',
         metadata: { title: 'Parsed Title' }
@@ -406,7 +406,7 @@ describe('index.js', () => {
         layout: { source: 'templates/custom.html' }
       };
 
-      parse.mockReturnValue({
+      parse.mockResolvedValue({
         content: '# Test',
         html: '<p>Content</p>',
         metadata: {}
@@ -444,7 +444,7 @@ describe('index.js', () => {
     it('should handle empty markdown', async () => {
       setupMocks();
 
-      parse.mockReturnValue({
+      parse.mockResolvedValue({
         content: '',
         html: '',
         metadata: {}
@@ -457,9 +457,7 @@ describe('index.js', () => {
     });
 
     it('should handle parse errors', async () => {
-      parse.mockImplementation(() => {
-        throw new Error('Invalid markdown');
-      });
+      parse.mockRejectedValue(new Error('Invalid markdown'));
 
       await expect(renderMarkdown('# Invalid'))
         .rejects
@@ -514,7 +512,7 @@ describe('index.js', () => {
       });
 
       // Setup for renderMarkdown
-      parse.mockReturnValue({
+      parse.mockResolvedValue({
         content: commonMarkdown,
         html: commonHtml,
         metadata: commonMetadata

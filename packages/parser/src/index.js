@@ -13,6 +13,7 @@ import { normalizeMetadata } from './metadata.js';
 import { registerExtensions } from './extensions.js';
 import { directivesPlugin } from './directives.js';
 import { markdownItFancyListPlugin, isFancyListsEnabled } from './fancy-lists.js';
+import { preprocessMermaid, isMermaidEnabled } from './mermaid.js';
 
 const logger = createLogger('parser');
 
@@ -360,7 +361,7 @@ export function createParser(options = {}) {
  * @param {boolean} options.normalizeMetadata - Whether to normalize metadata (default: true)
  * @returns {{content: string, html: string, metadata: object, raw: string}} Parsed result
  */
-export function parse(markdown, options = {}) {
+export async function parse(markdown, options = {}) {
   const { normalizeMetadata: shouldNormalize = true } = options;
 
   // Extract frontmatter first
@@ -371,13 +372,19 @@ export function parse(markdown, options = {}) {
     ? normalizeMetadata(rawMetadata)
     : rawMetadata;
 
+  // Preprocess Mermaid diagrams before rendering (async - spawns mermaid-cli)
+  let processedContent = content;
+  if (isMermaidEnabled()) {
+    processedContent = await preprocessMermaid(content, options);
+  }
+
   // Create parser and render HTML - pass metadata options through
   const md = createParser({
     ...options,
     highlightTheme: metadata.highlight_theme || options.highlightTheme,
     fancy_lists: metadata.fancy_lists ?? options.fancy_lists
   });
-  const html = md.render(content);
+  const html = md.render(processedContent);
 
   return {
     content,      // Markdown content without frontmatter
