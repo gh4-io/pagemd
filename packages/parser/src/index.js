@@ -1,4 +1,6 @@
 import MarkdownIt from 'markdown-it';
+import markdownItMultimdTable from 'markdown-it-multimd-table';
+import markdownItTableCaptions from 'markdown-it-table-captions';
 import markdownItAttrs from 'markdown-it-attrs';
 import markdownItAnchor from 'markdown-it-anchor';
 import markdownItGithubAlerts from 'markdown-it-github-alerts';
@@ -14,6 +16,7 @@ import { registerExtensions } from './extensions.js';
 import { directivesPlugin } from './directives.js';
 import { markdownItFancyListPlugin, isFancyListsEnabled } from './fancy-lists.js';
 import { preprocessMermaid, isMermaidEnabled } from './mermaid.js';
+import { tableZebraPlugin, tableAttrsFixPlugin } from './table-postprocess.js';
 
 const logger = createLogger('parser');
 
@@ -314,8 +317,28 @@ export function createParser(options = {}) {
   const md = new MarkdownIt(mdOptions);
 
   // Plugin registration order is important:
+
+  // 0. Advanced tables - replaces built-in GFM table parser
+  // Adds: colspan (||), rowspan (^^), multiline cells (\), headerless tables
+  md.use(markdownItMultimdTable, {
+    multiline: true,
+    rowspan: true,
+    headerless: true
+  });
+
+  // 0.25. Table captions - "Table: Caption text" before/after table
+  md.use(markdownItTableCaptions);
+
+  // 0.5. Zebra row classes - adds .odd/.even to <tr> for CSS striping
+  // Workaround for Paged.js bug #315 (nth-child crashes CSS parser)
+  tableZebraPlugin(md);
+
   // 1. markdown-it-attrs - Adds {.class #id} attribute syntax
   md.use(markdownItAttrs);
+
+  // 1.1. Fix attrs hiding colspan/rowspan cells from multimd-table
+  // Must run after attrs' core rule has already processed tokens
+  tableAttrsFixPlugin(md);
 
   // 1.25. markdown-it-anchor - Auto-generates heading IDs for anchor links
   // Uses the same slugify function as wikilinks for consistency

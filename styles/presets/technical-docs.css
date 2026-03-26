@@ -87,13 +87,21 @@ th {
   color: #24292e;
 }
 
-/* DISABLED: nth-child triggers Paged.js bug "item doesn't belong to list"
- * See: https://gitlab.coko.foundation/pagedjs/pagedjs/-/issues/315
- *
- * tr:nth-child(even) {
- *   background: #fafbfc;
- * }
- */
+/* Zebra striping via class-based approach (Paged.js nth-child bug #315 workaround) */
+table.striped tr.even, table.striped tr.even td { background: #fafbfc; }
+
+/* Merged cells */
+td[colspan], th[colspan] { text-align: center; }
+td[rowspan], th[rowspan] { vertical-align: middle; }
+
+caption {
+  caption-side: bottom;
+  font-size: 12px;
+  font-style: italic;
+  color: #586069;
+  padding: 0.4rem 0;
+  text-align: center;
+}
 
 /* Striped code columns */
 td code {

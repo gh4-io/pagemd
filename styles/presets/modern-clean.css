@@ -108,6 +108,22 @@ th {
   background: #f9fafb;
 }
 
+/* Merged cells */
+td[colspan], th[colspan] { text-align: center; }
+td[rowspan], th[rowspan] { vertical-align: middle; }
+
+/* Zebra striping (class-based, Paged.js nth-child workaround) */
+table.striped tr.even, table.striped tr.even td { background: #f9fafb; }
+
+caption {
+  caption-side: bottom;
+  font-size: 0.875rem;
+  font-style: italic;
+  color: #6b7280;
+  padding: 0.5rem 0;
+  text-align: center;
+}
+
 /* Soft blockquotes */
 blockquote {
   background: #f9fafb;

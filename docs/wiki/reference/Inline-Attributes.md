@@ -261,15 +261,26 @@ Keep this section together on one page. {style="page-break-inside: avoid;"}
 - Fixed column widths
 - Sticky headers
 
-**Common table classes:**
+**Built-in table utility classes:**
 
 | Class | Purpose |
 |-------|---------|
-| `.striped` | Alternating row colors |
-| `.bordered` | Cell borders |
-| `.compact` | Reduced padding |
+| `.striped` | Alternating row colors (class-based, Paged.js compatible) |
+| `.compact` | Reduced padding and smaller font size |
+| `.no-border` | Remove cell borders (header bottom border preserved) |
+| `.auto-width` | Table width fits content instead of 100% |
+| `.small` | Smaller font size (0.85em) |
+| `.bordered` | Cell borders (default) |
 | `.fixed-layout` | Fixed column widths |
-| `.hover-highlight` | Highlight row on hover |
+
+**Works with advanced table features** — attributes can be applied to tables using colspan, rowspan, multiline cells, and other [advanced table syntax](../guides/Extended-Syntax.md#advanced-tables).
+
+```markdown
+| A | B | C |
+|---|---|---|
+| Content | *Spans two columns* ||
+{.compact .striped}
+```
 
 ---
 

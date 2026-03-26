@@ -255,6 +255,103 @@ II.  Background
 
 ---
 
+## Advanced Tables
+
+PageMD extends standard GFM (GitHub Flavored Markdown) tables with features from the [MultiMarkdown table specification](https://fletcher.github.io/MultiMarkdown-6/syntax/tables.html). These extensions add cell merging, multiline content, headerless tables, and captions — features commonly needed in document authoring.
+
+### Column Spanning (Colspan)
+
+Merge cells horizontally by adding trailing empty pipes `||` after the cell content. Each additional `|` merges one more column to the right.
+
+````markdown
+|   | Grouping ||
+| A | B | C |
+|---|---|---|
+| Content | *Spans two columns* ||
+````
+
+The first header row shows "Grouping" spanning columns B and C. The body row shows content spanning two columns with italic formatting preserved.
+
+### Row Spanning (Rowspan)
+
+Merge cells vertically by placing `^^` in a cell. This merges the cell upward into the cell above it.
+
+````markdown
+| A | B |
+|---|---|
+| Spans down | Row 1 data |
+| ^^ | Row 2 data |
+| ^^ | Row 3 data |
+````
+
+The "Spans down" cell occupies three rows. Each `^^` below it extends the span by one row.
+
+### Multiline Cell Content
+
+End a row with `\` (backslash) to continue its content on the next line. This lets you write longer cell content across multiple source lines.
+
+````markdown
+| Feature | Description |
+|---------|-------------|
+| Multiline \
+  support | Content can span \
+  multiple source lines |
+````
+
+### Headerless Tables
+
+Start a table with the separator line (no header row above it) to create a table without headers. This is useful for data grids, chessboards, or layout tables.
+
+````markdown
+|---|---|---|
+| A | B | C |
+| D | E | F |
+````
+
+### Table Captions
+
+Add a caption below a table using `Table:` or `:` prefix on the line after the table (separated by a blank line).
+
+````markdown
+| Metric | Value |
+|--------|-------|
+| Users  | 1,234 |
+| Growth | 15%   |
+
+Table: Monthly performance metrics
+````
+
+The caption renders as a `<caption>` element below the table. You can also use the short form:
+
+````markdown
+: Monthly performance metrics
+````
+
+### Combining with Inline Attributes
+
+Advanced table features work alongside [inline attributes](../reference/Inline-Attributes.md). Add CSS classes, IDs, or styles using `{.class #id}` syntax after the table.
+
+````markdown
+| A | B | C |
+|---|---|---|
+| Content | *Spanning* ||
+{.compact .striped}
+````
+
+### Table Utility Classes
+
+Apply these built-in classes via inline attributes:
+
+| Class | Effect |
+|-------|--------|
+| `.striped` | Alternating row background colors (zebra striping) |
+| `.compact` | Reduced cell padding and smaller font size |
+| `.no-border` | Remove cell borders (keeps header bottom border) |
+| `.auto-width` | Table width fits content instead of 100% |
+| `.small` | Smaller font size (0.85em) |
+
+---
+
 ## Mermaid Diagrams
 
 Create diagrams using Mermaid syntax, rendered to SVG at build time.

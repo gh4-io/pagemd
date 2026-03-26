@@ -534,14 +534,61 @@ table > tbody > tr {
 	border-top: 1px solid var(--borderColor-muted);
 }
 
-/* DISABLED: nth-child triggers Paged.js bug "item doesn't belong to list"
- * See: https://gitlab.coko.foundation/pagedjs/pagedjs/-/issues/315
- * Zebra striping removed to ensure PDF compatibility.
- *
- * table > tbody > tr:nth-child(2n) {
- *   background-color: var(--bgColor-muted);
- * }
- */
+/* Zebra striping via class-based approach (Paged.js nth-child bug #315 workaround).
+ * The parser adds .odd/.even classes to <tr> elements automatically.
+ * Activate with {.striped} on the table via markdown-it-attrs. */
+table.striped > tbody > tr.even,
+table.striped > tbody > tr.even > td {
+	background-color: var(--bgColor-muted);
+}
+
+/* ---------- Merged cells (colspan / rowspan) ---------- */
+
+table td[colspan],
+table th[colspan] {
+	text-align: center;
+}
+
+table td[rowspan],
+table th[rowspan] {
+	vertical-align: middle;
+}
+
+/* ---------- Table captions ---------- */
+
+caption {
+	caption-side: bottom;
+	font-size: 0.9em;
+	font-style: italic;
+	color: var(--fgColor-muted);
+	padding: 0.5em 0;
+	text-align: center;
+}
+
+/* ---------- Table utility classes ---------- */
+
+table.compact td,
+table.compact th {
+	padding: 2px 6px;
+	font-size: 0.9em;
+}
+
+table.no-border td,
+table.no-border th {
+	border: none;
+}
+
+table.no-border th {
+	border-bottom: 2px solid var(--borderColor-default);
+}
+
+table.auto-width {
+	width: auto;
+}
+
+table.small {
+	font-size: 0.85em;
+}
 
 /* ==========================================================================
    Blockquotes

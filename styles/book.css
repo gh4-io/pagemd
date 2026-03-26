@@ -457,8 +457,33 @@ th {
   letter-spacing: 0;
 }
 
-/* NOTE: Zebra striping disabled due to Paged.js bug #315 */
-/* tr:nth-child(even) { background: #f9fafb; } */
+/* Zebra striping via class-based approach (Paged.js nth-child bug #315 workaround) */
+table.striped > tbody > tr.even,
+table.striped > tbody > tr.even > td {
+  background: #f9fafb;
+}
+
+/* Merged cells */
+td[colspan],
+th[colspan] {
+  text-align: center;
+}
+
+td[rowspan],
+th[rowspan] {
+  vertical-align: middle;
+}
+
+/* Table captions */
+caption {
+  font-family: var(--book-font-heading);
+  font-size: 8pt;
+  font-style: italic;
+  color: var(--book-color-muted);
+  caption-side: bottom;
+  padding: 0.3em 0;
+  text-align: center;
+}
 
 /* ==========================================================================
    FIGURES & IMAGES
