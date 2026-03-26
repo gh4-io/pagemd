@@ -87,9 +87,13 @@ th {
   color: #24292e;
 }
 
-tr:nth-child(even) {
-  background: #fafbfc;
-}
+/* DISABLED: nth-child triggers Paged.js bug "item doesn't belong to list"
+ * See: https://gitlab.coko.foundation/pagedjs/pagedjs/-/issues/315
+ *
+ * tr:nth-child(even) {
+ *   background: #fafbfc;
+ * }
+ */
 
 /* Striped code columns */
 td code {

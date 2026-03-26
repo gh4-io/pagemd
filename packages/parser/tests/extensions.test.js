@@ -375,9 +375,10 @@ End text`;
 
       const html = md.render(input);
 
-      expect(html).toContain('object-fit: contain');
       expect(html).toContain('<figure');
       expect(html).toContain('--crop-fit: contain');
+      expect(html).toContain('object-fit: contain');
+      expect(html).toContain('object-view-box: inset(');
     });
 
     it('should render figure with crop-x and crop-y parameters', () => {
@@ -385,9 +386,12 @@ End text`;
 
       const html = md.render(input);
 
-      expect(html).toContain('object-position: 70% 40%');
+      // Option C: Only custom properties, no fixed dimensions
       expect(html).toContain('--crop-x: 70%');
       expect(html).toContain('--crop-y: 40%');
+      expect(html).toContain('--crop-fit: cover'); // Auto-default when crop-x/crop-y present
+      expect(html).not.toContain('width: 700px'); // No fixed dimensions
+      expect(html).not.toContain('height: 400px'); // No fixed dimensions
     });
 
     it('should render figure with all crop parameters', () => {
@@ -395,11 +399,12 @@ End text`;
 
       const html = md.render(input);
 
-      expect(html).toContain('object-fit: cover');
-      expect(html).toContain('object-position: 60% 30%');
+      // Option C: Only custom properties, no fixed dimensions
       expect(html).toContain('--crop-fit: cover');
       expect(html).toContain('--crop-x: 60%');
       expect(html).toContain('--crop-y: 30%');
+      expect(html).not.toContain('width: 600px'); // No fixed dimensions
+      expect(html).not.toContain('height: 300px'); // No fixed dimensions
     });
 
     it('should not add crop styles when no crop parameters specified', () => {
@@ -420,9 +425,11 @@ End text`;
 
       const html = md.render(input);
 
+      expect(html).toContain('--crop-fit: contain');
+      expect(html).not.toContain('max-width'); // No viewport dimensions without crop-x/crop-y
+      expect(html).not.toContain('max-height');
       expect(html).toContain('object-fit: contain');
-      // Should NOT have object-position since neither crop-x nor crop-y specified
-      expect(html).not.toContain('object-position');
+      expect(html).toContain('object-view-box: inset(0% 0% 0% 0%)'); // No crop region
     });
 
     it('should use default for missing position when only one specified', () => {
@@ -430,8 +437,11 @@ End text`;
 
       const html = md.render(input);
 
-      // Should default crop-y to 50%
-      expect(html).toContain('object-position: 70% 50%');
+      // Viewport model: crop-x creates viewport width, no crop-y = no viewport height
+      expect(html).not.toContain('width:'); // No fixed dimensions (Option C)
+      expect(html).not.toContain('max-height'); // crop-y not specified
+      expect(html).toContain('--crop-fit: cover'); // Auto-default
+      expect(html).not.toContain('object-position');
     });
 
     it('should work with crop-fit and width parameters together', () => {
@@ -439,9 +449,11 @@ End text`;
 
       const html = md.render(input);
 
-      expect(html).toContain('class="width-half"');
+      expect(html).toContain('class="width-half"'); // Semantic width uses class
+      expect(html).not.toContain('max-width: half'); // Not inline style
+      expect(html).toContain('--crop-fit: cover');
       expect(html).toContain('object-fit: cover');
-      expect(html).toContain('object-position: 55% 45%');
+      expect(html).toContain('object-view-box: inset(0% 45% 55% 0%)');
     });
 
     it('should work with crop parameters and id', () => {
@@ -450,8 +462,10 @@ End text`;
       const html = md.render(input);
 
       expect(html).toContain('id="fig-crop"');
-      expect(html).toContain('object-fit: scale-down');
+      expect(html).toContain('--crop-fit: scale-down');
       expect(html).toContain('Figure <span class="fig-num">1</span>: Test Figure');
+      expect(html).toContain('object-fit: scale-down');
+      expect(html).toContain('object-view-box: inset(');
     });
 
     it('should validate crop-fit values and ignore invalid ones', () => {
@@ -471,8 +485,11 @@ End text`;
 
       // Invalid crop-x (>100) should be ignored
       expect(html).not.toContain('150%');
-      // But crop-y should still work (defaults crop-x to 50%)
-      expect(html).toContain('object-position: 50% 50%');
+      expect(html).not.toContain('max-width'); // Invalid crop-x = no viewport width
+      // But crop-y should still work
+      expect(html).not.toContain('height:'); // No fixed dimensions (Option C)
+      expect(html).toContain('--crop-y: 50%');
+      expect(html).toContain('--crop-fit: cover'); // Auto-default from crop-y
     });
 
     it('should validate crop-y range (0-100) and ignore invalid values', () => {
@@ -482,8 +499,11 @@ End text`;
 
       // Invalid crop-y (<0) should be ignored
       expect(html).not.toContain('-10%');
-      // But crop-x should still work (defaults crop-y to 50%)
-      expect(html).toContain('object-position: 50% 50%');
+      expect(html).not.toContain('max-height'); // Invalid crop-y = no viewport height
+      // But crop-x should still work
+      expect(html).not.toContain('width:'); // No fixed dimensions (Option C)
+      expect(html).toContain('--crop-x: 50%');
+      expect(html).toContain('--crop-fit: cover'); // Auto-default from crop-x
     });
 
     it('should handle non-numeric crop values gracefully', () => {
@@ -502,7 +522,11 @@ End text`;
 
       const html = md.render(input);
 
-      expect(html).toContain('object-position: 0% 100%');
+      // Viewport model: 0 and 100 are valid percentages
+      expect(html).not.toContain('width:'); // No fixed dimensions (Option C)
+      expect(html).not.toContain('height:'); // No fixed dimensions (Option C)
+      expect(html).toContain('--crop-x: 0%');
+      expect(html).toContain('--crop-y: 100%');
     });
 
     it('should handle decimal crop positions', () => {
@@ -510,7 +534,11 @@ End text`;
 
       const html = md.render(input);
 
-      expect(html).toContain('object-position: 33.33% 66.67%');
+      // Option C: Only custom properties, no fixed dimensions
+      expect(html).toContain('--crop-x: 33.33%');
+      expect(html).toContain('--crop-y: 66.67%');
+      expect(html).not.toContain('width: 333.3px'); // No fixed dimensions
+      expect(html).not.toContain('height: 666.7px'); // No fixed dimensions
     });
 
     it('should support all valid crop-fit values', () => {
@@ -520,8 +548,9 @@ End text`;
         const input = `<!-- ::FIGURE src="test.png" caption="Test ${fit}" crop-fit="${fit}" -->`;
         const html = md.render(input);
 
-        expect(html).toContain(`object-fit: ${fit}`);
         expect(html).toContain(`--crop-fit: ${fit}`);
+        expect(html).toContain(`object-fit: ${fit}`);
+        expect(html).toContain('object-view-box: inset(');
       });
     });
 
@@ -630,8 +659,9 @@ End text`;
       const html = md.render(input);
       expect(html).toContain('href="https://gallery.com/photo"');
       expect(html).toContain('target="_blank"');
+      expect(html).toContain('--crop-fit: cover');
       expect(html).toContain('object-fit: cover');
-      expect(html).toContain('object-position: 50% 25%');
+      expect(html).toContain('object-view-box: inset(0% 50% 75% 0%)');
     });
 
     it('should work with alt, link, loading, and crop together', () => {
@@ -642,9 +672,137 @@ End text`;
       expect(html).toContain('target="_blank"');
       expect(html).toContain('rel="noopener noreferrer"');
       expect(html).toContain('loading="lazy"');
+      expect(html).toContain('--crop-fit: cover');
       expect(html).toContain('object-fit: cover');
-      expect(html).toContain('object-position: 50% 30%');
+      expect(html).toContain('object-view-box: inset(0% 50% 70% 0%)');
       expect(html).toContain('Figure <span class="fig-num">1</span>: Sunset at Mt. Rainier');
+    });
+  });
+
+  // Height parameter tests
+  describe('height parameter', () => {
+    it('should render height parameter as inline style on figure', () => {
+      const input = '<!-- ::FIGURE src="test.png" caption="Test" height="400px" -->';
+      const html = md.render(input);
+      expect(html).toContain('style="height: 400px"');
+    });
+
+    it('should work with crop parameters', () => {
+      const input = '<!-- ::FIGURE src="test.png" caption="Test" height="300px" crop-fit="cover" crop-y="30" -->';
+      const html = md.render(input);
+      // Height is not applied on figure when crop is active (crop handles sizing)
+      expect(html).not.toContain('height:'); // No fixed dimensions when crop active
+      expect(html).toContain('--crop-fit: cover');
+      expect(html).toContain('--crop-y: 30%');
+      expect(html).toContain('object-fit: cover');
+      expect(html).toContain('object-view-box: inset(0% 0% 70% 0%)');
+    });
+
+    it('should validate CSS length values (pixels)', () => {
+      const input = '<!-- ::FIGURE src="test.png" caption="Test" height="300px" -->';
+      const html = md.render(input);
+      expect(html).toContain('height: 300px'); // Explicit height parameter should work
+    });
+
+    it('should validate CSS length values (viewport)', () => {
+      const input = '<!-- ::FIGURE src="test.png" caption="Test" height="50vh" -->';
+      const html = md.render(input);
+      expect(html).toContain('height: 50vh');
+    });
+
+    it('should validate CSS length values (percentage)', () => {
+      const input = '<!-- ::FIGURE src="test.png" caption="Test" height="80%" -->';
+      const html = md.render(input);
+      expect(html).toContain('height: 80%');
+    });
+
+    it('should validate CSS length values (auto)', () => {
+      const input = '<!-- ::FIGURE src="test.png" caption="Test" height="auto" -->';
+      const html = md.render(input);
+      expect(html).toContain('height: auto');
+    });
+
+    it('should reject invalid height values', () => {
+      const input = '<!-- ::FIGURE src="test.png" caption="Test" height="invalid" -->';
+      const html = md.render(input);
+      expect(html).not.toContain('height:');
+    });
+
+    it('should work with width parameter', () => {
+      const input = '<!-- ::FIGURE src="test.png" caption="Test" width="half" height="350px" -->';
+      const html = md.render(input);
+      expect(html).toContain('class="width-half"'); // Semantic width uses class
+      expect(html).toContain('height: 350px'); // Explicit height parameter should work
+    });
+  });
+
+  // Auto-default crop-fit tests
+  describe('crop-fit auto-default', () => {
+    it('should default crop-fit to cover when only crop-y present', () => {
+      const input = '<!-- ::FIGURE src="test.png" caption="Test" crop-y="30" -->';
+      const html = md.render(input);
+      expect(html).toContain('--crop-fit: cover'); // CSS hook on figure
+      expect(html).toContain('--crop-y: 30%');
+      expect(html).not.toContain('object-fit'); // Auto-default doesn't apply object-fit
+      expect(html).toContain('object-view-box: inset(0% 0% 70% 0%)');
+    });
+
+    it('should default crop-fit to cover when only crop-x present', () => {
+      const input = '<!-- ::FIGURE src="test.png" caption="Test" crop-x="70" -->';
+      const html = md.render(input);
+      expect(html).toContain('--crop-fit: cover'); // CSS hook on figure
+      expect(html).toContain('--crop-x: 70%');
+      expect(html).not.toContain('object-fit'); // Auto-default doesn't apply object-fit
+      expect(html).toContain('object-view-box: inset(0% 30% 0% 0%)');
+    });
+
+    it('should default crop-fit to cover when both crop-x and crop-y present', () => {
+      const input = '<!-- ::FIGURE src="test.png" caption="Test" crop-x="60" crop-y="40" -->';
+      const html = md.render(input);
+      expect(html).toContain('--crop-fit: cover'); // CSS hook on figure
+      expect(html).toContain('--crop-x: 60%');
+      expect(html).toContain('--crop-y: 40%');
+      expect(html).not.toContain('object-fit'); // Auto-default doesn't apply object-fit
+      expect(html).toContain('object-view-box: inset(0% 40% 60% 0%)');
+    });
+
+    it('should not override explicit crop-fit value', () => {
+      const input = '<!-- ::FIGURE src="test.png" caption="Test" crop-fit="contain" crop-y="30" -->';
+      const html = md.render(input);
+      expect(html).toContain('--crop-fit: contain');
+      expect(html).not.toContain('--crop-fit: cover'); // Should use explicit value, not auto-default
+      expect(html).toContain('object-fit: contain'); // Explicit crop-fit IS applied
+      expect(html).toContain('object-view-box: inset(0% 0% 70% 0%)');
+    });
+
+    it('should not add crop-fit when only invalid crop-x/crop-y values present', () => {
+      const input = '<!-- ::FIGURE src="test.png" caption="Test" crop-x="150" crop-y="-10" -->';
+      const html = md.render(input);
+      expect(html).not.toContain('--crop-fit');
+      expect(html).not.toContain('object-fit');
+    });
+  });
+
+  // Backward compatibility tests
+  describe('backward compatibility', () => {
+    it('should not add crop styles when no crop params present', () => {
+      const input = '<!-- ::FIGURE src="test.png" caption="Normal figure" -->';
+      const html = md.render(input);
+      expect(html).not.toContain('object-fit');
+      expect(html).not.toContain('object-position');
+      expect(html).not.toContain('--crop-fit');
+      expect(html).not.toContain('--crop-x');
+      expect(html).not.toContain('--crop-y');
+    });
+
+    it('should render exactly as before without crop params', () => {
+      const input = '<!-- ::FIGURE src="test.png" caption="Test" id="fig-1" width="half" -->';
+      const html = md.render(input);
+      expect(html).toContain('<figure id="fig-1" class="width-half">'); // Semantic width uses class
+      expect(html).toContain('<img src="test.png" alt="Test">');
+      expect(html).toContain('Figure <span class="fig-num">1</span>: Test');
+      expect(html).not.toContain('crop');
+      expect(html).not.toContain('object-');
     });
   });
 });

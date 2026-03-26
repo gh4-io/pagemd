@@ -8,7 +8,8 @@
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
 import { fileURLToPath } from 'url';
-import { dirname } from 'path';
+import { dirname, join } from 'path';
+import { readFileSync } from 'fs';
 import { createLogger, setLogLevel, getPackageRootFromCli, loadEnvConfig, getEnv, getEnvWarnings } from '@pagemd/core';
 import { initHighlighter } from '@pagemd/parser';
 
@@ -22,6 +23,10 @@ import * as createCommand from './commands/create.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+
+// Read version from package.json (dynamic, not hardcoded)
+const packageJson = JSON.parse(readFileSync(join(__dirname, '..', 'package.json'), 'utf8'));
+const CLI_VERSION = packageJson.version;
 
 // Load and cache all PAGEMD_* environment variables FIRST
 loadEnvConfig();
@@ -42,7 +47,7 @@ if (envWarnings.length > 0) {
   });
 }
 
-logger.debug('init', 'start', 'PageMD CLI starting', { version: '0.1.0' });
+logger.debug('init', 'start', 'PageMD CLI starting', { version: CLI_VERSION });
 
 // Initialize syntax highlighter (async, but only once at startup)
 // This enables shiki's sync codeToHtml() in the render loop
@@ -91,7 +96,7 @@ yargs(hideBin(process.argv))
   })
   .help()
   .alias('h', 'help')
-  .version('0.1.0')
+  .version(CLI_VERSION)
   .alias('v', 'version')
   .epilog('PageMD - Markdown to PDF/HTML pipeline\nhttps://github.com/gh4-io/pagemd')
   .strict()

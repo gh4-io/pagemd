@@ -462,7 +462,7 @@ describe('slugify', () => {
   it('should preserve double hyphen for ampersand pattern', () => {
     // " & " becomes "--" to match manual TOC link conventions
     expect(slugify('System Access & Passwords')).toBe('system-access--passwords');
-    expect(slugify('1. Welcome & Onboarding')).toBe('1-welcome--onboarding');
+    expect(slugify('1. Welcome & Onboarding')).toBe('section-1-welcome--onboarding');
     expect(slugify('A & B & C')).toBe('a--b--c');
   });
 
@@ -483,5 +483,15 @@ describe('slugify', () => {
 
   it('should preserve numbers', () => {
     expect(slugify('Page 123 Test')).toBe('page-123-test');
+  });
+
+  it('should prefix IDs starting with digits for CSS compliance', () => {
+    // CSS selectors like #1-intro are invalid - must start with letter or underscore
+    expect(slugify('1. Introduction')).toBe('section-1-introduction');
+    expect(slugify('2023 Report')).toBe('section-2023-report');
+    expect(slugify('42')).toBe('section-42');
+    // Numbers in middle are fine
+    expect(slugify('Chapter 3')).toBe('chapter-3');
+    expect(slugify('Step 1 of 5')).toBe('step-1-of-5');
   });
 });

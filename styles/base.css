@@ -534,9 +534,14 @@ table > tbody > tr {
 	border-top: 1px solid var(--borderColor-muted);
 }
 
-table > tbody > tr:nth-child(2n) {
-	background-color: var(--bgColor-muted);
-}
+/* DISABLED: nth-child triggers Paged.js bug "item doesn't belong to list"
+ * See: https://gitlab.coko.foundation/pagedjs/pagedjs/-/issues/315
+ * Zebra striping removed to ensure PDF compatibility.
+ *
+ * table > tbody > tr:nth-child(2n) {
+ *   background-color: var(--bgColor-muted);
+ * }
+ */
 
 /* ==========================================================================
    Blockquotes
@@ -736,7 +741,20 @@ kbd {
 
 /* Print-specific adjustments */
 @media print {
+	/* TOC page break behavior - opt-in via .toc-break-after class
+	 *
+	 * Previously forced break-after: page on all TOCs, which required
+	 * every profile to override with !important. Now defaults to auto
+	 * (natural flow) and profiles can add .toc-break-after class or
+	 * their own CSS if they want a page break after the TOC.
+	 */
 	.toc {
+		break-after: auto;
+	}
+
+	/* Opt-in: Add this class to force page break after TOC */
+	.toc.toc-break-after,
+	.toc-break-after .toc {
 		break-after: page;
 	}
 }
@@ -911,7 +929,9 @@ figure img {
 
 figcaption {
 	margin-top: 0.5rem;
+	padding-bottom: 0.125rem; /* Prevent descender clipping (g, p, y) under overflow: hidden */
 	font-size: 0.875rem;
+	line-height: 1.4;
 	color: #6b7280;
 	font-style: italic;
 }
@@ -941,6 +961,32 @@ figcaption {
 	width: 25%;
 	margin-left: auto;
 	margin-right: auto;
+}
+
+/* ==========================================================================
+   Figure Crop Support (CSS object-view-box)
+   ========================================================================== */
+
+/**
+ * Figure crop uses CSS object-view-box: inset() on the <img> element.
+ * object-view-box crops the image AND adjusts its intrinsic dimensions,
+ * so the layout automatically adapts (no JavaScript needed).
+ *
+ * Supported in Chrome 104+, Edge 104+ (Puppeteer + VS Code webview).
+ */
+
+/* Cropped figure container */
+figure[style*="--crop-"] {
+	overflow: hidden;    /* Safety: clip any overflow from rounding */
+	margin-left: auto;
+	margin-right: auto;
+}
+
+/* Cropped image - object-view-box handles dimensions */
+figure[style*="--crop-"] img {
+	display: block;
+	max-width: 100%;
+	height: auto;
 }
 
 /* ==========================================================================
@@ -1060,6 +1106,24 @@ figcaption {
 		page-break-inside: avoid;
 	}
 }
+
+/* Annotated Image Crop Support */
+figure.annotated-image[style*="--crop-fit"] .image-wrapper {
+	overflow: hidden;  /* Clip to container */
+	width: 800px;
+	height: 500px;
+	margin: 0 auto;
+}
+
+figure.annotated-image[style*="--crop-fit"] .image-wrapper img {
+	width: 100%;
+	height: 100%;  /* Fill container */
+	object-fit: var(--crop-fit, cover);
+	object-position: var(--crop-x, 50%) var(--crop-y, 50%);
+}
+
+/* Markers positioned relative to visible area - no changes needed */
+/* Markers use percentages, so they automatically work with cropped images */
 
 /* ==========================================================================
    PageMD Extended Syntax - Custom Callouts ([[WARNING]]/[[DANGER]])

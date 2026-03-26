@@ -336,18 +336,35 @@ Paged.js renderer settings.
 
 **Type:** `number`
 
-**Description:** Render timeout in milliseconds.
+**Description:** Render timeout in milliseconds. Controls how long PageMD waits for Paged.js to complete PDF pagination.
 
-**Default:** `30000`
+**Default:** `120000` (2 minutes)
 
-**Example:**
+**Special values:**
+- `0`: Use default timeout (120000ms)
+- `-1`: Disabled (wait indefinitely)
+
+**Example - 5 minute timeout:**
 ```json
 {
   "pagedjs": {
-    "timeout": 60000
+    "timeout": 300000
   }
 }
 ```
+
+**Example - disable timeout (wait forever):**
+```json
+{
+  "pagedjs": {
+    "timeout": -1
+  }
+}
+```
+
+> **Note:** Frontmatter `pagedjs_timeout` overrides this profile setting.
+
+> **Warning:** Disabling timeout (`-1`) can cause builds to hang indefinitely if Paged.js encounters an error. Use with caution for very large documents.
 
 ---
 

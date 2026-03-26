@@ -98,29 +98,81 @@ As mentioned in [Performance Tips](#performance-tips), caching improves speed.
 
 Generate an automatic table of contents from your document headings.
 
-### Basic TOC
+### Auto TOC via Frontmatter
 
-Add this directive where you want the TOC to appear:
+The simplest way to add a TOC is with `toc: true` in frontmatter. The TOC is automatically placed after the first `<h1>` heading:
+
+```yaml
+---
+title: My Document
+toc: true
+---
+```
+
+No directive needed - the TOC auto-generates in the right position.
+
+### TOC Directive
+
+For explicit placement, use the directive where you want the TOC to appear:
 
 ```markdown
 <!-- ::TOC -->
 ```
 
-**What it generates:** A linked list of all headings in your document.
+**What it generates:** A linked list of headings in your document. By default, H1 is excluded (only H2-H3 are shown).
 
 ### TOC with Options
 
 Control which headings appear and how:
 
 ```markdown
-<!-- ::TOC levels="2-3" -->
+<!-- ::TOC levels=4 min="1" -->
 ```
 
-| Parameter | Description | Default | Example |
-|-----------|-------------|---------|---------|
-| `levels` | Heading levels to include | `"2-6"` | `"2-3"` |
-| `pages` | Show page numbers (PDF only) | `true` | `"false"` |
-| `pageLevels` | Which levels get page numbers | `"2-3"` | `"2"` |
+| Parameter | Type | Description | Default | Example |
+|-----------|------|-------------|---------|---------|
+| `levels` | number | Maximum heading depth to include | `3` | `levels=4` |
+| `min` | number | Minimum heading level (1=H1, 2=H2) | `2` | `min="1"` |
+| `pages` | string | Show page numbers (PDF only) | `"true"` | `pages="false"` |
+| `pageLevels` | number | Which levels get page numbers | same as `levels` | `pageLevels=2` |
+| `section` | flag | Scope TOC to current section only | _(off)_ | `section` |
+
+**Note:** `levels` and `pageLevels` are single numbers (max depth), not ranges.
+
+### H1 Exclusion
+
+By default, H1 headings are excluded from the TOC (since H1 is typically the document title). To include H1:
+
+**Via frontmatter:**
+```yaml
+---
+toc: true
+toc_min_level: 1
+---
+```
+
+**Via directive:**
+```markdown
+<!-- ::TOC min="1" -->
+```
+
+### Section TOC
+
+Generate a TOC scoped to a specific section. Place the directive immediately after a heading - it collects only sub-headings within that section (until the next heading at the same or higher level):
+
+```markdown
+## Chapter 1
+<!-- ::TOC section -->
+
+### Section 1.1
+### Section 1.2
+
+## Chapter 2
+```
+
+The section TOC after "Chapter 1" will only list "Section 1.1" and "Section 1.2" - it stops at "Chapter 2" because H2 is the same level as the boundary heading.
+
+Section TOCs have no title heading and use the CSS class `toc-section` for separate styling.
 
 ### Frontmatter Configuration
 
@@ -131,13 +183,23 @@ Set TOC defaults in frontmatter:
 title: My Document
 toc: true
 toc_levels: 4
+toc_min_level: 2
 toc_title: "Contents"
 toc_page_numbers: true
 toc_page_levels: 3
 ---
 ```
 
-**Note:** Frontmatter `toc_levels` and `toc_page_levels` are numbers (max heading depth), while the directive `levels` parameter supports ranges like `"2-4"`.
+| Field | Type | Description | Default |
+|-------|------|-------------|---------|
+| `toc` | boolean | Enable auto TOC generation | `false` |
+| `toc_levels` | number | Maximum heading depth | `3` |
+| `toc_min_level` | number | Minimum heading level (1=H1) | `2` |
+| `toc_title` | string | TOC section title | `"Contents"` |
+| `toc_page_numbers` | boolean | Show page numbers in PDF | `true` |
+| `toc_page_levels` | number | Which levels get page numbers | `3` |
+
+**Directive parameters override frontmatter values** when both are present.
 
 ### Example Output
 
@@ -699,19 +761,37 @@ Insert images with automatic figure numbering, captions, and sizing options.
 
 #### Image Cropping Parameters
 
-Control how images are cropped within their container using CSS `object-fit` and `object-position`:
+Control how images are cropped and sized using CSS `object-fit` and `object-position`.
+
+**How Cropping Works:**
+- When crop parameters are present, PageMD automatically applies default dimensions (800px × 500px max)
+- Combined with `width` classes, crop dimensions adjust automatically (half → 400px, third → 350px, quarter → 300px)
+- Override defaults with explicit `height` parameter for precise control
 
 | Parameter | Type | Description | Values | Default | Example |
 |-----------|------|-------------|--------|---------|---------|
-| `crop-fit` | string | How image fits in container | `cover`, `contain`, `fill`, `scale-down` | (none) | `crop-fit="cover"` |
+| `crop-fit` | string | How image fits in container | `cover`, `contain`, `fill`, `scale-down` | `cover`* | `crop-fit="cover"` |
 | `crop-x` | number | Horizontal focus point (%) | `0`-`100` | `50` | `crop-x="70"` |
 | `crop-y` | number | Vertical focus point (%) | `0`-`100` | `50` | `crop-y="30"` |
+| `height` | CSS length | Explicit figure height | `300px`, `50vh`, `80%`, `auto` | (auto) | `height="400px"` |
+
+*Auto-defaults to `cover` when `crop-x` or `crop-y` is specified
 
 **Crop-fit Values:**
 - `cover` - Image covers entire container, may be cropped (best for photos)
 - `contain` - Entire image visible, may have letterboxing
 - `fill` - Stretches to fill container (may distort)
 - `scale-down` - Like `contain`, but never scales up smaller images
+
+**When Cropping Works:**
+
+Cropping is **automatically enabled** when you add crop parameters. PageMD applies default dimensions so you see results immediately:
+
+- ✅ `crop-fit`, `crop-x`, or `crop-y` present → Default dimensions applied (800px × 500px)
+- ✅ `width` class + crop → Adjusted dimensions for width class
+- ✅ `height` parameter → Overrides default height with your custom value
+
+**No CSS Required:** Just add crop parameters and PageMD handles the rest.
 
 ### Width Parameter
 
@@ -822,14 +902,28 @@ Wraps the image in an anchor tag. Click opens the full-size image.
 
 External links automatically add `target="_blank"` and security attributes.
 
-**Example 9: Cropped Portrait Photo**
+**Example 9: Cropped Portrait Photo (Auto-Default)**
 ```markdown
-<!-- ::FIGURE src="photo.jpg" caption="Team Lead" crop-fit="cover" crop-x="50" crop-y="30" -->
+<!-- ::FIGURE src="photo.jpg" caption="Team Lead" crop-y="30" -->
 ```
 
-Focuses on the upper portion of the image (30% from top), ideal for portraits where faces are near the top.
+Focuses on the upper portion (30% from top). `crop-fit` automatically defaults to `cover`. Image auto-sized to 800px × 500px for visible cropping.
 
-**Example 10: Full-Featured Figure**
+**Example 10: Explicit Height Control**
+```markdown
+<!-- ::FIGURE src="chart.png" caption="Revenue Chart" height="300px" crop-x="20" -->
+```
+
+Custom height (300px) with focus on left 20% of chart. `crop-fit` auto-defaults to `cover`.
+
+**Example 11: Width Class with Crop**
+```markdown
+<!-- ::FIGURE src="wide-screenshot.png" caption="Dashboard" width="half" crop-y="40" -->
+```
+
+Half-width figure, auto-sized to 50% width × 400px height (default for `width="half"` + crop).
+
+**Example 12: Full-Featured Figure**
 ```markdown
 <!-- ::FIGURE
   src="dashboard.png"
@@ -837,15 +931,15 @@ Focuses on the upper portion of the image (30% from top), ideal for portraits wh
   caption="User Analytics Dashboard"
   id="fig-dashboard"
   width="full"
+  height="500px"
   loading="lazy"
   link="/images/dashboard-full.png"
   crop-fit="cover"
-  crop-x="50"
   crop-y="20"
 -->
 ```
 
-Combines all features: accessibility, performance, linking, and cropping.
+Combines all features: accessibility, performance, linking, cropping, and precise dimensions.
 
 ### HTML Output
 
@@ -977,6 +1071,53 @@ Figures are optimized for print output:
 | **Figure numbering** | ✅ Auto-numbered | ✅ Shares same counter |
 | **Configuration** | Simple attributes | YAML-based |
 | **Use case** | General figures, charts, diagrams | Screenshots with callouts |
+
+### Troubleshooting FIGURE Crop
+
+#### Crop parameters not working?
+
+**Check:**
+1. **Spelling:** `crop-fit`, `crop-x`, `crop-y` (with hyphens)
+2. **Valid values:**
+   - `crop-fit`: `cover`, `contain`, `fill`, or `scale-down`
+   - `crop-x`, `crop-y`: 0-100 (numbers only, no % sign)
+3. **HTML output:** Inspect `<figure>` for `style="--crop-fit: cover"` and `<img>` for `object-fit`/`object-position`
+
+**Solutions:**
+- Crop parameters alone should work (default 800px × 500px applied automatically)
+- Add `height="300px"` for explicit height control
+- Use `width="half"` to make figures smaller with crop
+
+#### Image too large/small?
+
+**Adjust dimensions:**
+```markdown
+<!-- Use explicit height -->
+<!-- ::FIGURE src="..." height="300px" crop-fit="cover" -->
+
+<!-- Or use width class -->
+<!-- ::FIGURE src="..." width="half" crop-fit="cover" -->
+```
+
+#### Cropping wrong area?
+
+**Adjust focus point:**
+- `crop-x="0"` = left edge, `crop-x="100"` = right edge (default: 50)
+- `crop-y="0"` = top edge, `crop-y="100"` = bottom edge (default: 50)
+
+**Example:** Face at top of portrait
+```markdown
+<!-- ::FIGURE src="portrait.jpg" crop-y="30" -->
+```
+Shows top 30% of image (face visible).
+
+#### Want full image visible?
+
+**Use contain instead of cover:**
+```markdown
+<!-- ::FIGURE src="..." crop-fit="contain" height="400px" -->
+```
+Full image visible with letterboxing if needed.
 
 ---
 

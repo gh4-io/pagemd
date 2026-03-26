@@ -1,0 +1,709 @@
+/**
+ * Book Visual Styles
+ *
+ * Typography and visual styling for book-wiki profile.
+ * Layout/paged-media rules are in layouts/book.css.
+ *
+ * DESIGN PRINCIPLE: Technical documentation aesthetic - dense, readable, modern.
+ * Uses Inter/system sans-serif for UI clarity, JetBrains Mono for code.
+ *
+ * TYPOGRAPHY:
+ * - Body: Inter/system sans-serif, 10pt, 1.5 line-height
+ * - Headings: Inter/system sans-serif (same family, varied weight/size)
+ * - Code: JetBrains Mono / Fira Code, 9pt
+ *
+ * HEADING SCALE (compact):
+ * - h1: 18pt (chapter title)
+ * - h2: 14pt (major section)
+ * - h3: 12pt (subsection)
+ * - h4: 10pt (minor heading)
+ * - h5/h6: 10pt italic (sub-minor)
+ */
+
+/* ==========================================================================
+   CSS CUSTOM PROPERTIES
+   ========================================================================== */
+
+/* NOTE: Inter font is embedded via book-fonts.css (base64 data URIs) */
+
+:root {
+  /* Font Stacks - Technical documentation optimized */
+  --book-font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --book-font-heading: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --book-font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', Consolas, monospace;
+
+  /* Base Typography */
+  --book-font-size: 10pt;
+  --book-line-height: 1.5;
+
+  /* Text Colors */
+  --book-color-text: #1f2937;
+  --book-color-heading: #111827;
+  --book-color-muted: #6b7280;
+  --book-color-light: #9ca3af;
+
+  /* Backgrounds */
+  --book-color-bg: #ffffff;
+  --book-color-bg-subtle: #f9fafb;
+  --book-color-bg-code: #f6f8fa;
+
+  /* Borders */
+  --book-color-border: #e5e7eb;
+  --book-color-border-strong: #d1d5db;
+
+  /* Accent Colors */
+  --book-color-accent: #2563eb;
+  --book-color-link: #1d4ed8;
+
+  /* Alert Colors */
+  --book-color-note: #3b82f6;
+  --book-color-tip: #22c55e;
+  --book-color-warning: #f59e0b;
+  --book-color-danger: #ef4444;
+}
+
+/* ==========================================================================
+   BASE TYPOGRAPHY
+   ========================================================================== */
+
+.book {
+  font-family: var(--book-font-body);
+  font-size: var(--book-font-size);
+  line-height: var(--book-line-height);
+  color: var(--book-color-text);
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Body text is left-aligned - cleaner than justify for technical content */
+.book-content {
+  text-align: left;
+}
+
+/* ==========================================================================
+   TITLE PAGE
+   ========================================================================== */
+
+.title-page {
+  text-align: center;
+  padding-top: 1.5in;
+  padding-bottom: 0.5in;
+  height: auto;
+  min-height: 0;
+  max-height: none;
+  border-bottom: none;
+}
+
+.title-content {
+  width: 100%;
+}
+
+.title-main {
+  margin-bottom: 1in;
+}
+
+.title-footer {
+  /* Footer content positioned naturally below main */
+}
+
+.book-main-title {
+  font-family: var(--book-font-heading);
+  font-size: 28pt;
+  font-weight: 700;
+  color: var(--book-color-heading);
+  margin: 0;
+  padding: 0;
+  line-height: 1.15;
+  border-bottom: 2px solid var(--book-color-border-strong);
+  padding-bottom: 0.3em;
+  margin-bottom: 0.4em;
+}
+
+.book-subtitle {
+  font-family: var(--book-font-heading);
+  font-size: 14pt;
+  font-weight: 400;
+  color: var(--book-color-muted);
+  margin: 0.4em 0;
+}
+
+.book-author {
+  font-family: var(--book-font-body);
+  font-size: 11pt;
+  color: var(--book-color-text);
+  margin: 0.4em 0;
+}
+
+.book-version,
+.book-date {
+  font-family: var(--book-font-heading);
+  font-size: 9pt;
+  color: var(--book-color-muted);
+  margin: 0.2em 0;
+}
+
+/* ==========================================================================
+   HEADINGS - Always left-aligned, never justified
+   ========================================================================== */
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--book-font-heading) !important;
+  color: var(--book-color-heading) !important;
+  text-align: left !important;
+  margin-top: 1em !important;
+  margin-bottom: 0.3em !important;
+  padding: 0 !important;
+  line-height: 1.2 !important;
+  hyphens: none;
+  -webkit-hyphens: none;
+}
+
+/* Chapter title */
+.book-content h1 {
+  font-size: 18pt !important;
+  font-weight: 700 !important;
+  margin-top: 0 !important;
+  margin-bottom: 0.5em !important;
+  padding-bottom: 0.25em !important;
+  border-bottom: 2px solid var(--book-color-border);
+}
+
+/* Consecutive h1 (from included files) - style as subsection, not chapter */
+.book-content h1 + h1 {
+  font-size: 16pt !important;
+  font-weight: 600 !important;
+  margin-top: 0.5em !important;
+  margin-bottom: 0.3em !important;
+  padding-bottom: 0 !important;
+  border-bottom: none !important;
+}
+
+/* Major section */
+.book-content h2 {
+  font-size: 14pt !important;
+  font-weight: 600 !important;
+  margin-top: 1.2em !important;
+  margin-bottom: 0.35em !important;
+  line-height: 1.25 !important;
+}
+
+/* Subsection */
+.book-content h3 {
+  font-size: 12pt !important;
+  font-weight: 600 !important;
+  margin-top: 1em !important;
+  margin-bottom: 0.3em !important;
+  line-height: 1.3 !important;
+}
+
+/* Minor heading */
+.book-content h4 {
+  font-size: 10pt !important;
+  font-weight: 600 !important;
+  margin-top: 0.8em !important;
+  margin-bottom: 0.25em !important;
+  line-height: 1.4 !important;
+}
+
+.book-content h5 {
+  font-size: 10pt !important;
+  font-weight: 500 !important;
+  font-style: italic !important;
+  margin-top: 0.7em !important;
+  margin-bottom: 0.2em !important;
+  line-height: 1.4 !important;
+}
+
+.book-content h6 {
+  font-size: 10pt !important;
+  font-weight: 500 !important;
+  font-style: italic !important;
+  color: var(--book-color-muted) !important;
+  margin-top: 0.6em !important;
+  margin-bottom: 0.2em !important;
+  line-height: 1.4 !important;
+}
+
+/* ==========================================================================
+   PARAGRAPHS
+   ========================================================================== */
+
+p {
+  margin: 0.4em 0 !important;
+  text-indent: 0 !important;
+}
+
+/* Tighter spacing after headings - keeps them connected to content */
+h1 + p, h2 + p, h3 + p, h4 + p, h5 + p, h6 + p {
+  margin-top: 0.15em !important;
+}
+
+/* ==========================================================================
+   TABLE OF CONTENTS
+   ========================================================================== */
+
+.toc,
+nav.toc,
+.book-content .toc {
+  margin: 1em 0 !important;
+  padding: 0;
+}
+
+.toc .toc-title,
+.toc-title,
+h2.toc-title {
+  font-family: var(--book-font-heading);
+  font-size: 14pt !important;
+  font-weight: 600;
+  color: var(--book-color-heading);
+  text-align: left;
+  margin-top: 0 !important;
+  margin-bottom: 0.5em !important;
+  padding-bottom: 0.3em;
+  border-bottom: 2px solid var(--book-color-border);
+}
+
+/* TOC list reset */
+.toc ul {
+  list-style: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.toc li {
+  margin: 0.15em 0 !important;
+  line-height: 1.35;
+}
+
+/* TOC links - flex for leader dots alignment */
+.toc a {
+  color: inherit;
+  text-decoration: none;
+  font-size: 9.5pt;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.toc a:hover {
+  color: var(--book-color-link);
+}
+
+/* TOC page numbers */
+.toc .toc-page {
+  font-family: var(--book-font-heading);
+  font-size: 9pt;
+  color: var(--book-color-muted);
+  font-variant-numeric: tabular-nums;
+  margin-left: 0.5em;
+  flex-shrink: 0;
+}
+
+/* TOC indentation */
+.toc ul ul {
+  padding-left: 1em !important;
+}
+
+.toc ul ul li {
+  font-size: 9pt;
+}
+
+.toc ul ul ul {
+  padding-left: 1em !important;
+}
+
+.toc ul ul ul li {
+  font-size: 8.5pt;
+  color: var(--book-color-muted);
+}
+
+/* ==========================================================================
+   LINKS
+   ========================================================================== */
+
+a {
+  color: var(--book-color-link);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* ==========================================================================
+   LISTS
+   ========================================================================== */
+
+ul, ol {
+  margin: 0.4em 0 !important;
+  padding-left: 1.25em !important;
+}
+
+li {
+  margin: 0.1em 0 !important;
+}
+
+li > ul, li > ol {
+  margin: 0.15em 0 !important;
+}
+
+/* Nested lists tighter */
+li li {
+  margin: 0.08em 0 !important;
+}
+
+/* Definition lists */
+dl {
+  margin: 0.4em 0 !important;
+}
+
+dt {
+  font-weight: 600;
+  margin-top: 0.4em;
+}
+
+dd {
+  margin-left: 1.25em;
+  margin-bottom: 0.2em;
+}
+
+/* ==========================================================================
+   BLOCKQUOTES
+   ========================================================================== */
+
+blockquote {
+  margin: 0.5em 0 !important;
+  padding: 0.5em 1em !important;
+  border-left: 3px solid var(--book-color-border-strong) !important;
+  background: var(--book-color-bg-subtle) !important;
+  color: #4b5563;
+  font-size: 9.5pt;
+}
+
+blockquote p {
+  margin: 0.25em 0 !important;
+}
+
+blockquote blockquote {
+  margin: 0.4em 0 !important;
+  border-left-color: var(--book-color-border) !important;
+}
+
+/* ==========================================================================
+   CODE
+   ========================================================================== */
+
+code {
+  font-family: var(--book-font-mono) !important;
+  font-size: 0.9em !important;
+  background: #f0f2f4 !important;
+  padding: 0.1em 0.3em !important;
+  border-radius: 3px;
+  color: var(--book-color-text);
+}
+
+pre {
+  font-family: var(--book-font-mono) !important;
+  font-size: 9pt !important;
+  line-height: 1.4 !important;
+  background: var(--book-color-bg-code) !important;
+  padding: 0.6em 0.8em !important;
+  border-radius: 4px;
+  border: 1px solid var(--book-color-border-strong);
+  overflow-x: auto;
+  margin: 0.6em 0 !important;
+}
+
+pre code {
+  background: none !important;
+  padding: 0 !important;
+  font-size: inherit !important;
+  border-radius: 0;
+  color: inherit;
+}
+
+/* ==========================================================================
+   TABLES
+   ========================================================================== */
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.6em 0 !important;
+  font-size: 9pt !important;
+}
+
+th {
+  background: #f3f4f6;
+  font-family: var(--book-font-heading);
+  font-weight: 600;
+  text-align: left;
+  padding: 0.4em 0.6em !important;
+  border-bottom: 2px solid var(--book-color-border-strong);
+}
+
+td {
+  padding: 0.35em 0.6em !important;
+  border-bottom: 1px solid var(--book-color-border);
+  vertical-align: top;
+}
+
+/* Table header text slightly smaller */
+th {
+  font-size: 8.5pt;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+/* NOTE: Zebra striping disabled due to Paged.js bug #315 */
+/* tr:nth-child(even) { background: #f9fafb; } */
+
+/* ==========================================================================
+   FIGURES & IMAGES
+   ========================================================================== */
+
+figure {
+  margin: 0.6em 0;
+  text-align: center;
+}
+
+figure img {
+  max-width: 100%;
+  height: auto;
+}
+
+figcaption {
+  font-size: 8pt;
+  color: var(--book-color-muted);
+  margin-top: 0.3em;
+  font-style: italic;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* ==========================================================================
+   HORIZONTAL RULE
+   ========================================================================== */
+
+hr {
+  border: none;
+  border-top: 1px solid var(--book-color-border);
+  margin: 0.8em 0;
+}
+
+/* ==========================================================================
+   ALERTS / CALLOUTS (markdown-it-container & GitHub-style)
+   ========================================================================== */
+
+.markdown-alert,
+.container,
+.alert {
+  margin: 0.5em 0 !important;
+  padding: 0.5em 0.75em !important;
+  border-left: 3px solid var(--book-color-border-strong);
+  border-radius: 0 4px 4px 0;
+  background: var(--book-color-bg-subtle);
+  font-size: 9.5pt;
+}
+
+.markdown-alert-title,
+.container-title,
+.alert-title {
+  font-family: var(--book-font-heading);
+  font-weight: 600;
+  font-size: 9pt;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.25em;
+  display: block;
+}
+
+/* Note style */
+.markdown-alert-note,
+.container-note,
+.alert-note {
+  border-left-color: var(--book-color-note);
+  background: #eff6ff;
+}
+
+.markdown-alert-note .markdown-alert-title,
+.container-note .container-title,
+.alert-note .alert-title {
+  color: var(--book-color-note);
+}
+
+/* Tip style */
+.markdown-alert-tip,
+.container-tip,
+.alert-tip {
+  border-left-color: var(--book-color-tip);
+  background: #f0fdf4;
+}
+
+.markdown-alert-tip .markdown-alert-title,
+.container-tip .container-title,
+.alert-tip .alert-title {
+  color: var(--book-color-tip);
+}
+
+/* Warning style */
+.markdown-alert-warning,
+.container-warning,
+.alert-warning {
+  border-left-color: var(--book-color-warning);
+  background: #fffbeb;
+}
+
+.markdown-alert-warning .markdown-alert-title,
+.container-warning .container-title,
+.alert-warning .alert-title {
+  color: var(--book-color-warning);
+}
+
+/* Danger/Caution style */
+.markdown-alert-caution,
+.markdown-alert-danger,
+.container-danger,
+.container-caution,
+.alert-danger,
+.alert-caution {
+  border-left-color: var(--book-color-danger);
+  background: #fef2f2;
+}
+
+.markdown-alert-caution .markdown-alert-title,
+.markdown-alert-danger .markdown-alert-title,
+.container-danger .container-title,
+.container-caution .container-title,
+.alert-danger .alert-title,
+.alert-caution .alert-title {
+  color: var(--book-color-danger);
+}
+
+/* Important style (same as note but different label) */
+.markdown-alert-important,
+.container-important,
+.alert-important {
+  border-left-color: #8b5cf6;
+  background: #f5f3ff;
+}
+
+.markdown-alert-important .markdown-alert-title,
+.container-important .container-title,
+.alert-important .alert-title {
+  color: #8b5cf6;
+}
+
+/* ==========================================================================
+   TWO-COLUMN LAYOUT (Optional - use .two-column class)
+   ========================================================================== */
+
+.two-column {
+  column-count: 2;
+  column-gap: 0.3in;
+  column-rule: 1px solid var(--book-color-border);
+}
+
+.two-column > * {
+  break-inside: avoid;
+}
+
+/* ==========================================================================
+   PRINT OPTIMIZATIONS
+   ========================================================================== */
+
+@media print {
+  /* Title page - flow naturally into content */
+  .title-page {
+    break-after: auto !important;
+    page-break-after: auto !important;
+  }
+
+  /* TOC - keep header and entries together */
+  .toc,
+  nav.toc {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+    break-after: auto !important;
+    page-break-after: auto !important;
+  }
+
+  .toc-title,
+  .toc > h2,
+  h2.toc-title {
+    break-after: avoid !important;
+    page-break-after: avoid !important;
+  }
+
+  .toc > ul {
+    break-before: avoid !important;
+    page-break-before: avoid !important;
+  }
+
+  /* Consecutive h1 headers - second one doesn't start new page */
+  h1 + h1 {
+    break-before: auto !important;
+    page-break-before: auto !important;
+    margin-top: 0.5em !important;
+  }
+
+  /* Code blocks: wrap long lines */
+  pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+
+  /* Links: use text color in print */
+  a {
+    color: var(--book-color-text);
+  }
+
+  /* Hide URL display after links */
+  a[href^="http"]::after,
+  a[href^="https"]::after {
+    content: none !important;
+  }
+
+  /* Ensure tables don't get cut awkwardly */
+  table {
+    break-inside: avoid;
+  }
+
+  /* Alerts should stay together */
+  .markdown-alert,
+  .container,
+  .alert {
+    break-inside: avoid;
+  }
+}
+
+/* ==========================================================================
+   SCREEN PREVIEW (for HTML output or browser preview)
+   ========================================================================== */
+
+@media screen {
+  body.book {
+    max-width: 8.5in;
+    margin: 1em auto;
+    padding: 0.75in 0.6in;
+    background: var(--book-color-bg);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+
+  .title-page {
+    border-bottom: 1px solid var(--book-color-border);
+    margin-bottom: 1.5em;
+    padding-bottom: 1.5em;
+  }
+
+  /* Simulate page breaks visually in preview */
+  .pagedjs_page {
+    margin-bottom: 1em;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+  }
+}

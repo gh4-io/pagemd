@@ -26,6 +26,68 @@ import { setupRequestInterception } from './request-interceptor.js';
 
 const logger = createLogger('renderer.pdf');
 
+/** Default Paged.js timeout: 2 minutes */
+const DEFAULT_PAGEDJS_TIMEOUT = 120000;
+
+/**
+ * Resolve Paged.js timeout from profile and frontmatter metadata
+ *
+ * Cascade order: frontmatter > profile > default (120000ms)
+ *
+ * Special values:
+ * - 0: Use default timeout (120000ms)
+ * - -1: Disabled (infinite wait) - returns 0 for Puppeteer
+ * - Positive number: Timeout in milliseconds
+ *
+ * @param {object} profile - Profile configuration
+ * @param {object} metadata - Frontmatter metadata
+ * @returns {number} Timeout in ms (0 means infinite for Puppeteer)
+ */
+function resolvePagedTimeout(profile, metadata) {
+  // Cascade: frontmatter > profile > default
+  // Support both flat key (pagedjs_timeout) and nested (pagedjs.timeout)
+  const nestedFrontmatter = metadata?.pagedjs?.timeout;
+  const flatFrontmatter = metadata?.pagedjs_timeout;
+  const frontmatterTimeout = nestedFrontmatter ?? flatFrontmatter;
+  const profileTimeout = profile?.pagedjs?.timeout;
+
+  // Log resolution steps for debugging
+  logger.trace('render.timeout', 'resolving', 'Resolving Paged.js timeout', {
+    nestedFrontmatter: nestedFrontmatter !== undefined ? nestedFrontmatter : 'undefined',
+    flatFrontmatter: flatFrontmatter !== undefined ? flatFrontmatter : 'undefined',
+    frontmatterTimeout: frontmatterTimeout !== undefined ? frontmatterTimeout : 'undefined',
+    profileTimeout: profileTimeout !== undefined ? profileTimeout : 'undefined',
+    default: DEFAULT_PAGEDJS_TIMEOUT
+  });
+
+  // Determine effective timeout (undefined coalesces to next in chain)
+  const timeout = frontmatterTimeout ?? profileTimeout ?? DEFAULT_PAGEDJS_TIMEOUT;
+
+  // Ensure timeout is a number (coerce if string)
+  const numericTimeout = typeof timeout === 'string' ? parseInt(timeout, 10) : timeout;
+  if (typeof numericTimeout !== 'number' || isNaN(numericTimeout)) {
+    logger.warn('render.timeout', 'invalid', 'Invalid timeout value, using default', {
+      originalValue: timeout,
+      originalType: typeof timeout,
+      usingDefault: DEFAULT_PAGEDJS_TIMEOUT
+    });
+    return DEFAULT_PAGEDJS_TIMEOUT;
+  }
+
+  // Special values:
+  // - 0 means use default
+  // - -1 means disabled (Puppeteer uses 0 for infinite)
+  // - negative values (other than -1) also treated as disabled
+  if (numericTimeout === 0) {
+    return DEFAULT_PAGEDJS_TIMEOUT;
+  }
+  if (numericTimeout < 0) {
+    return 0; // Puppeteer interprets 0 as no timeout
+  }
+
+  return numericTimeout;
+}
+
 /**
  * Render markdown file to PDF
  * @param {string} markdownPath - Path to markdown file
@@ -130,12 +192,34 @@ export async function renderPdf(markdownPath, options = {}) {
     logger.debug('render.page', 'started', 'Creating page and setting content');
     page = await browser.newPage();
 
-    // Capture browser console for debugging (Paged.js status messages)
+    // Track browser errors for failure detection
+    // If Paged.js crashes (e.g., CSS parsing bugs), we need to report the actual error
+    const browserErrors = [];
+
+    // Capture browser console for debugging
+    // In debug mode, capture ALL messages; otherwise only Paged.js status messages
     page.on('console', msg => {
       const text = msg.text();
-      if (text.startsWith('Paged.js') || text.startsWith('PDF ')) {
+      const type = msg.type(); // 'log', 'error', 'warning', etc.
+
+      if (debug || type === 'error' || type === 'warning') {
+        // Always log errors and warnings, or all messages in debug mode
+        logger.trace('browser.console', type, text);
+      } else if (text.startsWith('Paged.js') || text.startsWith('PDF ')) {
         logger.trace('browser.console', 'info', text);
       }
+    });
+
+    // Capture page errors (uncaught exceptions)
+    page.on('pageerror', error => {
+      logger.error('browser.error', 'uncaught', `Browser error: ${error.message}`, {
+        stack: error.stack
+      });
+      // Track error for failure detection
+      browserErrors.push({
+        message: error.message,
+        stack: error.stack
+      });
     });
 
     // Set viewport for consistent rendering
@@ -184,22 +268,48 @@ export async function renderPdf(markdownPath, options = {}) {
 
     // Set HTML content directly (no temp file needed)
     // Request interception will handle file:// URLs for local resources
+    // Resolve timeout from frontmatter (highest priority) > profile > default
+    // Special values: 0 = default (120s), -1 = disabled (infinite)
+    const pagedTimeout = resolvePagedTimeout(htmlResult.profile, htmlResult.metadata);
+
+    logger.debug('render.timeout', 'resolved', 'Paged.js timeout configured', {
+      timeout: pagedTimeout === 0 ? 'disabled (infinite)' : `${pagedTimeout}ms`,
+      source: htmlResult.metadata?.pagedjs_timeout !== undefined || htmlResult.metadata?.pagedjs?.timeout !== undefined
+        ? 'frontmatter'
+        : htmlResult.profile?.pagedjs?.timeout !== undefined
+          ? 'profile'
+          : 'default'
+    });
+
     await page.setContent(preparedHtml, {
       waitUntil: 'networkidle0',
-      timeout: 30000
+      timeout: pagedTimeout
     });
 
     logger.debug('render.page', 'success', 'Page content set with request interception');
 
+    // Note: Figure cropping is handled by CSS object-view-box on <img> elements.
+    // No JavaScript sizing needed - object-view-box adjusts intrinsic dimensions.
+
     // Step 8: Wait for Paged.js to complete rendering
-    logger.debug('render.pagedjs', 'started', 'Waiting for Paged.js to complete');
+    // Log explicit timeout value to verify it's being passed correctly
+    logger.debug('render.pagedjs', 'started', 'Waiting for Paged.js to complete', {
+      timeoutMs: pagedTimeout,
+      timeoutType: typeof pagedTimeout,
+      timeoutHuman: pagedTimeout === 0 ? 'infinite' : `${Math.round(pagedTimeout / 1000)}s`
+    });
 
     try {
       // Wait for Paged.js completion using the after callback
       // This is more reliable than polling DOM classes
+      const waitOptions = { timeout: pagedTimeout };
+      logger.trace('render.pagedjs', 'waitForFunction', 'Calling page.waitForFunction', {
+        options: waitOptions
+      });
+
       await page.waitForFunction(
         () => window.__pagedjs_complete === true,
-        { timeout: 30000 }
+        waitOptions
       );
 
       // Small delay for CSS paint (using setTimeout - waitForTimeout deprecated in Puppeteer 24)
@@ -215,11 +325,31 @@ export async function renderPdf(markdownPath, options = {}) {
         completionFlag: window.__pagedjs_complete
       })).catch(() => ({}));
 
-      logger.warn('render.pagedjs', 'timeout', 'Paged.js rendering may not have completed', {
-        error: error.message,
-        domState
-      });
-      // Continue anyway - content may still render
+      // Detect Paged.js crash: 0 pages + browser errors = fatal failure
+      // Common causes: CSS selectors like :nth-of-type, :first-of-type trigger Paged.js bug #315
+      if (domState.pagedPagesCount === 0 && browserErrors.length > 0) {
+        const errorMessages = browserErrors.map(e => e.message).join('; ');
+        logger.error('render.pagedjs', 'crash', 'Paged.js crashed during CSS processing', {
+          errors: browserErrors.map(e => e.message),
+          domState
+        });
+        throw new Error(`Paged.js crashed: ${errorMessages}. Check CSS for problematic selectors (nth-of-type, first-of-type, etc.)`);
+      }
+
+      // If no browser errors but also no pages, warn but continue (may be empty content)
+      if (domState.pagedPagesCount === 0 && !domState.pagedContainer) {
+        logger.warn('render.pagedjs', 'empty', 'Paged.js produced no pages - document may be empty or malformed', {
+          configuredTimeoutMs: pagedTimeout,
+          domState
+        });
+      } else {
+        logger.warn('render.pagedjs', 'timeout', 'Paged.js rendering may not have completed', {
+          error: error.message,
+          configuredTimeoutMs: pagedTimeout,
+          domState
+        });
+      }
+      // Continue for partial renders or empty documents
     }
 
     // Step 9: Save debug artifacts if enabled
@@ -357,6 +487,9 @@ export {
   getPagedJsScript,
   injectPagedJs,
   getPagedJsConfig,
+  // Timeout utilities
+  resolvePagedTimeout,
+  DEFAULT_PAGEDJS_TIMEOUT,
   // Debug utilities
   createDebugDir,
   shouldSaveDebug,

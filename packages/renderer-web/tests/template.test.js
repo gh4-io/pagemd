@@ -471,6 +471,292 @@ describe('template.js', () => {
     });
   });
 
+  describe('processTokens - block conditionals', () => {
+    // Basic functionality
+    it('should include content when condition is true', () => {
+      const template = '{{#if showSection}}<div>Content</div>{{/if}}';
+      const data = { showSection: true };
+
+      const result = processTokens(template, data);
+
+      expect(result).toBe('<div>Content</div>');
+    });
+
+    it('should exclude content when condition is false', () => {
+      const template = '{{#if showSection}}<div>Content</div>{{/if}}';
+      const data = { showSection: false };
+
+      const result = processTokens(template, data);
+
+      expect(result).toBe('');
+    });
+
+    it('should exclude content when condition is undefined', () => {
+      const template = '{{#if showSection}}<div>Content</div>{{/if}}';
+      const data = {};
+
+      const result = processTokens(template, data);
+
+      expect(result).toBe('');
+    });
+
+    it('should exclude content when condition is null', () => {
+      const template = '{{#if showSection}}<div>Content</div>{{/if}}';
+      const data = { showSection: null };
+
+      const result = processTokens(template, data);
+
+      expect(result).toBe('');
+    });
+
+    // Nested key access
+    it('should handle nested key in block conditional', () => {
+      const template = '{{#if metadata.showHeader}}<header>Header</header>{{/if}}';
+      const data = { metadata: { showHeader: true } };
+
+      const result = processTokens(template, data);
+
+      expect(result).toBe('<header>Header</header>');
+    });
+
+    it('should handle missing nested key in block conditional', () => {
+      const template = '{{#if metadata.showHeader}}<header>Header</header>{{/if}}';
+      const data = { metadata: {} };
+
+      const result = processTokens(template, data);
+
+      expect(result).toBe('');
+    });
+
+    it('should handle deeply nested key in block conditional', () => {
+      const template = '{{#if meta.document.show}}<span>Show</span>{{/if}}';
+      const data = { meta: { document: { show: true } } };
+
+      const result = processTokens(template, data);
+
+      expect(result).toBe('<span>Show</span>');
+    });
+
+    // Truthiness
+    it('should treat truthy string as truthy in block', () => {
+      const template = '{{#if status}}<span>Has Status</span>{{/if}}';
+      const data = { status: 'active' };
+
+      const result = processTokens(template, data);
+
+      expect(result).toBe('<span>Has Status</span>');
+    });
+
+    it('should treat empty string as falsy in block', () => {
+      const template = '{{#if status}}<span>Has Status</span>{{/if}}';
+      const data = { status: '' };
+
+      const result = processTokens(template, data);
+
+      expect(result).toBe('');
+    });
+
+    it('should treat zero as falsy in block', () => {
+      const template = '{{#if count}}<span>Has Items</span>{{/if}}';
+      const data = { count: 0 };
+
+      const result = processTokens(template, data);
+
+      expect(result).toBe('');
+    });
+
+    it('should treat non-zero number as truthy in block', () => {
+      const template = '{{#if count}}<span>Has Items</span>{{/if}}';
+      const data = { count: 5 };
+
+      const result = processTokens(template, data);
+
+      expect(result).toBe('<span>Has Items</span>');
+    });
+
+    // Content handling
+    it('should preserve HTML content inside truthy block', () => {
+      const template = '{{#if show}}<div class="wrapper"><p>Paragraph</p></div>{{/if}}';
+      const data = { show: true };
+
+      const result = processTokens(template, data);
+
+      expect(result).toBe('<div class="wrapper"><p>Paragraph</p></div>');
+    });
+
+    it('should preserve tokens inside truthy block for processing', () => {
+      const template = '{{#if show}}<span>{{name}}</span>{{/if}}';
+      const data = { show: true, name: 'Alice' };
+
+      const result = processTokens(template, data);
+
+      expect(result).toBe('<span>Alice</span>');
+    });
+
+    it('should not process tokens inside falsy block', () => {
+      const template = '{{#if show}}{{name}}{{/if}}';
+      const data = { show: false, name: 'Alice' };
+
+      const result = processTokens(template, data);
+
+      expect(result).toBe('');
+      expect(result).not.toContain('Alice');
+    });
+
+    it('should handle empty block content', () => {
+      const template = '{{#if show}}{{/if}}';
+      const data = { show: true };
+
+      const result = processTokens(template, data);
+
+      expect(result).toBe('');
+    });
+
+    it('should preserve whitespace in block content', () => {
+      const template = '{{#if show}}  content  {{/if}}';
+      const data = { show: true };
+
+      const result = processTokens(template, data);
+
+      expect(result).toBe('  content  ');
+    });
+
+    // Nesting
+    it('should handle nested if blocks', () => {
+      const template = '{{#if outer}}Outer{{#if inner}}Inner{{/if}}End{{/if}}';
+      const data = { outer: true, inner: true };
+
+      const result = processTokens(template, data);
+
+      expect(result).toBe('OuterInnerEnd');
+    });
+
+    it('should handle nested if with inner false', () => {
+      const template = '{{#if outer}}Outer{{#if inner}}Inner{{/if}}End{{/if}}';
+      const data = { outer: true, inner: false };
+
+      const result = processTokens(template, data);
+
+      expect(result).toBe('OuterEnd');
+    });
+
+    it('should handle nested if with outer false', () => {
+      const template = '{{#if outer}}Outer{{#if inner}}Inner{{/if}}End{{/if}}';
+      const data = { outer: false, inner: true };
+
+      const result = processTokens(template, data);
+
+      expect(result).toBe('');
+    });
+
+    it('should handle multiple levels of nesting', () => {
+      const template = '{{#if a}}A{{#if b}}B{{#if c}}C{{/if}}{{/if}}{{/if}}';
+      const data = { a: true, b: true, c: true };
+
+      const result = processTokens(template, data);
+
+      expect(result).toBe('ABC');
+    });
+
+    it('should handle sibling if blocks', () => {
+      const template = '{{#if a}}A{{/if}}{{#if b}}B{{/if}}{{#if c}}C{{/if}}';
+      const data = { a: true, b: false, c: true };
+
+      const result = processTokens(template, data);
+
+      expect(result).toBe('AC');
+    });
+
+    // Edge cases
+    it('should handle whitespace in condition key', () => {
+      const template = '{{#if  showSection  }}<div>Content</div>{{/if}}';
+      const data = { showSection: true };
+
+      const result = processTokens(template, data);
+
+      expect(result).toBe('<div>Content</div>');
+    });
+
+    it('should handle multiple blocks in template', () => {
+      const template = 'Start{{#if a}}A{{/if}}Middle{{#if b}}B{{/if}}End';
+      const data = { a: true, b: true };
+
+      const result = processTokens(template, data);
+
+      expect(result).toBe('StartAMiddleBEnd');
+    });
+
+    it('should preserve unclosed blocks unchanged', () => {
+      const template = '{{#if show}}Content without close';
+      const data = { show: true };
+
+      const result = processTokens(template, data);
+
+      // Unclosed blocks should remain as-is (defensive behavior)
+      expect(result).toBe('{{#if show}}Content without close');
+    });
+
+    it('should handle block with path tokens preserved', () => {
+      const template = '{{#if show}}Root: {{PROJECT_ROOT}}{{/if}}';
+      const data = { show: true };
+      const pathContext = { projectRoot: '/project' };
+
+      const result = processTokens(template, data, pathContext);
+
+      expect(result).toBe('Root: /project');
+    });
+
+    // Integration with other token types
+    it('should process ternary inside included blocks', () => {
+      const template = '{{#if show}}{{draft ? "DRAFT" : "FINAL"}}{{/if}}';
+      const data = { show: true, draft: true };
+
+      const result = processTokens(template, data);
+
+      expect(result).toBe('DRAFT');
+    });
+
+    it('should process defaults inside included blocks', () => {
+      const template = '{{#if show}}Author: {{author ?? "Unknown"}}{{/if}}';
+      const data = { show: true };
+
+      const result = processTokens(template, data);
+
+      expect(result).toBe('Author: Unknown');
+    });
+
+    // Real-world use cases
+    it('should handle optional memo fields pattern', () => {
+      const template = `<div class="memo-fields">
+{{#if metadata.from}}<div class="field"><span>FROM:</span>{{metadata.from}}</div>{{/if}}
+{{#if metadata.cc}}<div class="field"><span>CC:</span>{{metadata.cc}}</div>{{/if}}
+</div>`;
+      const data = { metadata: { from: 'John Doe' } };
+
+      const result = processTokens(template, data);
+
+      expect(result).toContain('FROM:');
+      expect(result).toContain('John Doe');
+      expect(result).not.toContain('CC:');
+    });
+
+    it('should handle multiline block content', () => {
+      const template = `{{#if showHeader}}
+<header>
+  <h1>Title</h1>
+  <p>Subtitle</p>
+</header>
+{{/if}}`;
+      const data = { showHeader: true };
+
+      const result = processTokens(template, data);
+
+      expect(result).toContain('<header>');
+      expect(result).toContain('<h1>Title</h1>');
+      expect(result).toContain('</header>');
+    });
+  });
+
   describe('renderTemplate', () => {
     it('should render complete template with all context', () => {
       const template = `

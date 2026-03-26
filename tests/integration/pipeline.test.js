@@ -57,8 +57,8 @@ describe('PageMD Pipeline Integration', () => {
       expect(result.html).toBeTruthy();
       expect(result.html.length).toBeGreaterThan(0);
 
-      // HTML should contain headings
-      expect(result.html).toContain('<h1>');
+      // HTML should contain headings (headings have auto-generated id and tabindex attributes)
+      expect(result.html).toMatch(/<h1[\s>]/);
       expect(result.html).toContain('Introduction');
 
       // HTML should contain section headings
@@ -97,7 +97,8 @@ describe('PageMD Pipeline Integration', () => {
     it('should render document with default profile', async () => {
       const result = await renderDocument(EXAMPLE_MD_PATH, {
         profile: 'standard_letter',
-        projectRoot: PROJECT_ROOT
+        projectRoot: PROJECT_ROOT,
+        cliPath: PROJECT_ROOT
       });
 
       expect(result).toHaveProperty('html');
@@ -118,7 +119,8 @@ describe('PageMD Pipeline Integration', () => {
     it('should include CSS styles in rendered HTML', async () => {
       const result = await renderDocument(EXAMPLE_MD_PATH, {
         profile: 'standard_letter',
-        projectRoot: PROJECT_ROOT
+        projectRoot: PROJECT_ROOT,
+        cliPath: PROJECT_ROOT
       });
 
       // Should contain complete HTML structure
@@ -134,7 +136,8 @@ describe('PageMD Pipeline Integration', () => {
     it('should render metadata into document', async () => {
       const result = await renderDocument(EXAMPLE_MD_PATH, {
         profile: 'standard_letter',
-        projectRoot: PROJECT_ROOT
+        projectRoot: PROJECT_ROOT,
+        cliPath: PROJECT_ROOT
       });
 
       // Metadata should be available
@@ -155,7 +158,8 @@ This is a test paragraph.`;
 
       const result = await renderMarkdown(markdown, {
         profile: 'standard_letter',
-        projectRoot: PROJECT_ROOT
+        projectRoot: PROJECT_ROOT,
+        cliPath: PROJECT_ROOT
       });
 
       expect(result.html).toBeTruthy();
@@ -170,7 +174,8 @@ This is a test paragraph.`;
     it('should produce valid HTML structure', async () => {
       const result = await renderDocument(EXAMPLE_MD_PATH, {
         profile: 'standard_letter',
-        projectRoot: PROJECT_ROOT
+        projectRoot: PROJECT_ROOT,
+        cliPath: PROJECT_ROOT
       });
 
       const html = result.html;
@@ -186,7 +191,8 @@ This is a test paragraph.`;
     it('should include all required profile elements', async () => {
       const result = await renderDocument(EXAMPLE_MD_PATH, {
         profile: 'standard_letter',
-        projectRoot: PROJECT_ROOT
+        projectRoot: PROJECT_ROOT,
+        cliPath: PROJECT_ROOT
       });
 
       // Profile should have resources with template and layout
@@ -210,7 +216,8 @@ This is a test paragraph.`;
     it('should validate required fields from profile', async () => {
       const result = await renderDocument(EXAMPLE_MD_PATH, {
         profile: 'standard_letter',
-        projectRoot: PROJECT_ROOT
+        projectRoot: PROJECT_ROOT,
+        cliPath: PROJECT_ROOT
       });
 
       const requiredFields = result.profile.validation.required_fields;
@@ -232,7 +239,8 @@ document_id: MIN-001
 
       const result = await renderMarkdown(markdown, {
         profile: 'standard_letter',
-        projectRoot: PROJECT_ROOT
+        projectRoot: PROJECT_ROOT,
+        cliPath: PROJECT_ROOT
       });
 
       // Metadata defaults should be applied from profile
@@ -254,7 +262,8 @@ status: Published
 
       const result = await renderMarkdown(markdown, {
         profile: 'standard_letter',
-        projectRoot: PROJECT_ROOT
+        projectRoot: PROJECT_ROOT,
+        cliPath: PROJECT_ROOT
       });
 
       // Explicit status should override profile default
@@ -271,7 +280,8 @@ status: Published
 
       const result = await renderMarkdown(markdown, {
         profile: 'standard_letter',
-        projectRoot: PROJECT_ROOT
+        projectRoot: PROJECT_ROOT,
+        cliPath: PROJECT_ROOT
       });
 
       expect(result.html).toContain('Simple Document');
@@ -287,7 +297,8 @@ status: Published
 
       const result = await renderMarkdown(markdown, {
         profile: 'standard_letter',
-        projectRoot: PROJECT_ROOT
+        projectRoot: PROJECT_ROOT,
+        cliPath: PROJECT_ROOT
       });
 
       expect(result.html).toBeDefined();
@@ -302,7 +313,8 @@ document_id: META-001
 
       const result = await renderMarkdown(markdown, {
         profile: 'standard_letter',
-        projectRoot: PROJECT_ROOT
+        projectRoot: PROJECT_ROOT,
+        cliPath: PROJECT_ROOT
       });
 
       expect(result.metadata.title).toBe('Only Metadata');
@@ -322,7 +334,8 @@ Code with \`<html>\` tags.`;
 
       const result = await renderMarkdown(markdown, {
         profile: 'standard_letter',
-        projectRoot: PROJECT_ROOT
+        projectRoot: PROJECT_ROOT,
+        cliPath: PROJECT_ROOT
       });
 
       // HTML entities should be properly escaped in non-code contexts

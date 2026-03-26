@@ -1,0 +1,28 @@
+/* Standard Letter Visual Styles */
+.document {
+  font-family: sans-serif;
+  max-width: 8.5in;
+  margin: 0 auto;
+}
+
+.document-header {
+  border-bottom: 2px solid #333;
+  margin-bottom: 2em;
+  padding-bottom: 1em;
+}
+
+.document-title {
+  margin: 0 0 0.5em 0;
+  font-size: 2em;
+}
+
+.document-metadata {
+  display: flex;
+  gap: 1em;
+  font-size: 0.9em;
+  color: #666;
+}
+
+.document-content {
+  line-height: 1.6;
+}

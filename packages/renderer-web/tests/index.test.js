@@ -47,7 +47,7 @@ vi.mock('../src/styles.js', () => ({
 }));
 
 import { parse, parseFile } from '@pagemd/parser';
-import { loadAndMergeProfile, createPathContext, findProjectRoot } from '@pagemd/core';
+import { loadAndMergeProfile, createPathContext, findProjectRoot, resolveColorScheme } from '@pagemd/core';
 import { loadTemplate, renderTemplate } from '../src/template.js';
 import { buildStyleBlock } from '../src/styles.js';
 
@@ -210,6 +210,7 @@ describe('index.js', () => {
       loadAndMergeProfile.mockResolvedValue(mockProfile);
       createPathContext.mockReturnValue(mockPathContext);
       findProjectRoot.mockReturnValue('/project');
+      resolveColorScheme.mockReturnValue('auto');
       loadTemplate.mockResolvedValue(mockTemplate);
       buildStyleBlock.mockResolvedValue(mockStyles);
       renderTemplate.mockReturnValue('<html><p>Rendered content</p></html>');
@@ -222,15 +223,18 @@ describe('index.js', () => {
 
       const result = await renderDocument('/project/docs/test.md');
 
-      expect(parseFile).toHaveBeenCalledWith('/project/docs/test.md', {});
-      expect(loadTemplate).toHaveBeenCalledWith(mocks.mockProfile, mocks.mockPathContext, { returnMetadata: false });
-      expect(buildStyleBlock).toHaveBeenCalledWith(mocks.mockProfile, mocks.mockPathContext, { returnMetadata: false });
+      expect(parseFile).toHaveBeenCalledWith('/project/docs/test.md', {
+        wikilinks: { generateSlugs: false }
+      });
+      expect(loadTemplate).toHaveBeenCalledWith(mocks.mockProfile, mocks.mockPathContext, { returnMetadata: false, cliPath: undefined });
+      expect(buildStyleBlock).toHaveBeenCalledWith(mocks.mockProfile, mocks.mockPathContext, { returnMetadata: false, frontmatterCSS: undefined, extractCSS: false });
       expect(renderTemplate).toHaveBeenCalledWith(mocks.mockTemplate, {
         content: mocks.mockHtml,
         styles: mocks.mockStyles,
         metadata: mocks.mockMetadata,
         profile: mocks.mockProfile,
-        pathContext: mocks.mockPathContext
+        pathContext: mocks.mockPathContext,
+        colorScheme: 'auto'
       });
 
       expect(result.html).toBe('<html><p>Rendered content</p></html>');
@@ -248,7 +252,8 @@ describe('index.js', () => {
 
       expect(parseFile).toHaveBeenCalledWith('/project/docs/test.md', {
         profile: 'custom',
-        parseOptions: { strict: true }
+        parseOptions: { strict: true },
+        wikilinks: { generateSlugs: false }
       });
     });
 

@@ -5,6 +5,7 @@
 import { describe, it, expect } from 'vitest';
 import { existsSync } from 'fs';
 import { getPagedJsScript, getPagedJsConfig, injectPagedJs } from '../src/pagedjs.js';
+import { resolvePagedTimeout, DEFAULT_PAGEDJS_TIMEOUT } from '../src/index.js';
 
 describe('getPagedJsScript', () => {
   it('should return absolute path to paged.polyfill.js', () => {
@@ -35,6 +36,7 @@ describe('getPagedJsConfig', () => {
       toc: {
         includePageNumbers: true,
         levels: 3,
+        minLevel: 2,
         pageLevels: 3
       }
     });
@@ -93,6 +95,7 @@ describe('getPagedJsConfig', () => {
     expect(config.toc).toEqual({
       includePageNumbers: false,
       levels: 2,
+      minLevel: 2,
       pageLevels: 2
     });
   });
@@ -102,6 +105,7 @@ describe('getPagedJsConfig', () => {
     expect(config.toc).toEqual({
       includePageNumbers: true,
       levels: 3,
+      minLevel: 2,
       pageLevels: 3
     });
   });
@@ -115,6 +119,7 @@ describe('getPagedJsConfig', () => {
     expect(config.toc).toEqual({
       includePageNumbers: true,
       levels: 4,
+      minLevel: 2,
       pageLevels: 4
     });
   });
@@ -128,8 +133,18 @@ describe('getPagedJsConfig', () => {
     expect(config.toc).toEqual({
       includePageNumbers: true,
       levels: 3,
+      minLevel: 2,
       pageLevels: 2
     });
+  });
+
+  it('should pass toc_min_level from frontmatter', () => {
+    const frontmatter = {
+      toc_min_level: 1,
+      toc_levels: 3
+    };
+    const config = getPagedJsConfig({}, frontmatter);
+    expect(config.toc.minLevel).toBe(1);
   });
 });
 
@@ -181,5 +196,85 @@ describe('injectPagedJs', () => {
     expect(result).toContain('"auto": false');
     expect(result).toContain('"spread": "right"');
     expect(result).toContain('"orient": "landscape"');
+  });
+});
+
+describe('resolvePagedTimeout', () => {
+  it('should return default timeout when nothing specified', () => {
+    const timeout = resolvePagedTimeout({}, {});
+    expect(timeout).toBe(DEFAULT_PAGEDJS_TIMEOUT);
+    expect(timeout).toBe(120000);
+  });
+
+  it('should use profile timeout when specified', () => {
+    const profile = { pagedjs: { timeout: 180000 } };
+    const timeout = resolvePagedTimeout(profile, {});
+    expect(timeout).toBe(180000);
+  });
+
+  it('should use frontmatter timeout (flat key) over profile', () => {
+    const profile = { pagedjs: { timeout: 180000 } };
+    const metadata = { pagedjs_timeout: 300000 };
+    const timeout = resolvePagedTimeout(profile, metadata);
+    expect(timeout).toBe(300000);
+  });
+
+  it('should use frontmatter timeout (nested key) over profile', () => {
+    const profile = { pagedjs: { timeout: 180000 } };
+    const metadata = { pagedjs: { timeout: 240000 } };
+    const timeout = resolvePagedTimeout(profile, metadata);
+    expect(timeout).toBe(240000);
+  });
+
+  it('should prefer nested frontmatter over flat frontmatter', () => {
+    // If user provides both, nested takes precedence (more specific)
+    const metadata = {
+      pagedjs_timeout: 180000,
+      pagedjs: { timeout: 240000 }
+    };
+    const timeout = resolvePagedTimeout({}, metadata);
+    expect(timeout).toBe(240000);
+  });
+
+  it('should treat 0 as default timeout', () => {
+    const metadata = { pagedjs_timeout: 0 };
+    const timeout = resolvePagedTimeout({}, metadata);
+    expect(timeout).toBe(DEFAULT_PAGEDJS_TIMEOUT);
+  });
+
+  it('should treat -1 as disabled (returns 0 for Puppeteer)', () => {
+    const metadata = { pagedjs_timeout: -1 };
+    const timeout = resolvePagedTimeout({}, metadata);
+    expect(timeout).toBe(0); // Puppeteer uses 0 for no timeout
+  });
+
+  it('should treat any negative value as disabled', () => {
+    const metadata = { pagedjs_timeout: -100 };
+    const timeout = resolvePagedTimeout({}, metadata);
+    expect(timeout).toBe(0);
+  });
+
+  it('should handle profile timeout of 0 as default', () => {
+    const profile = { pagedjs: { timeout: 0 } };
+    const timeout = resolvePagedTimeout(profile, {});
+    expect(timeout).toBe(DEFAULT_PAGEDJS_TIMEOUT);
+  });
+
+  it('should handle profile timeout of -1 as disabled', () => {
+    const profile = { pagedjs: { timeout: -1 } };
+    const timeout = resolvePagedTimeout(profile, {});
+    expect(timeout).toBe(0);
+  });
+
+  it('should allow frontmatter to override profile disabled timeout', () => {
+    const profile = { pagedjs: { timeout: -1 } }; // Profile disables
+    const metadata = { pagedjs_timeout: 60000 }; // Frontmatter re-enables
+    const timeout = resolvePagedTimeout(profile, metadata);
+    expect(timeout).toBe(60000);
+  });
+
+  it('should handle undefined profile and metadata gracefully', () => {
+    expect(resolvePagedTimeout(undefined, undefined)).toBe(DEFAULT_PAGEDJS_TIMEOUT);
+    expect(resolvePagedTimeout(null, null)).toBe(DEFAULT_PAGEDJS_TIMEOUT);
   });
 });

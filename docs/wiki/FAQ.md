@@ -76,19 +76,27 @@ Use a profile with different page size, or create a custom profile:
 
 ### How do I add a table of contents?
 
-Add the TOC directive in your Markdown:
-```markdown
-<!-- ::TOC -->
-```
-
-Or enable via frontmatter:
+The simplest way is via frontmatter - the TOC auto-generates after the first H1:
 ```yaml
 ---
 toc: true
 ---
 ```
 
-See [[guides/Extended-Syntax|Extended Syntax]] for details.
+Or use the directive for explicit placement:
+```markdown
+<!-- ::TOC -->
+```
+
+By default, H1 is excluded from the TOC (since it's usually the document title). To include H1, set `toc_min_level: 1` in frontmatter.
+
+For a section-scoped TOC (only sub-headings within one section), place this after a heading:
+```markdown
+## My Section
+<!-- ::TOC section -->
+```
+
+See [[guides/Extended-Syntax|Extended Syntax]] for full TOC documentation.
 
 ### How do I add page numbers?
 

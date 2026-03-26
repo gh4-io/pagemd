@@ -244,18 +244,57 @@ Control which formats are generated:
 
 These frontmatter fields override profile settings:
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `profile` | string | Profile ID to use |
-| `title` | string | Document title |
-| `author` | string | Document author |
-| `date` | string | Document date |
-| `toc` | boolean | Generate table of contents |
-| `toc_levels` | string | TOC heading levels (e.g., `"2-3"`) |
-| `toc_title` | string | TOC section title |
-| `colorScheme` | string | Color scheme (`light`, `dark`, `auto`) |
-| `highlight_theme` | string | Syntax highlighting theme |
-| `styles` | array | Additional CSS files |
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `profile` | string | `standard_letter` | Profile ID to use |
+| `title` | string | `""` | Document title |
+| `author` | string | `""` | Document author |
+| `date` | string | `""` | Document date |
+| `toc` | boolean | `false` | Generate table of contents (auto-placed after first H1) |
+| `toc_levels` | number | `3` | Maximum heading depth to include in TOC |
+| `toc_min_level` | number | `2` | Minimum heading level (1=include H1, 2=skip H1) |
+| `toc_title` | string | `"Contents"` | TOC section title |
+| `toc_page_numbers` | boolean | `true` | Show page numbers in PDF TOC |
+| `toc_page_levels` | number | `3` | Which heading levels get page numbers in PDF |
+| `colorScheme` | string | | Color scheme (`light`, `dark`, `auto`) |
+| `highlight_theme` | string | `github-light` | Syntax highlighting theme |
+| `styles` | array | `[]` | Additional CSS files |
+| `pagedjs_timeout` | number | `120000` | Paged.js render timeout in ms. `0` = default, `-1` = disabled |
+
+### Paged.js Timeout
+
+Controls how long PageMD waits for Paged.js to complete PDF pagination. Useful for large documents with many pages or complex layouts.
+
+**Values:**
+- Positive number: Timeout in milliseconds
+- `0`: Use default timeout (120000ms / 2 minutes)
+- `-1`: Disabled (wait indefinitely)
+
+**Cascade order:** frontmatter > profile > default (120000ms)
+
+**In frontmatter (flat key):**
+```yaml
+---
+pagedjs_timeout: 300000  # 5 minutes
+---
+```
+
+**In frontmatter (nested key):**
+```yaml
+---
+pagedjs:
+  timeout: 300000
+---
+```
+
+**Disable timeout (infinite wait):**
+```yaml
+---
+pagedjs_timeout: -1  # Wait forever
+---
+```
+
+> **Warning:** Disabling timeout (`-1`) can cause builds to hang indefinitely if Paged.js encounters an error. Use with caution.
 
 **Example frontmatter:**
 ```yaml
@@ -263,7 +302,8 @@ These frontmatter fields override profile settings:
 title: My Document
 profile: report
 toc: true
-toc_levels: "2-4"
+toc_levels: 4
+toc_min_level: 2
 highlight_theme: github-dark
 styles:
   - custom.css

@@ -22,7 +22,7 @@ Templates can:
 
 ## Template Token Syntax
 
-Templates use `{{token}}` syntax for dynamic content replacement. PageMD supports four token patterns:
+Templates use `{{token}}` syntax for dynamic content replacement. PageMD supports five token patterns:
 
 ### 1. Direct Replacement
 
@@ -117,6 +117,74 @@ Choose between two values based on a condition's truthiness.
 ```html
 {{metadata.document.is_controlled ? "Controlled" : "Uncontrolled"}}
 ```
+
+### 5. Block Conditionals
+
+Conditionally include or exclude entire sections of HTML based on a value's truthiness.
+
+**Syntax:** `{{#if key}}...{{/if}}`
+
+```html
+{{#if metadata.showDisclaimer}}
+<div class="disclaimer">
+  <p>This document is confidential.</p>
+</div>
+{{/if}}
+```
+
+**How it works:**
+- If value is **truthy** → block content is included
+- If value is **falsy** → block content is removed entirely
+
+**Truthy values:** `true`, non-empty strings, non-zero numbers, objects, arrays
+
+**Falsy values:** `false`, `0`, `""` (empty string), `null`, `undefined`
+
+**Nested key access:**
+```html
+{{#if metadata.header.showLogo}}
+  <img src="logo.png" alt="Company Logo">
+{{/if}}
+```
+
+**Nested blocks:**
+```html
+{{#if metadata.showHeader}}
+  <header>
+    <h1>{{metadata.title}}</h1>
+    {{#if metadata.showSubtitle}}
+      <h2>{{metadata.subtitle}}</h2>
+    {{/if}}
+  </header>
+{{/if}}
+```
+
+**Tokens inside blocks:**
+Tokens inside truthy blocks are processed normally:
+```html
+{{#if metadata.showAuthor}}
+  <span>Author: {{metadata.author ?? "Unknown"}}</span>
+  <span>{{metadata.draft ? "DRAFT" : "FINAL"}}</span>
+{{/if}}
+```
+
+**Examples:**
+
+| Frontmatter | Template | Output |
+|-------------|----------|--------|
+| `showSection: true` | `{{#if showSection}}<div>Content</div>{{/if}}` | `<div>Content</div>` |
+| `showSection: false` | `{{#if showSection}}<div>Content</div>{{/if}}` | *(empty)* |
+| *(missing)* | `{{#if showSection}}<div>Content</div>{{/if}}` | *(empty)* |
+| `items: 5` | `{{#if items}}<span>Has items</span>{{/if}}` | `<span>Has items</span>` |
+| `items: 0` | `{{#if items}}<span>Has items</span>{{/if}}` | *(empty)* |
+
+**Use cases:**
+- Optional template sections (headers, footers, disclaimers)
+- Conditional metadata display (FROM/CC fields in memos)
+- Different document structures based on frontmatter flags
+- Draft vs. published content differences
+
+**Important:** Block conditionals (`{{#if}}`) are NOT the same as Handlebars. PageMD does NOT support `{{#each}}`, `{{#unless}}`, `{{else}}`, or other Handlebars block helpers.
 
 ## Available Token Objects
 
@@ -592,6 +660,11 @@ Templates can also use path tokens for resource references:
 | Ternary with `false` | `{{metadata.flag ? "Yes" : "No"}}` | `"No"` |
 | Ternary with `0` | `{{metadata.count ? "Has" : "None"}}` | `"None"` (0 is falsy) |
 | Ternary with `""` | `{{metadata.text ? "Has" : "None"}}` | `"None"` (empty is falsy) |
+| Block with `true` | `{{#if metadata.flag}}X{{/if}}` | `"X"` |
+| Block with `false` | `{{#if metadata.flag}}X{{/if}}` | `""` (empty) |
+| Block with `0` | `{{#if metadata.count}}X{{/if}}` | `""` (0 is falsy) |
+| Block with missing key | `{{#if metadata.missing}}X{{/if}}` | `""` (empty) |
+| Nested blocks | `{{#if a}}{{#if b}}X{{/if}}{{/if}}` | `"X"` if both truthy |
 
 ## Styling Considerations
 
@@ -776,6 +849,54 @@ profile: my-profile
 
    <!-- Correct -->
    {{metadata.flag ? "Yes" : "No"}}
+   ```
+
+### Block conditional not working
+
+**Common issues:**
+
+1. **Syntax errors** - Must have exact format:
+   ```html
+   <!-- Wrong -->
+   {{#if key}}...{{/endif}}
+   {{if key}}...{{/if}}
+   {#if key}...{/if}
+
+   <!-- Correct -->
+   {{#if key}}...{{/if}}
+   ```
+
+2. **Unclosed blocks** - Every `{{#if}}` needs `{{/if}}`:
+   ```html
+   <!-- Wrong (unclosed) -->
+   {{#if show}}<div>Content</div>
+
+   <!-- Correct -->
+   {{#if show}}<div>Content</div>{{/if}}
+   ```
+
+3. **Truthy/falsy confusion** - Same rules as ternary:
+   - `false`, `0`, `""`, `null`, `undefined` → content removed
+   - Everything else → content included
+
+4. **Missing key prefix** - Frontmatter fields need `metadata.`:
+   ```html
+   <!-- Wrong -->
+   {{#if showSection}}...{{/if}}
+
+   <!-- Correct (if defined in frontmatter) -->
+   {{#if metadata.showSection}}...{{/if}}
+   ```
+
+5. **Expecting Handlebars features** - PageMD block conditionals are simpler:
+   ```html
+   <!-- NOT supported -->
+   {{#if key}}...{{else}}...{{/if}}
+   {{#each items}}...{{/each}}
+   {{#unless key}}...{{/unless}}
+
+   <!-- Use ternary for else-like behavior -->
+   {{metadata.flag ? "truthy content" : "falsy content"}}
    ```
 
 ### Template not found

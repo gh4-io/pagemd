@@ -276,6 +276,16 @@ describe('normalizeMetadata', () => {
     expect(result.pipeline_profile).toBe('standard_letter');
   });
 
+  it('should default toc_min_level to 2', () => {
+    const result = normalizeMetadata({ title: 'Test' });
+    expect(result.toc_min_level).toBe(2);
+  });
+
+  it('should normalize tocMinLevel alias to toc_min_level', () => {
+    const result = normalizeMetadata({ tocMinLevel: '3' });
+    expect(result.toc_min_level).toBe(3);
+  });
+
   it('should skip defaults when applyDefaults is false', () => {
     const raw = {
       title: 'Test'
@@ -401,5 +411,11 @@ describe('FIELD_ALIASES', () => {
   it('should include status aliases', () => {
     expect(FIELD_ALIASES.documentStatus).toBe('status');
     expect(FIELD_ALIASES.document_status).toBe('status');
+  });
+
+  it('should include toc_min_level aliases', () => {
+    expect(FIELD_ALIASES.tocMinLevel).toBe('toc_min_level');
+    expect(FIELD_ALIASES['toc-min-level']).toBe('toc_min_level');
+    expect(FIELD_ALIASES.toc_minlevel).toBe('toc_min_level');
   });
 });

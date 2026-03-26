@@ -60,7 +60,8 @@ Content after`;
       const html = md.render(input);
 
       expect(html).toContain('<div class="toc-placeholder"');
-      expect(html).toContain('data-levels="3"');
+      // Bare directive has no data attributes - frontmatter controls settings
+      expect(html).not.toContain('data-levels');
     });
 
     it('should accept custom levels parameter', () => {
@@ -75,6 +76,31 @@ Content after`;
       const html = md.render(input);
 
       expect(html).toContain('data-levels="2"');
+    });
+
+    it('should accept min parameter for minimum heading level', () => {
+      const input = '<!-- ::TOC min="2" -->';
+      const html = md.render(input);
+
+      expect(html).toContain('data-min-level="2"');
+      // No explicit levels param, so no data-levels attribute
+      expect(html).not.toContain('data-levels');
+    });
+
+    it('should accept section keyword for section-scoped TOC', () => {
+      const input = '<!-- ::TOC section -->';
+      const html = md.render(input);
+
+      expect(html).toContain('data-scope="section"');
+    });
+
+    it('should combine section, min, and levels parameters', () => {
+      const input = '<!-- ::TOC section min="3" levels="4" -->';
+      const html = md.render(input);
+
+      expect(html).toContain('data-scope="section"');
+      expect(html).toContain('data-min-level="3"');
+      expect(html).toContain('data-levels="4"');
     });
   });
 

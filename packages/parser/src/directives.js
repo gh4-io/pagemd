@@ -70,17 +70,28 @@ export function directivesPlugin(md) {
         return true;
 
       case 'TOC':
-        const levels = attrs.levels || '3';
-        const pageLevels = attrs.pageLevels || '';
-        let tocAttrs = `data-levels="${md.utils.escapeHtml(levels)}"`;
+        // Only emit data attributes when explicitly set in the directive.
+        // A bare <!-- ::TOC --> is placement-only; frontmatter controls settings.
+        // <!-- ::TOC levels="3" --> explicitly overrides frontmatter.
+        let tocAttrs = '';
+        if (attrs.levels !== undefined) {
+          tocAttrs += ` data-levels="${md.utils.escapeHtml(String(attrs.levels))}"`;
+        }
+        if (attrs.min !== undefined) {
+          tocAttrs += ` data-min-level="${md.utils.escapeHtml(String(attrs.min))}"`;
+        }
         if (attrs.pages !== undefined) {
           const showPages = (attrs.pages === 'false' || attrs.pages === '0' || attrs.pages === 'no') ? 'false' : 'true';
           tocAttrs += ` data-pages="${showPages}"`;
         }
-        if (pageLevels) {
-          tocAttrs += ` data-page-levels="${md.utils.escapeHtml(pageLevels)}"`;
+        if (attrs.pageLevels !== undefined) {
+          tocAttrs += ` data-page-levels="${md.utils.escapeHtml(String(attrs.pageLevels))}"`;
         }
-        token.content = `<div class="toc-placeholder" ${tocAttrs}></div>\n`;
+        // 'section' keyword: detect as flag (attrs.section === true from parseAttributes)
+        if (attrs.section !== undefined) {
+          tocAttrs += ` data-scope="section"`;
+        }
+        token.content = `<div class="toc-placeholder"${tocAttrs}></div>\n`;
         return true;
 
       case 'SECTION_START':

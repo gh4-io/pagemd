@@ -1,0 +1,6 @@
+Copyright 2020 The Inter Project Authors (https://github.com/rsms/inter)
+
+This Font Software is licensed under the SIL Open Font License, Version 1.1.
+This license is available at: https://scripts.sil.org/OFL
+
+Inter is a trademark of Rasmus Andersson.

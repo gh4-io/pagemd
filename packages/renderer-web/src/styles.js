@@ -64,14 +64,19 @@ const PROFILE_LAYERS = ['layout', 'profile'];
  *   - false: Return inline <style> tags (default)
  *   - true: Return all CSS combined in externalCSS (single styles.css)
  *   - 'split': Return sharedCSS + profileCSS separately (multi-profile bundle support)
+ * @param {boolean} [options.useCSSLayers=true] - Wrap CSS in @layer declarations. Set false for
+ *   Paged.js PDF rendering which has bugs with CSS cascade layers.
  * @returns {Promise<string|StyleBlockResult|ExtractedCSSResult|SplitCSSResult>} HTML string, full result, or extracted CSS
  */
 export async function buildStyleBlock(profile, context, options = {}) {
+  const useCSSLayers = options.useCSSLayers !== false; // Default true
+
   logger.trace('styles', 'in-progress', 'Building style block', {
     profileId: profile?.id,
     minify: options.minify || false,
     hasFrontmatterCSS: !!options.frontmatterCSS,
-    extractCSS: options.extractCSS || false
+    extractCSS: options.extractCSS || false,
+    useCSSLayers
   });
 
   try {
@@ -172,11 +177,16 @@ export async function buildStyleBlock(profile, context, options = {}) {
     // Declare CSS layer order upfront (priority: low to high)
     // This ensures our layers override any unlayered styles (like VS Code defaults)
     // NOTE: frontmatter is intentionally NOT declared - undeclared layers have highest priority
-    let styleBlock = '<style>\n@layer base, primary, layout, syntax, profile;\n</style>\n';
+    //
+    // When useCSSLayers is false (for Paged.js PDF), skip @layer wrappers entirely.
+    // Paged.js 0.4.3 has bugs with CSS cascade layers that cause "item doesn't belong to list" errors.
+    let styleBlock = useCSSLayers
+      ? '<style>\n@layer base, primary, layout, syntax, profile;\n</style>\n'
+      : '';
 
     for (const { layer, content } of aggregated) {
       const css = options.minify ? minifyCSS(content) : content;
-      styleBlock += formatStyleTag(css, layer) + '\n';
+      styleBlock += formatStyleTag(css, layer, useCSSLayers) + '\n';
     }
 
     // Add frontmatter layer if provided
@@ -184,7 +194,7 @@ export async function buildStyleBlock(profile, context, options = {}) {
     // which has access to the actual file paths from loadFrontmatterStyles()
     if (options.frontmatterCSS) {
       const css = options.minify ? minifyCSS(options.frontmatterCSS) : options.frontmatterCSS;
-      styleBlock += formatStyleTag(css, 'frontmatter') + '\n';
+      styleBlock += formatStyleTag(css, 'frontmatter', useCSSLayers) + '\n';
     }
 
     logger.info('styles', 'success', 'Built style block', {
@@ -209,16 +219,23 @@ export async function buildStyleBlock(profile, context, options = {}) {
 }
 
 /**
- * Wrap CSS in <style> tag with proper @layer declaration
+ * Wrap CSS in <style> tag with optional @layer declaration
  * @param {string} css - CSS content to wrap
  * @param {string} layer - Layer name (base, primary, layout, syntax, profile, frontmatter)
- * @returns {string} HTML <style> tag with @layer wrapper
+ * @param {boolean} [useCSSLayers=true] - Wrap in @layer declaration. False for Paged.js compatibility.
+ * @returns {string} HTML <style> tag with optional @layer wrapper
  */
-export function formatStyleTag(css, layer) {
-  return `<style data-layer="${layer}">
+export function formatStyleTag(css, layer, useCSSLayers = true) {
+  if (useCSSLayers) {
+    return `<style data-layer="${layer}">
 @layer ${layer} {
 ${css}
 }
+</style>`;
+  }
+  // No @layer wrapper - for Paged.js PDF compatibility
+  return `<style data-layer="${layer}">
+${css}
 </style>`;
 }
 

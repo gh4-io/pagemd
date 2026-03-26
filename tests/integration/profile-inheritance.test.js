@@ -23,9 +23,12 @@ import {
   loadAndMergeProfile
 } from '@pagemd/core';
 import { writeFile, mkdir, rm } from 'fs/promises';
-import { join } from 'path';
+import { join, resolve, dirname } from 'path';
+import { fileURLToPath } from 'url';
 
-const PROJECT_ROOT = '/mnt/c/Users/Jason/Documents/Git/PageMD/project';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const PROJECT_ROOT = resolve(__dirname, '../..');
 const TEST_PROFILES_BASE = join(PROJECT_ROOT, 'tests', 'integration', 'test-profiles');
 const TEST_PROFILES_DIR = join(TEST_PROFILES_BASE, 'profiles');
 

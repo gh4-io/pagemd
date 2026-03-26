@@ -65,6 +65,9 @@ export const FIELD_ALIASES = {
   tocPageLevels: 'toc_page_levels',
   'toc-page-levels': 'toc_page_levels',
   toc_pagelevels: 'toc_page_levels',
+  tocMinLevel: 'toc_min_level',
+  'toc-min-level': 'toc_min_level',
+  toc_minlevel: 'toc_min_level',
 
   // Index aliases
   indexTitle: 'index_title',
@@ -76,7 +79,14 @@ export const FIELD_ALIASES = {
 
   // Color scheme aliases
   colorScheme: 'color_scheme',
-  'color-scheme': 'color_scheme'
+  'color-scheme': 'color_scheme',
+
+  // Paged.js timeout aliases
+  pagedjsTimeout: 'pagedjs_timeout',
+  'pagedjs-timeout': 'pagedjs_timeout',
+  paged_timeout: 'pagedjs_timeout',
+  pagedTimeout: 'pagedjs_timeout',
+  'paged-timeout': 'pagedjs_timeout'
 };
 
 // Default values (loaded from metadata.defaults.json)
@@ -95,6 +105,7 @@ const DEFAULT_VALUES = {
   highlight_theme: 'github-light',
   toc: false,
   toc_levels: 3,
+  toc_min_level: 2,
   toc_title: 'Contents',
   toc_page_numbers: true,
   toc_page_levels: 3,
@@ -118,12 +129,14 @@ const FIELD_DEFINITIONS = {
   highlight_theme: { type: 'string', trim: true },
   toc: { type: 'boolean' },
   toc_levels: { type: 'number', coerce: true },
+  toc_min_level: { type: 'number', coerce: true },
   toc_title: { type: 'string', trim: true },
   toc_page_numbers: { type: 'boolean' },
   toc_page_levels: { type: 'number', coerce: true },
   index: { type: 'boolean' },
   index_title: { type: 'string', trim: true },
-  fancy_lists: { type: 'boolean' }
+  fancy_lists: { type: 'boolean' },
+  pagedjs_timeout: { type: 'number', coerce: true }
 };
 
 /**

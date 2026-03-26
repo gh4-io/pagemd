@@ -336,12 +336,13 @@ describe('saveDebugScreenshot', () => {
     );
   });
 
-  it('should throw error when screenshot fails', async () => {
+  it('should return null when screenshot fails (graceful degradation)', async () => {
     fs.mkdir.mockResolvedValue(undefined);
     mockPage.screenshot.mockRejectedValue(new Error('Screenshot failed'));
 
-    await expect(saveDebugScreenshot(mockPage, '/output/document.pdf'))
-      .rejects.toThrow('Screenshot failed');
+    // Screenshot is a debug artifact - failures shouldn't abort PDF generation
+    const result = await saveDebugScreenshot(mockPage, '/output/document.pdf');
+    expect(result).toBeNull();
   });
 
   it('should handle different output basenames', async () => {

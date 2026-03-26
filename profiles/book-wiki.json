@@ -1,0 +1,52 @@
+{
+  "id": "book-wiki",
+  "description": "Book-style layout for wiki documentation export",
+
+  "resources": {
+    "template": "${cliPath}/templates/book.html",
+    "layout": "${cliPath}/layouts/book.css",
+    "css": [
+      "${cliPath}/styles/book-fonts.css",
+      "${cliPath}/styles/book.css"
+    ],
+    "fonts": [],
+    "assets": []
+  },
+
+  "pagedjs": {
+    "mode": "browser",
+    "timeout": 600000
+  },
+  "outputs": {
+    "pdf": {
+      "enabled": true,
+      "mode": "ACTIVE_ONLY",
+      "options": {}
+    },
+    "html": {
+      "enabled": false,
+      "mode": "DISABLED",
+      "options": {}
+    },
+    "png": {
+      "enabled": false,
+      "mode": "DISABLED",
+      "options": {}
+    },
+    "jpeg": {
+      "enabled": false,
+      "mode": "DISABLED",
+      "options": {}
+    }
+  },
+  "validation": {
+    "required_fields": ["title"]
+  },
+  "metadata": {
+    "defaults": {
+      "page_numbers": true,
+      "running_header": true,
+      "toc_levels": 3
+    }
+  }
+}

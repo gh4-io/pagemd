@@ -14,9 +14,13 @@
  *   - Other punctuation with adjacent spaces → single hyphen
  * - Replaces remaining non-alphanumeric with hyphens
  * - Trims leading/trailing hyphens
+ * - Prefixes with 'section-' if result starts with digit (CSS selector compliance)
  *
  * The double-hyphen for ` & ` matches user expectations for manual TOC links
  * like `[System Access & Passwords](#system-access--passwords)`.
+ *
+ * CSS selectors cannot start with a digit (e.g., `#1-intro` is invalid).
+ * Paged.js uses querySelector internally, so IDs must be CSS-compliant.
  *
  * @param {string} text - Text to slugify
  * @returns {string} URL-safe slug
@@ -24,18 +28,25 @@
  * @example
  * slugify("Hello World")               // "hello-world"
  * slugify("System Access & Passwords") // "system-access--passwords"
- * slugify("1. Welcome & Onboarding")   // "1-welcome--onboarding"
+ * slugify("1. Welcome & Onboarding")   // "section-1-welcome--onboarding"
  * slugify("What's New?")               // "whats-new"
  */
 export function slugify(text) {
   if (!text) return '';
-  return text
+  let slug = text
     .toLowerCase()
     .normalize('NFD')                    // Decompose accented chars
     .replace(/[\u0300-\u036f]/g, '')     // Remove diacritics
     .replace(/\s+&\s+/g, '--')           // ` & ` → `--` (preserve ampersand as double hyphen)
     .replace(/[^a-z0-9-]+/g, '-')        // Replace runs of non-alphanumeric with single hyphen
     .replace(/^-+|-+$/g, '');            // Trim hyphens from start/end
+
+  // CSS selectors can't start with a digit - prefix if needed
+  if (/^[0-9]/.test(slug)) {
+    slug = 'section-' + slug;
+  }
+
+  return slug;
 }
 
 /**

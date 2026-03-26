@@ -25,9 +25,10 @@ function slugify(text) {
  * Extract headings from HTML string
  * @param {string} html - HTML content
  * @param {number} maxLevel - Maximum heading level (1-6), default 3
+ * @param {number} [minLevel=1] - Minimum heading level (1-6), default 1
  * @returns {Array<{id: string, text: string, level: number}>}
  */
-export function extractHeadings(html, maxLevel = 3) {
+export function extractHeadings(html, maxLevel = 3, minLevel = 1) {
   if (!html || typeof html !== 'string') {
     logger.warn('toc.extract', 'skip', 'Invalid HTML input for heading extraction');
     return [];
@@ -38,8 +39,13 @@ export function extractHeadings(html, maxLevel = 3) {
     maxLevel = 3;
   }
 
+  if (minLevel < 1 || minLevel > 6) {
+    logger.warn('toc.extract', 'warn', `Invalid minLevel: ${minLevel}, using default 1`);
+    minLevel = 1;
+  }
+
   const headings = [];
-  // Pattern captures: level, attributes (including id), text
+  // Match all headings up to maxLevel, then filter by minLevel
   const headingPattern = new RegExp(`<h([1-${maxLevel}])(?:\\s+([^>]*))?>([^<]+)</h[1-${maxLevel}]>`, 'gi');
   const idPattern = /\bid=["']([^"']+)["']/i;
 
@@ -50,6 +56,7 @@ export function extractHeadings(html, maxLevel = 3) {
     const text = match[3].trim();
 
     if (!text) continue; // Skip empty headings
+    if (level < minLevel) continue; // Skip headings below minLevel
 
     // Extract existing id from attributes, or generate from text
     const idMatch = attrs.match(idPattern);
@@ -62,7 +69,46 @@ export function extractHeadings(html, maxLevel = 3) {
     });
   }
 
-  logger.debug('toc.extract', 'ok', `Extracted ${headings.length} headings (max level: ${maxLevel})`);
+  logger.debug('toc.extract', 'ok', `Extracted ${headings.length} headings (levels: ${minLevel}-${maxLevel})`);
+  return headings;
+}
+
+/**
+ * Extract section-scoped headings from HTML starting at a given position
+ * Collects headings deeper than the boundary level until a same-or-higher heading is found
+ *
+ * @param {string} html - Full HTML content
+ * @param {number} startIndex - Position in HTML to start scanning from (after the placeholder)
+ * @param {number} boundaryLevel - The heading level that defines the section boundary (e.g. 2 for h2)
+ * @param {number} [maxLevel=6] - Maximum heading level to include
+ * @returns {Array<{id: string, text: string, level: number}>}
+ */
+export function extractSectionHeadings(html, startIndex, boundaryLevel, maxLevel = 6) {
+  const headings = [];
+  // Match all headings h1-h6 from startIndex onward
+  const headingPattern = /<h([1-6])(?:\s+([^>]*))?>([^<]+)<\/h[1-6]>/gi;
+  const idPattern = /\bid=["']([^"']+)["']/i;
+
+  headingPattern.lastIndex = startIndex;
+
+  let match;
+  while ((match = headingPattern.exec(html)) !== null) {
+    const level = parseInt(match[1], 10);
+    const attrs = match[2] || '';
+    const text = match[3].trim();
+
+    // Stop at heading at same or higher level as boundary
+    if (level <= boundaryLevel) break;
+
+    if (!text) continue;
+    if (level > maxLevel) continue;
+
+    const idMatch = attrs.match(idPattern);
+    const id = idMatch ? idMatch[1] : slugify(text);
+
+    headings.push({ id, text, level });
+  }
+
   return headings;
 }
 
@@ -125,9 +171,11 @@ function buildNestedList(headings) {
  * @param {Array<{id: string, text: string, level: number}>} headings - Extracted headings
  * @param {string} title - TOC title (default "Contents")
  * @param {object} [dataAttrs] - Data attributes to preserve from directive for PDF renderer
+ * @param {object} [opts] - Additional options
+ * @param {boolean} [opts.section=false] - If true, generate section TOC (no title, different class)
  * @returns {string} TOC HTML as <nav class="toc">...</nav>
  */
-export function generateTocHtml(headings, title = 'Contents', dataAttrs = {}) {
+export function generateTocHtml(headings, title = 'Contents', dataAttrs = {}, opts = {}) {
   if (!headings || headings.length === 0) {
     logger.debug('toc.generate', 'skip', 'No headings provided, skipping TOC generation');
     return '';
@@ -144,14 +192,16 @@ export function generateTocHtml(headings, title = 'Contents', dataAttrs = {}) {
     dataAttrStr += ` data-page-levels="${dataAttrs.pageLevels}"`;
   }
 
-  const html = `<nav class="toc"${dataAttrStr}>
-<h2 class="toc-title">${title}</h2>
-<ul>
+  const navClass = opts.section ? 'toc toc-section' : 'toc';
+  const titleHtml = opts.section ? '' : `<h2 class="toc-title">${title}</h2>\n`;
+
+  const html = `<nav class="${navClass}"${dataAttrStr}>
+${titleHtml}<ul>
 ${nestedList}
 </ul>
 </nav>`;
 
-  logger.debug('toc.generate', 'ok', `Generated TOC with ${headings.length} entries`);
+  logger.debug('toc.generate', 'ok', `Generated ${opts.section ? 'section ' : ''}TOC with ${headings.length} entries`);
   return html;
 }
 
@@ -180,72 +230,156 @@ function addHeadingIds(html, maxLevel = 6) {
 }
 
 /**
- * Fill TOC placeholder in HTML
+ * Parse data attributes from a placeholder element's attribute string
+ * @param {string} attrStr - Raw attribute string from the placeholder tag
+ * @returns {object} Parsed attributes
+ */
+function parsePlaceholderAttrs(attrStr) {
+  const attrs = {};
+  const dataLevelsMatch = attrStr.match(/data-levels=["'](\d+)["']/i);
+  const dataMinLevelMatch = attrStr.match(/data-min-level=["'](\d+)["']/i);
+  const dataPagesMatch = attrStr.match(/data-pages=["']([^"']+)["']/i);
+  const dataPageLevelsMatch = attrStr.match(/data-page-levels=["'](\d+)["']/i);
+  const dataScopeMatch = attrStr.match(/data-scope=["']([^"']+)["']/i);
+
+  if (dataLevelsMatch) attrs.levels = parseInt(dataLevelsMatch[1], 10);
+  if (dataMinLevelMatch) attrs.minLevel = parseInt(dataMinLevelMatch[1], 10);
+  if (dataPagesMatch) attrs.pages = dataPagesMatch[1];
+  if (dataPageLevelsMatch) attrs.pageLevels = dataPageLevelsMatch[1];
+  if (dataScopeMatch) attrs.scope = dataScopeMatch[1];
+
+  return attrs;
+}
+
+/**
+ * Find the heading immediately before a given position in HTML
+ * @param {string} html - HTML content
+ * @param {number} placeholderIndex - Position of the placeholder in the HTML
+ * @returns {{level: number, endIndex: number}|null} The heading level and its end position, or null
+ */
+function findPrecedingHeading(html, placeholderIndex) {
+  const headingPattern = /<h([1-6])(?:\s+[^>]*)?>([^<]+)<\/h[1-6]>/gi;
+  let lastMatch = null;
+
+  let match;
+  while ((match = headingPattern.exec(html)) !== null) {
+    // Stop if we've passed the placeholder position
+    if (match.index >= placeholderIndex) break;
+    lastMatch = {
+      level: parseInt(match[1], 10),
+      endIndex: match.index + match[0].length
+    };
+  }
+
+  return lastMatch;
+}
+
+/**
+ * Fill TOC placeholders in HTML
+ * Handles global TOC (full document) and section-scoped TOC (local headings)
  * Replaces <div class="toc-placeholder"></div> with generated TOC
  * Also ensures headings have IDs for anchor links
  *
- * @param {string} html - HTML with .toc-placeholder div
- * @param {object} options - {title: 'Contents', levels: 3}
+ * @param {string} html - HTML with .toc-placeholder div(s)
+ * @param {object} options - TOC configuration from frontmatter
  * @param {string} [options.title='Contents'] - TOC title
  * @param {number} [options.levels=3] - Maximum heading level to include
- * @returns {string} HTML with TOC filled in
+ * @param {number} [options.minLevel=2] - Minimum heading level to include (default skips h1)
+ * @returns {string} HTML with TOC(s) filled in
  */
 export function fillTocPlaceholder(html, options = {}) {
-  const { title = 'Contents', levels: optLevels = 3 } = options;
+  const { title = 'Contents', levels: optLevels = 3, minLevel: optMinLevel = 2 } = options;
 
   if (!html || typeof html !== 'string') {
     logger.warn('toc.fill', 'skip', 'Invalid HTML input');
     return html;
   }
 
-  // Check if placeholder exists and extract data-levels attribute
-  const placeholderMatch = html.match(/<div\s+class=["']toc-placeholder["']([^>]*)><\/div>/i);
+  // Find all placeholders
+  const placeholderPattern = /<div\s+class=["']toc-placeholder["']([^>]*)><\/div>/gi;
+  const placeholders = [];
+  let match;
+  while ((match = placeholderPattern.exec(html)) !== null) {
+    placeholders.push({
+      fullMatch: match[0],
+      attrs: parsePlaceholderAttrs(match[1] || ''),
+      index: match.index
+    });
+  }
 
-  if (!placeholderMatch) {
+  if (placeholders.length === 0) {
     logger.debug('toc.fill', 'skip', 'No TOC placeholder found in HTML');
     return html;
   }
 
-  // Extract data attributes from placeholder (directive overrides frontmatter)
-  const attrs = placeholderMatch[1] || '';
-  const dataLevelsMatch = attrs.match(/data-levels=["'](\d+)["']/i);
-  const dataPagesMatch = attrs.match(/data-pages=["']([^"']+)["']/i);
-  const dataPageLevelsMatch = attrs.match(/data-page-levels=["'](\d+)["']/i);
+  // Step 1: Add IDs to all headings (h1-h6) so anchor links work
+  let result = addHeadingIds(html, 6);
 
-  const levels = dataLevelsMatch ? parseInt(dataLevelsMatch[1], 10) : optLevels;
+  // Process section TOCs first (back-to-front to preserve indices)
+  // Then process global TOC
+  const globalPlaceholders = placeholders.filter(p => p.attrs.scope !== 'section');
+  const sectionPlaceholders = placeholders.filter(p => p.attrs.scope === 'section');
 
-  // Preserve directive attributes for PDF renderer (passed through nav.toc data attributes)
-  const dataAttrs = {};
-  if (dataPagesMatch) {
-    dataAttrs.pages = dataPagesMatch[1];
+  // Process section TOCs (back-to-front to maintain string indices)
+  for (let i = sectionPlaceholders.length - 1; i >= 0; i--) {
+    const placeholder = sectionPlaceholders[i];
+    const maxLevel = placeholder.attrs.levels || optLevels;
+
+    // Re-find the placeholder in the (possibly modified) result
+    const phIdx = result.indexOf(placeholder.fullMatch);
+    if (phIdx === -1) continue;
+
+    // Find the heading immediately before this placeholder
+    const preceding = findPrecedingHeading(result, phIdx);
+    if (!preceding) {
+      // No preceding heading - remove placeholder
+      result = result.replace(placeholder.fullMatch, '');
+      logger.warn('toc.fill.section', 'skip', 'No preceding heading found for section TOC');
+      continue;
+    }
+
+    const boundaryLevel = preceding.level;
+    const sectionHeadings = extractSectionHeadings(result, phIdx + placeholder.fullMatch.length, boundaryLevel, maxLevel);
+
+    if (sectionHeadings.length === 0) {
+      result = result.replace(placeholder.fullMatch, '');
+      logger.debug('toc.fill.section', 'skip', 'No sub-headings found for section TOC');
+      continue;
+    }
+
+    const sectionTocHtml = generateTocHtml(sectionHeadings, '', {}, { section: true });
+    result = result.replace(placeholder.fullMatch, sectionTocHtml);
+    logger.info('toc.fill.section', 'ok', `Section TOC filled with ${sectionHeadings.length} entries`);
   }
-  if (dataPageLevelsMatch) {
-    dataAttrs.pageLevels = dataPageLevelsMatch[1];
+
+  // Process global TOC placeholders
+  for (const placeholder of globalPlaceholders) {
+    const levels = placeholder.attrs.levels || optLevels;
+    const minLevel = placeholder.attrs.minLevel || optMinLevel;
+
+    // Preserve directive attributes for PDF renderer
+    const dataAttrs = {};
+    if (placeholder.attrs.pages !== undefined) {
+      dataAttrs.pages = placeholder.attrs.pages;
+    }
+    if (placeholder.attrs.pageLevels !== undefined) {
+      dataAttrs.pageLevels = placeholder.attrs.pageLevels;
+    }
+
+    logger.debug('toc.fill', 'config', `TOC levels: ${minLevel}-${levels}, directive attrs: ${JSON.stringify(dataAttrs)}`);
+
+    const headings = extractHeadings(result, levels, minLevel);
+
+    if (headings.length === 0) {
+      logger.warn('toc.fill', 'skip', 'No headings found for TOC generation');
+      result = result.replace(placeholder.fullMatch, '');
+      continue;
+    }
+
+    const tocHtml = generateTocHtml(headings, title, dataAttrs);
+    result = result.replace(placeholder.fullMatch, tocHtml);
+    logger.info('toc.fill', 'ok', `TOC placeholder filled with ${headings.length} entries (levels: ${minLevel}-${levels})`);
   }
 
-  logger.debug('toc.fill', 'config', `TOC levels: ${levels}, directive attrs: ${JSON.stringify(dataAttrs)}`);
-
-  // Step 1: Add IDs to headings if missing
-  const htmlWithIds = addHeadingIds(html, levels);
-
-  // Step 2: Extract headings
-  const headings = extractHeadings(htmlWithIds, levels);
-
-  if (headings.length === 0) {
-    logger.warn('toc.fill', 'skip', 'No headings found for TOC generation');
-    // Remove placeholder
-    return htmlWithIds.replace(/<div\s+class=["']toc-placeholder["'][^>]*><\/div>/i, '');
-  }
-
-  // Step 3: Generate TOC HTML (with data attributes for PDF renderer)
-  const tocHtml = generateTocHtml(headings, title, dataAttrs);
-
-  // Step 4: Replace placeholder
-  const result = htmlWithIds.replace(
-    /<div\s+class=["']toc-placeholder["'][^>]*><\/div>/i,
-    tocHtml
-  );
-
-  logger.info('toc.fill', 'ok', `TOC placeholder filled with ${headings.length} entries`);
   return result;
 }

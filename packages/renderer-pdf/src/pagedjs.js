@@ -104,6 +104,7 @@ export function getPagedJsConfig(profile, frontmatter) {
     toc: {
       includePageNumbers: frontmatter?.toc_page_numbers ?? true,
       levels: frontmatter?.toc_levels ?? 3,
+      minLevel: frontmatter?.toc_min_level ?? 2,
       pageLevels: frontmatter?.toc_page_levels ?? frontmatter?.toc_levels ?? 3
     }
   };
@@ -188,6 +189,12 @@ export function injectPagedJs(html, options = {}) {
       ? parseInt(directivePageLevels)
       : (config.toc?.pageLevels ?? maxLevel);
 
+    // Directive data-min-level overrides frontmatter toc_min_level (skip h1 by default)
+    const directiveMinLevel = tocElement?.dataset.minLevel;
+    const minLevel = directiveMinLevel
+      ? parseInt(directiveMinLevel)
+      : (config.toc?.minLevel ?? 2);
+
     // Build heading-to-page map by walking paginated content
     // Uses pageLevels to determine which heading levels get page numbers
     const headingPageMap = new Map();
@@ -233,11 +240,13 @@ export function injectPagedJs(html, options = {}) {
       const pageNum = pageIndex + 1;
       const selector = Array.from({length: maxLevel}, (_, i) => 'h' + (i + 1)).join(',');
       page.querySelectorAll(selector).forEach(h => {
+        const level = parseInt(h.tagName.substring(1));
+        if (level < minLevel) return; // Skip headings below minLevel
         const id = h.id || h.textContent.toLowerCase().replace(/\\s+/g, '-').replace(/[^\\w-]/g, '');
         headings.push({
           id,
           text: h.textContent.trim(),
-          level: parseInt(h.tagName.substring(1)),
+          level,
           page: pageNum
         });
       });
@@ -333,13 +342,31 @@ export function injectPagedJs(html, options = {}) {
     console.log('PDF Index: filled page numbers for', filledCount, 'of', indexEntries.length, 'terms');
   }
 
+  // Log when Paged.js starts rendering
+  window.PagedConfig.before = (flow) => {
+    console.log('Paged.js started rendering');
+  };
+
   // Set completion flag when Paged.js finishes, after generating TOC and Index
   window.PagedConfig.after = (flow) => {
     console.log('Paged.js rendering complete:', flow.total, 'pages');
-    generatePdfToc();
-    generatePdfIndex();
+    try {
+      generatePdfToc();
+      generatePdfIndex();
+    } catch (err) {
+      console.error('TOC/Index generation error:', err.message);
+    }
     window.__pagedjs_complete = true;
   };
+
+  // Global error handler to catch any Paged.js errors
+  window.addEventListener('error', (event) => {
+    console.error('Paged.js error:', event.message, event.filename, event.lineno);
+  });
+
+  window.addEventListener('unhandledrejection', (event) => {
+    console.error('Paged.js unhandled rejection:', event.reason);
+  });
 </script>`);
   }
 

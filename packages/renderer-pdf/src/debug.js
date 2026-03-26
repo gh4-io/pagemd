@@ -138,11 +138,12 @@ export async function saveDebugScreenshot(page, outputPath, options = {}) {
 
     return screenshotPath;
   } catch (error) {
+    // Screenshot is a debug artifact, not critical - don't abort PDF generation
     logger.error('debug', 'failure', 'Failed to save debug screenshot', {
       path: screenshotPath,
       error: error.message
     });
-    throw error;
+    return null;
   }
 }
 

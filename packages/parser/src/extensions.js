@@ -194,12 +194,26 @@ function parseFigureAttributes(attrString) {
 }
 
 /**
+ * Validate CSS length values (e.g., "300px", "-100px", "0", "50vh", "80%", "auto")
+ * @param {string} value - The CSS length value to validate
+ * @returns {string} Valid value or empty string if invalid
+ */
+function validateCSSLength(value) {
+  if (!value) return '';
+  // Accept: unitless zero, number + unit, or "auto"
+  // Unitless zero: -?0(.0*)?
+  // Number with unit: -?\d+\.?\d* followed by px|em|rem|vh|vw|%
+  const valid = /^-?0(\.0*)?$|^(-?\d+\.?\d*)(px|em|rem|vh|vw|%)$|^auto$/i.test(value.trim());
+  return valid ? value.trim() : '';
+}
+
+/**
  * Figure plugin for <!-- ::FIGURE ... --> syntax
- * Supports: caption, src, id, width attributes
+ * Supports: caption, src, id, width, height, crop parameters, alt, loading, link
  * Auto-numbers figures sequentially within each parse run
  *
  * Usage:
- *   <!-- ::FIGURE src="image.png" caption="Description" id="fig-1" width="full" -->
+ *   <!-- ::FIGURE src="image.png" caption="Description" id="fig-1" width="full" height="400px" crop-fit="cover" -->
  *   OR (legacy, backward compatible):
  *   <!-- ::FIGURE caption="Description" -->
  *   ![Alt](image.png)
@@ -233,15 +247,12 @@ export function figurePlugin(md) {
     const src = attrs.src || '';
     const figId = attrs.id || '';
     const width = attrs.width || '';
+    const height = validateCSSLength(attrs.height || '');
 
     // Extract crop parameters
     const rawCropFit = attrs['crop-fit'] || '';
     const rawCropX = attrs['crop-x'] || '';
     const rawCropY = attrs['crop-y'] || '';
-
-    // Validate crop-fit: must be one of cover, contain, fill, scale-down
-    const validCropFits = ['cover', 'contain', 'fill', 'scale-down'];
-    const cropFit = validCropFits.includes(rawCropFit) ? rawCropFit : '';
 
     // Validate crop-x and crop-y: must be 0-100 (percentage)
     const validateCropPosition = (val) => {
@@ -250,6 +261,25 @@ export function figurePlugin(md) {
     };
     const cropX = validateCropPosition(rawCropX);
     const cropY = validateCropPosition(rawCropY);
+
+    // Validate crop-fit: must be one of cover, contain, fill, scale-down
+    const validCropFits = ['cover', 'contain', 'fill', 'scale-down'];
+    const explicitCropFit = validCropFits.includes(rawCropFit) ? rawCropFit : '';
+    let cropFit = explicitCropFit;
+
+    // Auto-default crop-fit to "cover" for CSS hook (--crop-fit on figure)
+    // but NOT applied as object-fit on img (would scale cropped content back up)
+    if (!cropFit && (cropX || cropY)) {
+      cropFit = 'cover';
+    }
+
+    // Extract position parameters (for shifting image within viewport)
+    const rawPosX = attrs['pos-x'] || '';
+    const rawPosY = attrs['pos-y'] || '';
+
+    // Validate pos-x and pos-y: CSS length values (px, %, em, rem, etc.) or negative values
+    const posX = validateCSSLength(rawPosX);
+    const posY = validateCSSLength(rawPosY);
 
     // Determine if any crop params are set (for conditional rendering)
     const hasCrop = cropFit || cropX || cropY;
@@ -284,9 +314,13 @@ export function figurePlugin(md) {
     token_open.meta = {
       id: figId,
       width: width,
+      height: height,
       cropFit: cropFit,
+      explicitCropFit: explicitCropFit,
       cropX: cropX,
       cropY: cropY,
+      posX: posX,
+      posY: posY,
       hasCrop: hasCrop
     };
 
@@ -297,8 +331,11 @@ export function figurePlugin(md) {
         src: src,
         alt: alt,           // Uses alt param or falls back to caption
         cropFit: cropFit,
+        explicitCropFit: explicitCropFit,
         cropX: cropX,
         cropY: cropY,
+        posX: posX,
+        posY: posY,
         hasCrop: hasCrop,
         loading: loading,   // lazy/eager loading
         link: link          // URL to wrap image in anchor
@@ -324,18 +361,40 @@ export function figurePlugin(md) {
   md.renderer.rules.figure_open = (tokens, idx) => {
     const meta = tokens[idx].meta || {};
     const attrs = [];
-    if (meta.id) attrs.push(`id="${md.utils.escapeHtml(meta.id)}"`);
-    if (meta.width) attrs.push(`class="width-${md.utils.escapeHtml(meta.width)}"`);
+    const styles = [];
 
-    // Add crop styles as CSS custom properties (only if crop params present)
-    if (meta.hasCrop) {
-      const styles = [];
-      if (meta.cropFit) styles.push(`--crop-fit: ${md.utils.escapeHtml(meta.cropFit)}`);
-      if (meta.cropX) styles.push(`--crop-x: ${md.utils.escapeHtml(meta.cropX)}%`);
-      if (meta.cropY) styles.push(`--crop-y: ${md.utils.escapeHtml(meta.cropY)}%`);
-      if (styles.length > 0) {
-        attrs.push(`style="${styles.join('; ')}"`);
+    if (meta.id) attrs.push(`id="${md.utils.escapeHtml(meta.id)}"`);
+
+    // Width: Use class for semantic names, inline style for CSS values
+    if (meta.width) {
+      const semanticWidths = ['full', 'half', 'third', 'quarter'];
+      if (semanticWidths.includes(meta.width)) {
+        attrs.push(`class="width-${md.utils.escapeHtml(meta.width)}"`);
+      } else {
+        styles.push(`max-width: ${md.utils.escapeHtml(meta.width)}`);
       }
+    }
+
+    // Viewport model: crop-x/crop-y control what portion of image to show
+    // Let CSS handle the actual cropping and sizing
+    if (meta.hasCrop) {
+      // Add crop markers for CSS targeting
+      if (meta.cropFit) styles.push(`--crop-fit: ${md.utils.escapeHtml(meta.cropFit)}`);
+
+      // Set custom properties for CSS to use - NO fixed dimensions on figure
+      if (meta.cropY) {
+        styles.push(`--crop-y: ${md.utils.escapeHtml(meta.cropY)}%`);
+      }
+      if (meta.cropX) {
+        styles.push(`--crop-x: ${md.utils.escapeHtml(meta.cropX)}%`);
+      }
+    } else if (meta.height) {
+      // No crop - just explicit height
+      styles.push(`height: ${md.utils.escapeHtml(meta.height)}`);
+    }
+
+    if (styles.length > 0) {
+      attrs.push(`style="${styles.join('; ')}"`);
     }
 
     const attrStr = attrs.length > 0 ? ' ' + attrs.join(' ') : '';
@@ -357,22 +416,47 @@ export function figurePlugin(md) {
       imgAttrs.push(`loading="${md.utils.escapeHtml(meta.loading)}"`);
     }
 
-    // Add crop styles to image (only if crop params present)
+    // Crop via CSS object-view-box: inset(top right bottom left)
+    // crop-y=N means "show top N%" → bottom inset = (100-N)%
+    // crop-x=N means "show left N%" → right inset = (100-N)%
+    // pos-x/pos-y shift the visible region (integrated into inset calc)
+    const imgStyles = [];
     if (meta.hasCrop) {
-      const styles = [];
-      // Add object-fit if cropFit is specified
-      if (meta.cropFit) {
-        styles.push(`object-fit: ${md.utils.escapeHtml(meta.cropFit)}`);
+      let top = '0%', right = '0%', bottom = '0%', left = '0%';
+
+      if (meta.cropY) {
+        bottom = `${100 - parseInt(meta.cropY)}%`;
       }
-      // Add object-position if either cropX or cropY is specified
-      if (meta.cropX || meta.cropY) {
-        const x = meta.cropX || '50';
-        const y = meta.cropY || '50';
-        styles.push(`object-position: ${md.utils.escapeHtml(x)}% ${md.utils.escapeHtml(y)}%`);
+      if (meta.cropX) {
+        right = `${100 - parseInt(meta.cropX)}%`;
       }
-      if (styles.length > 0) {
-        imgAttrs.push(`style="${styles.join('; ')}"`);
+
+      // pos-x/pos-y shift the view window (adjust inset edges)
+      if (meta.posX !== '') {
+        // Negative posX shifts image left → view moves right → add to left, reduce right
+        left = `calc(0px - ${md.utils.escapeHtml(meta.posX)})`;
+        right = meta.cropX
+          ? `calc(${100 - parseInt(meta.cropX)}% + ${md.utils.escapeHtml(meta.posX)})`
+          : `calc(0px + ${md.utils.escapeHtml(meta.posX)})`;
       }
+      if (meta.posY !== '') {
+        top = `calc(0px - ${md.utils.escapeHtml(meta.posY)})`;
+        bottom = meta.cropY
+          ? `calc(${100 - parseInt(meta.cropY)}% + ${md.utils.escapeHtml(meta.posY)})`
+          : `calc(0px + ${md.utils.escapeHtml(meta.posY)})`;
+      }
+
+      imgStyles.push(`object-view-box: inset(${top} ${right} ${bottom} ${left})`);
+
+      // Only apply object-fit when user explicitly set crop-fit
+      // Auto-defaulted "cover" would scale cropped content back to full width
+      if (meta.explicitCropFit) {
+        imgStyles.push(`object-fit: ${md.utils.escapeHtml(meta.explicitCropFit)}`);
+      }
+    }
+
+    if (imgStyles.length > 0) {
+      imgAttrs.push(`style="${imgStyles.join('; ')}"`);
     }
 
     // Build the img tag

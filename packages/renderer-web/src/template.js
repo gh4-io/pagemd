@@ -100,6 +100,59 @@ function getNestedValue(obj, path) {
 }
 
 /**
+ * Evaluate truthiness of a key in data object
+ * Handles both direct and nested key access
+ * @param {object} data - Data object to search
+ * @param {string} key - Key to evaluate (supports dot notation)
+ * @returns {boolean} True if value is truthy, false otherwise
+ */
+function evaluateTruthiness(data, key) {
+  const trimmedKey = key.trim();
+  let value;
+
+  if (trimmedKey.includes('.')) {
+    value = getNestedValue(data, trimmedKey);
+  } else if (trimmedKey in data) {
+    value = data[trimmedKey];
+  }
+
+  // JavaScript's natural truthiness:
+  // false, 0, "", null, undefined → falsy
+  // everything else → truthy
+  return !!value;
+}
+
+/**
+ * Process block conditionals {{#if key}}...{{/if}}
+ * Must be called before token replacement to handle conditional content
+ * @param {string} template - Template string with block conditionals
+ * @param {object} data - Data object for condition evaluation
+ * @returns {string} Template with block conditionals resolved
+ */
+function processBlockConditionals(template, data) {
+  // Match innermost {{#if key}}...{{/if}} blocks
+  // The content must NOT contain another {{#if to ensure we process innermost first
+  // Uses negative lookahead (?!{{#if) to exclude nested opening tags
+  const blockPattern = /\{\{#if\s+([^}]+)\}\}((?:(?!\{\{#if|\{\{\/if\}\})[\s\S])*?)\{\{\/if\}\}/g;
+
+  let result = template;
+  let previousResult;
+
+  // Loop until no more blocks found (handles all nesting levels)
+  // Each iteration processes the innermost blocks, exposing outer blocks for next iteration
+  do {
+    previousResult = result;
+    result = result.replace(blockPattern, (match, key, content) => {
+      const isTruthy = evaluateTruthiness(data, key);
+      logger.debug(`Block conditional: {{#if ${key.trim()}}} = ${isTruthy}`);
+      return isTruthy ? content : '';
+    });
+  } while (result !== previousResult);
+
+  return result;
+}
+
+/**
  * Process template tokens with data
  * Handles {{token}} replacement including nested access and path expansion
  *
@@ -107,6 +160,7 @@ function getNestedValue(obj, path) {
  * - {{key}} - direct replacement
  * - {{key ?? "default"}} - fallback if null/undefined
  * - {{key ? "truthy" : "falsy"}} - ternary conditional
+ * - {{#if key}}...{{/if}} - block conditional
  *
  * @param {string} template - Template string with {{tokens}}
  * @param {object} data - Data object for token replacement
@@ -114,15 +168,24 @@ function getNestedValue(obj, path) {
  * @returns {string} Processed template
  */
 export function processTokens(template, data, pathContext = null) {
+  // Process block conditionals first (before token replacement)
+  let rendered = processBlockConditionals(template, data);
+
   // Known path tokens that should be preserved for expandTokens
   const pathTokens = ['PROJECT_ROOT', 'MARKDOWN_DIR', 'CONFIG_DIR', 'MANIFEST_DIR', 'WORKSPACE_FOLDER'];
 
   // Track missing tokens
   const missingTokens = [];
 
-  // Replace {{token}} patterns
-  let rendered = template.replace(/\{\{([^}]+)\}\}/g, (match, token) => {
+  // Replace {{token}} patterns in the block-processed result
+  // Skip block syntax ({{#if, {{/if}}) - these should remain unchanged if unclosed
+  rendered = rendered.replace(/\{\{([^}]+)\}\}/g, (match, token) => {
     const trimmed = token.trim();
+
+    // Skip block syntax markers - leave them unchanged
+    if (trimmed.startsWith('#') || trimmed.startsWith('/')) {
+      return match;
+    }
 
     // Check for ternary syntax: key ? "truthy" : "falsy"
     // Regex captures: key, truthy value, falsy value

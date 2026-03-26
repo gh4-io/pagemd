@@ -13,14 +13,18 @@ Common issues, error messages, and solutions for PageMD.
 - [Path Resolution Errors](#path-resolution-errors)
   - [System Resource Errors](#system-resource-errors-2026-01-14-fix)
 - [PDF Rendering Issues](#pdf-rendering-issues)
+  - [Wrong Font in PDF Output](#wrong-font-in-pdf-output)
   - [Links Showing "()" or URL After Link Text](#links-showing--or-url-after-link-text-fixed-2026-01-20)
   - [Internal Anchor Links Not Clickable in PDF](#internal-anchor-links-not-clickable-in-pdf-known-limitation)
+  - [Paged.js Crash on Headings Starting with Numbers](#pagedjs-crash-on-headings-starting-with-numbers-fixed-2026-01-22)
+  - [Paged.js Crash on CSS Pseudo-Selectors](#pagedjs-crash-on-css-pseudo-selectors-fixed-2026-01-22)
   - [Browser Persistence](#browser-persistence)
   - [Images Not Displaying in PDF](#images-not-displaying-in-pdf)
   - [Running Headers/Footers Not Displaying (string-set)](#running-headersfooters-not-displaying-string-set)
 - [Debug Mode](#debug-mode)
 - [Log Levels](#log-levels)
 - [Common Error Messages](#common-error-messages)
+  - [File Include Not Found (Book Assembly)](#file-include-not-found-book-assembly)
   - [Missing Frontmatter Stylesheet](#missing-frontmatter-stylesheet-name)
 - [See Also](#see-also)
 
@@ -560,6 +564,56 @@ pagemd build doc.md -o pdf
 
 ## PDF Rendering Issues
 
+### Wrong Font in PDF Output
+
+**Symptom:** PDF uses a different font than specified in CSS (e.g., DejaVu Sans instead of Inter).
+
+**Cause:** CSS `font-family` silently falls back when fonts aren't installed. Headless Chrome may not have access to all system fonts, especially in WSL or containerized environments.
+
+**Diagnosis:**
+
+1. Check which fonts are actually in the PDF:
+   ```bash
+   # Using pdffonts (from poppler-utils)
+   pdffonts output.pdf
+
+   # Alternative: grep font names
+   strings output.pdf | grep FontName
+   ```
+
+2. Check if font is installed:
+   ```bash
+   # Linux/WSL
+   fc-list | grep -i "Inter"
+
+   # Windows fonts (from WSL)
+   ls /mnt/c/Windows/Fonts/ | grep -i inter
+   ```
+
+**Solutions:**
+
+1. **Install the font system-wide** - Download and install to your OS fonts directory
+   - Windows: Copy `.ttf`/`.otf` to `C:\Windows\Fonts\`
+   - Linux: Copy to `~/.local/share/fonts/` then run `fc-cache -f`
+
+2. **Embed fonts via base64** (recommended for portability) - See [[guides/Profiles#Embed Custom Fonts]]
+   ```css
+   @font-face {
+     font-family: 'Inter';
+     src: url('data:font/woff2;base64,d09GMgABA...') format('woff2');
+   }
+   ```
+
+3. **Use system fonts** - Update CSS to use fonts guaranteed available:
+   ```css
+   /* Windows/Mac/Linux system fonts */
+   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+   ```
+
+**Why no error?** CSS font fallback is silent by design—browsers don't report missing fonts as errors, they just use the next available font in the stack.
+
+---
+
 ### Links Showing "()" or URL After Link Text (Fixed 2026-01-20)
 
 **Symptom:** In PDF output, links display with the URL repeated in parentheses:
@@ -618,6 +672,56 @@ npm install -g @pagemd/cli
 ```
 
 Or for VS Code extension users, reinstall the extension to get the updated CSS.
+
+---
+
+### TOC Not Appearing
+
+**Symptom:** You expected a Table of Contents but the rendered document has none.
+
+**Possible Causes:**
+
+1. **Neither `toc: true` nor `<!-- ::TOC -->` present:** You need one of these to generate a TOC.
+
+   **Fix:** Add `toc: true` to frontmatter (auto-places after first H1):
+   ```yaml
+   ---
+   toc: true
+   ---
+   ```
+
+   Or add the directive where you want the TOC:
+   ```markdown
+   <!-- ::TOC -->
+   ```
+
+2. **No headings in document:** The TOC requires at least one heading at or above the configured `toc_levels` depth.
+
+3. **All headings filtered by `toc_min_level`:** If `toc_min_level: 3` but your document only has H1 and H2, the TOC will be empty and removed.
+
+---
+
+### TOC Includes Document Title (H1)
+
+**Symptom:** The document title (H1) appears in the TOC alongside chapter headings.
+
+**Root Cause:** By default, `toc_min_level` is 2, which excludes H1. If you set `toc_min_level: 1`, H1 is included.
+
+**Fix:** Set `toc_min_level: 2` (or omit it, since 2 is the default):
+```yaml
+---
+toc: true
+toc_min_level: 2
+---
+```
+
+If you **want** H1 in the TOC (e.g., multi-chapter documents where H1 is chapter titles), set:
+```yaml
+---
+toc: true
+toc_min_level: 1
+---
+```
 
 ---
 
@@ -709,6 +813,114 @@ Puppeteer's `page.pdf()` renders the visual appearance but doesn't post-process 
 
 ---
 
+### Paged.js Crash on Headings Starting with Numbers (Fixed 2026-01-22)
+
+**Symptom:** PDF export produces only a few pages (e.g., title page + empty TOC) instead of full content. Paged.js hangs for several minutes before timeout warning.
+
+**Error in debug log:**
+```
+SyntaxError: Failed to execute 'querySelector' on 'Element': '#1-check-pagemd-version' is not a valid selector.
+```
+
+**Root Cause:**
+
+CSS selectors cannot start with a digit. If you have a heading like:
+
+```markdown
+## 1. Check PageMD Version
+```
+
+Older versions generated `id="1-check-pagemd-version"`, which is invalid CSS. When Paged.js internally called `querySelector('#1-check-pagemd-version')`, it threw a `SyntaxError` and crashed silently.
+
+**Solution (Fixed in 2026-01-22):**
+
+The `slugify()` function now prefixes IDs starting with digits with `section-`:
+
+| Heading | Old ID (Invalid) | New ID (Valid) |
+|---------|-----------------|----------------|
+| `## 1. Introduction` | `1-introduction` | `section-1-introduction` |
+| `## 2023 Report` | `2023-report` | `section-2023-report` |
+| `## Chapter 3` | `chapter-3` | `chapter-3` (unchanged) |
+
+**If you encounter this issue:**
+
+1. Update to the latest PageMD CLI
+2. Rebuild the CLI bundle: `npm run bundle-cli`
+3. Re-export your document
+
+**Manual workaround (if you can't update):**
+
+Avoid starting headings with numbers. Instead of:
+```markdown
+## 1. Introduction
+```
+
+Use:
+```markdown
+## Section 1: Introduction
+```
+
+---
+
+### Paged.js Crash on CSS Pseudo-Selectors (Fixed 2026-01-22)
+
+**Symptom:** PDF export crashes immediately with "item doesn't belong to list" error. CLI logs the error but still reports "success" with a blank 1-page PDF.
+
+**Error in debug log:**
+```
+[ERROR] [renderer.pdf] [browser.error] uncaught: Browser error: item doesn't belong to list
+    at List$6.remove (:3777:20)
+    at onRule (:30859:14)
+```
+
+**Root Cause:**
+
+Paged.js 0.4.3 has a bug in its CSS parser (the css-tree library) that crashes when processing certain pseudo-class selectors that involve list-based DOM traversal:
+
+| Selector | Status |
+|----------|--------|
+| `:nth-child(2n)` | **Crashes Paged.js** |
+| `:nth-child(even)` | **Crashes Paged.js** |
+| `:nth-of-type(2n+1)` | **Crashes Paged.js** |
+| `:first-of-type` | **Crashes Paged.js** |
+| `:first-child` | **May crash Paged.js** |
+| `:last-child` | **May crash Paged.js** |
+| `:first` (page pseudo) | Safe |
+| `:hover`, `:focus` | Safe |
+
+**Reference:** [Paged.js GitLab Issue #315](https://gitlab.coko.foundation/pagedjs/pagedjs/-/issues/315)
+
+**Solution (Fixed in 2026-01-22):**
+
+PageMD's CSS files have been updated to remove/comment these selectors:
+
+- `styles/base.css` - Removed `tr:nth-child(2n)` (table zebra striping)
+- `styles/book.css` - Removed `:first-child`, `:last-child` selectors
+- `layouts/book.css` - Removed `:first-of-type` selector
+
+**If you use custom CSS:**
+
+Check your CSS for the problematic selectors listed above. Either:
+
+1. **Remove** the selector entirely
+2. **Replace** with class-based selectors:
+   ```css
+   /* BEFORE (crashes Paged.js) */
+   tr:nth-child(even) { background: #f5f5f5; }
+
+   /* AFTER (safe) */
+   tr.even { background: #f5f5f5; }
+   /* Or just remove zebra striping */
+   ```
+
+**Error Detection Improvement:**
+
+As of 2026-01-22, the CLI now properly detects Paged.js crashes:
+- If Paged.js produces 0 pages AND browser errors occurred, CLI reports failure
+- Error message includes: "Paged.js crashed: [error]. Check CSS for problematic selectors"
+
+---
+
 ### PDF Generation Timeout
 
 **Symptom:** Warning: `Paged.js rendering may not have completed`
@@ -717,10 +929,35 @@ Puppeteer's `page.pdf()` renders the visual appearance but doesn't post-process 
 - Large document (many pages)
 - Complex CSS/images
 - Slow system/browser
+- Default timeout (2 minutes) too short
 
 **Solutions:**
 
-1. **Enable browser persistence (batch builds):**
+1. **Increase timeout in frontmatter:**
+   ```yaml
+   ---
+   title: Large Document
+   pagedjs_timeout: 300000  # 5 minutes
+   ---
+   ```
+
+2. **Increase timeout in profile:**
+   ```json
+   {
+     "pagedjs": {
+       "timeout": 300000
+     }
+   }
+   ```
+
+3. **Disable timeout for very large documents:**
+   ```yaml
+   ---
+   pagedjs_timeout: -1  # Wait indefinitely (use with caution)
+   ---
+   ```
+
+4. **Enable browser persistence (batch builds):**
    ```bash
    # Linux/macOS
    export PAGEMD_KEEP_CHROME=1
@@ -731,17 +968,24 @@ Puppeteer's `page.pdf()` renders the visual appearance but doesn't post-process 
    pagemd build *.md -o pdf
    ```
 
-2. **Simplify document:**
+5. **Simplify document:**
    - Reduce images
    - Simplify CSS
    - Split into multiple files
 
-3. **Check browser performance:**
+6. **Check browser performance:**
    ```bash
    # Run with debug to see browser
    pagemd build document.md --debug
    # Monitor CPU/memory usage
    ```
+
+**Timeout values:**
+- `0`: Use default (120000ms / 2 minutes)
+- `-1`: Disabled (infinite wait)
+- Positive number: Timeout in milliseconds
+
+**Cascade order:** frontmatter > profile > default (120000ms)
 
 ---
 
@@ -1273,6 +1517,37 @@ PAGEMD_LOG_COLOR=0 pagemd build doc.md > build.log
 ---
 
 ## Common Error Messages
+
+### File Include Not Found (Book Assembly)
+
+**Symptom:** When building a multi-file book using include directives:
+```
+File '/path/to/project/docs/wiki/guides/path/to/file.md' not found.
+```
+
+**Causes:**
+
+1. **Path resolution is relative to CLI working directory**, not the markdown file
+2. **Nested includes in documentation** - included files contain example include syntax that gets processed
+
+**Solutions:**
+
+**For path issues:**
+```bash
+# Run from the book's directory so relative paths resolve correctly
+cd docs/wiki
+pagemd build book.md -o pdf -p book-wiki
+```
+
+**For nested documentation examples:**
+
+If an included file documents include syntax (like Extended-Syntax.md), those examples get processed as real includes. Escape them using HTML entities:
+
+Replace `!` with `&#38;#33;` (the HTML entity for exclamation mark). The escaped text renders correctly but won't be processed by the include plugin.
+
+See: [Extended Syntax - Escaping Include Syntax](guides/Extended-Syntax.md#escaping-include-syntax-in-documentation)
+
+---
 
 ### `Input not found: /path/to/file.md`
 

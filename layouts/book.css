@@ -1,0 +1,92 @@
+/**
+ * Book Layout - Technical Documentation
+ *
+ * Compact margins for dense content, professional running headers.
+ * - Book title: top-left | Chapter title: top-right
+ * - Page number: bottom-center
+ * - h1 elements update the running chapter header
+ *
+ * Page break rules are in styles/book.css @media print
+ */
+
+/* ==========================================================================
+   RUNNING HEADERS - String capture for margin boxes
+   ========================================================================== */
+
+/* Hidden span captures book title for running header */
+.book-title-string {
+  string-set: book-title content(text);
+  display: none;
+}
+
+/* H1 elements capture chapter title */
+.book-content h1 {
+  string-set: chapter-title content(text);
+}
+
+/* ==========================================================================
+   PAGE SETUP - Compact margins for maximum content density
+   ========================================================================== */
+
+@page {
+  size: Letter;
+  margin: 0.75in 0.6in 0.75in 0.6in;
+
+  /* Book title: top-left */
+  @top-left {
+    content: string(book-title, first);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    font-size: 8pt;
+    color: #6b7280;
+  }
+
+  /* Chapter title: top-right */
+  @top-right {
+    content: string(chapter-title, first);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    font-size: 8pt;
+    color: #6b7280;
+  }
+
+  /* Page number: bottom-center */
+  @bottom-center {
+    content: counter(page);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    font-size: 9pt;
+    color: #374151;
+  }
+}
+
+/* First page - suppress running headers and page number (title page) */
+@page :first {
+  @top-left { content: none; }
+  @top-right { content: none; }
+  @bottom-center { content: none; }
+}
+
+/* ==========================================================================
+   BASIC PAGE BREAK HINTS (without !important)
+   These may be overridden by styles/book.css; that file has final word
+   ========================================================================== */
+
+/* Headings should not be orphaned from following content */
+h1, h2, h3, h4, h5, h6 {
+  page-break-after: avoid;
+  page-break-inside: avoid;
+}
+
+/* Block elements prefer to stay together */
+figure, table, pre, blockquote {
+  page-break-inside: avoid;
+}
+
+/* Paragraph orphan/widow control */
+p {
+  orphans: 3;
+  widows: 3;
+}
+
+/* Lists should avoid awkward breaks */
+li {
+  page-break-inside: avoid;
+}

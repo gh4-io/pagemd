@@ -396,13 +396,27 @@ export async function renderDocument(markdownPath, options = {}) {
     colorScheme
   });
 
-  // Step 8: Fill TOC placeholder if present (using metadata.toc settings)
-  logger.debug('Step 8: Processing TOC placeholder');
+  // Step 8: Auto-insert TOC placeholder when toc: true and no directive present
+  logger.debug('Step 8: Processing TOC');
+  let htmlForToc = renderedHtml;
+  if (mergedMetadata.toc === true && !/<div\s+class=["']toc-placeholder["']/i.test(htmlForToc)) {
+    // Insert placeholder after first </h1>
+    const h1CloseIdx = htmlForToc.indexOf('</h1>');
+    if (h1CloseIdx !== -1) {
+      const insertPos = h1CloseIdx + '</h1>'.length;
+      htmlForToc = htmlForToc.slice(0, insertPos) +
+        '\n<div class="toc-placeholder"></div>\n' +
+        htmlForToc.slice(insertPos);
+      logger.debug('toc.auto', 'ok', 'Auto-inserted TOC placeholder after first h1');
+    }
+  }
+
   const tocOptions = {
     title: mergedMetadata.toc_title || 'Contents',
-    levels: mergedMetadata.toc_levels || 3
+    levels: mergedMetadata.toc_levels || 3,
+    minLevel: mergedMetadata.toc_min_level ?? 2
   };
-  const withToc = fillTocPlaceholder(renderedHtml, tocOptions);
+  const withToc = fillTocPlaceholder(htmlForToc, tocOptions);
 
   // Step 9: Generate index skeleton if present (for proper pagination in PDF)
   logger.debug('Step 9: Processing index skeleton');
@@ -507,13 +521,26 @@ export async function renderMarkdown(markdown, options = {}) {
     pathContext
   });
 
-  // Step 8: Fill TOC placeholder if present (using metadata.toc settings)
-  logger.debug('Step 8: Processing TOC placeholder');
+  // Step 8: Auto-insert TOC placeholder when toc: true and no directive present
+  logger.debug('Step 8: Processing TOC');
+  let htmlForToc = renderedHtml;
+  if (mergedMetadata.toc === true && !/<div\s+class=["']toc-placeholder["']/i.test(htmlForToc)) {
+    const h1CloseIdx = htmlForToc.indexOf('</h1>');
+    if (h1CloseIdx !== -1) {
+      const insertPos = h1CloseIdx + '</h1>'.length;
+      htmlForToc = htmlForToc.slice(0, insertPos) +
+        '\n<div class="toc-placeholder"></div>\n' +
+        htmlForToc.slice(insertPos);
+      logger.debug('toc.auto', 'ok', 'Auto-inserted TOC placeholder after first h1');
+    }
+  }
+
   const tocOptions = {
     title: mergedMetadata.toc_title || 'Contents',
-    levels: mergedMetadata.toc_levels || 3
+    levels: mergedMetadata.toc_levels || 3,
+    minLevel: mergedMetadata.toc_min_level ?? 2
   };
-  const withToc = fillTocPlaceholder(renderedHtml, tocOptions);
+  const withToc = fillTocPlaceholder(htmlForToc, tocOptions);
 
   // Step 9: Generate index skeleton if present (for proper pagination in PDF)
   logger.debug('Step 9: Processing index skeleton');

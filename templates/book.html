@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{metadata.title}}</title>
+  {{styles}}
+</head>
+<body class="book">
+  <!--
+    BOOK TEMPLATE - Wiki Documentation Export
+
+    FRONTMATTER VARIABLES:
+    - title: Full book title (required)
+    - short_title: Short title for running header (optional)
+    - subtitle: Book subtitle (optional)
+    - author: Author name(s) (optional)
+    - version: Version/edition (optional)
+    - publication_date: Publication date (optional)
+
+    STRUCTURE:
+    - Title page (no header/footer)
+    - Main content with chapters (from markdown)
+    - h1 elements start new chapters
+  -->
+
+  <article class="book-document">
+
+    <!-- Title Page -->
+    <section class="title-page">
+      <div class="title-content">
+        <div class="title-main">
+          <h1 class="book-main-title">{{metadata.title}}</h1>
+          {{#if metadata.subtitle}}<p class="book-subtitle">{{metadata.subtitle}}</p>{{/if}}
+        </div>
+        <div class="title-footer">
+          {{#if metadata.author}}<p class="book-author">{{metadata.author}}</p>{{/if}}
+          {{#if metadata.version}}<p class="book-version">{{metadata.version}}</p>{{/if}}
+          {{#if metadata.publication_date}}<p class="book-date">{{metadata.publication_date}}</p>{{/if}}
+        </div>
+      </div>
+    </section>
+
+    <!-- Main Content (includes TOC from ::TOC directive in markdown) -->
+    <main class="book-content">
+      <!-- Hidden element for running header - captures book title -->
+      <span class="book-title-string" aria-hidden="true">{{metadata.short_title ?? metadata.title}}</span>
+      {{content}}
+    </main>
+
+  </article>
+</body>
+</html>
