@@ -50,29 +50,41 @@ export function tableAttrsFixPlugin(md) {
       // which is set by the "tables thead metadata" pattern from thead.
       // Headerless tables have no thead, so we count columns from the
       // first row and set meta.colsnum to prevent the TypeError.
+      // Tables WITH a header are skipped — attrs sets colsnum correctly
+      // from the thead. Counting from the body would give wrong results
+      // when the first body row is a colspan row (counts 1 instead of 2).
       if (token.type === 'tbody_open' && (!token.meta || token.meta.colsnum == null)) {
-        let colCount = 0;
-        for (let j = i + 1; j < tokens.length; j++) {
-          if (tokens[j].type === 'tr_close') break;
-          if (tokens[j].type === 'td_open' || tokens[j].type === 'th_open') {
-            colCount++;
+        const prevToken = i > 0 ? tokens[i - 1] : null;
+        if (!prevToken || prevToken.type !== 'thead_close') {
+          // Truly headerless — count from first body row, accounting for colspan
+          let colCount = 0;
+          for (let j = i + 1; j < tokens.length; j++) {
+            if (tokens[j].type === 'tr_close') break;
+            if (tokens[j].type === 'td_open' || tokens[j].type === 'th_open') {
+              colCount += parseInt(tokens[j].attrGet('colspan') || '1', 10);
+            }
           }
+          token.meta = Object.assign({}, token.meta, { colsnum: colCount });
         }
-        token.meta = Object.assign({}, token.meta, { colsnum: colCount });
       }
 
       if ((token.type === 'td_open' || token.type === 'th_open') &&
           (token.attrGet('colspan') || token.attrGet('rowspan'))) {
-        // Save all tokens from td_open to td_close (inclusive)
+        // Save all tokens from td_open to td_close (inclusive).
+        // Store token object references (not indices) — indices shift when
+        // curly_attributes splices the {.class} annotation paragraphs, which
+        // would corrupt any index-based restore for tables that appear after
+        // the first table in the document.
         const closeType = token.type === 'td_open' ? 'td_close' : 'th_close';
         const saved = [];
         for (let j = i; j < tokens.length; j++) {
           const t = tokens[j];
           saved.push({
-            idx: j,
+            token: t,
             hidden: t.hidden,
             content: t.content,
             children: t.children ? t.children.map(c => ({
+              token: c,
               hidden: c.hidden,
               content: c.content
             })) : null
@@ -95,13 +107,12 @@ export function tableAttrsFixPlugin(md) {
       if (token._savedCellTokens && token.hidden) {
         // Attrs hid this cell — restore from snapshot
         for (const snap of token._savedCellTokens) {
-          const t = tokens[snap.idx];
-          t.hidden = snap.hidden;
-          t.content = snap.content;
-          if (snap.children && t.children) {
-            for (let c = 0; c < snap.children.length && c < t.children.length; c++) {
-              t.children[c].hidden = snap.children[c].hidden;
-              t.children[c].content = snap.children[c].content;
+          snap.token.hidden = snap.hidden;
+          snap.token.content = snap.content;
+          if (snap.children) {
+            for (const childSnap of snap.children) {
+              childSnap.token.hidden = childSnap.hidden;
+              childSnap.token.content = childSnap.content;
             }
           }
         }
