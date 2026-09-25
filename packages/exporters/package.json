@@ -9,7 +9,9 @@
   "license": "MIT",
   "dependencies": {
     "@pagemd/core": "*",
+    "@pagemd/parser": "*",
     "@pagemd/renderer-web": "*",
-    "@pagemd/renderer-pdf": "*"
+    "@pagemd/renderer-pdf": "*",
+    "archiver": "^7.0.0"
   }
 }

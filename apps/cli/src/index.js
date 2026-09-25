@@ -20,6 +20,7 @@ import * as listCommand from './commands/list.js';
 import * as inspectCommand from './commands/inspect.js';
 import * as initCommand from './commands/init.js';
 import * as createCommand from './commands/create.js';
+import * as archiveCommand from './commands/archive.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -61,7 +62,7 @@ if (getEnv('syntaxHighlight') !== false) {
 }
 
 // Default command inference: if first arg is a file path (not a known command), assume 'build'
-const KNOWN_COMMANDS = ['build', 'bld', 'validate', 'val', 'list', 'ls', 'inspect', 'insp', 'init', 'new', 'create', 'add', 'help', '--help', '-h', '--version', '-v'];
+const KNOWN_COMMANDS = ['build', 'bld', 'validate', 'val', 'list', 'ls', 'inspect', 'insp', 'init', 'new', 'create', 'add', 'archive', 'arc', 'help', '--help', '-h', '--version', '-v'];
 const firstArg = process.argv[2];
 
 if (firstArg && !firstArg.startsWith('-') && !KNOWN_COMMANDS.includes(firstArg)) {
@@ -79,6 +80,7 @@ yargs(hideBin(process.argv))
   .command(inspectCommand)
   .command(initCommand)
   .command(createCommand)
+  .command(archiveCommand)
   .demandCommand(1, 'You must specify a command')
   .option('log-level', {
     describe: 'Set log level (default: WARN, or PAGEMD_LOG_LEVEL env var)',

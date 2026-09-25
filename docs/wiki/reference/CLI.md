@@ -512,6 +512,101 @@ The resource reference is automatically added to the markdown frontmatter:
 
 ---
 
+## archive
+
+Package source markdown files and all their dependencies into a ZIP archive for distribution, backup, or sharing. Unlike `build --bundle` which exports finished HTML, `archive` packages the *source files* needed to reproduce the document.
+
+**Syntax:**
+```bash
+pagemd archive <input> [options]
+```
+
+**Alias:** `arc`
+
+**Arguments:**
+
+| Argument | Description |
+|----------|-------------|
+| `<input>` | Markdown file or directory path |
+
+**Options:**
+
+| Option | Alias | Description | Default |
+|--------|-------|-------------|---------|
+| `--output` | `-o` | Output ZIP file path | `<input-name>.pagemd.zip` |
+| `--profile` | `-p` | Profile ID (overrides frontmatter) | From frontmatter |
+| `--include-system` | | Include system resources (base.css, standard templates, etc.) | `false` |
+| `--dry-run` | | List files that would be archived without creating ZIP | `false` |
+
+**What gets archived:**
+
+The archive collects all dependencies needed to rebuild the document:
+
+- **Markdown file(s)** - The source document(s)
+- **Profile(s)** - Referenced profile JSON/YAML (including parent profiles from `extends` chains)
+- **Template** - HTML template referenced by the profile
+- **Layout CSS** - Page layout CSS (`@page` rules)
+- **Style files** - Profile CSS and frontmatter `styles[]` references
+- **Assets** - Images, fonts, and media referenced in content or CSS
+- **`.pagemd/` directory** - Local configuration overrides (if present)
+- **`manifest.json`** - Archive metadata (version, file list, profile used)
+
+**System resources** (base.css, primary.css, standard templates) are excluded by default because they ship with PageMD. Use `--include-system` to include them.
+
+**Examples:**
+
+Archive a single document:
+```bash
+pagemd archive document.md
+# Creates: document.pagemd.zip
+```
+
+Archive with custom output path:
+```bash
+pagemd archive document.md -o ~/backups/manual-backup.zip
+```
+
+Archive all markdown files in a directory:
+```bash
+pagemd archive ./docs/
+# Creates: docs.pagemd.zip containing all .md files + dependencies
+```
+
+Preview what would be archived (without creating ZIP):
+```bash
+pagemd archive document.md --dry-run
+```
+
+Include system resources for a fully self-contained archive:
+```bash
+pagemd archive document.md --include-system
+```
+
+**Archive structure:**
+
+```
+archive.zip
+├── document.md              # Source markdown
+├── .pagemd/                 # Local overrides (if present)
+│   └── profiles/
+├── profiles/                # Non-system profiles
+│   └── custom-profile.json
+├── templates/               # Non-system templates
+├── layouts/                 # Non-system layout CSS
+├── styles/                  # Non-system styles
+├── assets/                  # Images, fonts, media
+└── manifest.json            # Archive metadata
+```
+
+**To restore:** Extract the ZIP and run `pagemd build` on the markdown file:
+```bash
+unzip document.pagemd.zip -d ./restored/
+cd restored
+pagemd build document.md
+```
+
+---
+
 ## Global Options
 
 These options work with all commands:

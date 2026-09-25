@@ -46,6 +46,14 @@ import {
   slugify
 } from './bundler.js';
 
+import {
+  exportToArchive,
+  collectDependencies,
+  createArchive,
+  isSystemResource,
+  mapToArchivePath
+} from './archiver.js';
+
 const logger = createLogger('exporter');
 
 /**
@@ -734,4 +742,13 @@ export {
   removeInlineStyles,
   generateOutputFilename,
   slugify
+};
+
+// archiver.js exports
+export {
+  exportToArchive,
+  collectDependencies,
+  createArchive,
+  isSystemResource,
+  mapToArchivePath
 };
