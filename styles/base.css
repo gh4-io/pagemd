@@ -1335,9 +1335,29 @@ figure.annotated-image[style*="--crop-fit"] .image-wrapper img {
 		page-break-after: avoid;
 	}
 
-	/* Keep lists together */
+	/* Let long lists flow across pages, but keep each item intact.
+	 *
+	 * `page-break-inside: avoid` on the list itself (the old rule) is fine
+	 * for short lists, but a numbered procedure step whose list holds
+	 * multiple figures is routinely taller than one page - an
+	 * unsatisfiable constraint combined with `h1..h6 { page-break-after:
+	 * avoid }` above, which Paged.js resolves by shoving the *entire*
+	 * list (and its preceding heading) onto the next page, leaving a
+	 * large blank gap and making the heading look like it has a stray
+	 * break under it.
+	 *
+	 * Fix history:
+	 * - 2026-09-24: Traced from dts-docs/Delay Reporter project override;
+	 *   promoted to a permanent base.css default.
+	 */
 	ul, ol, dl {
+		page-break-inside: auto;
+		break-inside: auto;
+	}
+
+	li {
 		page-break-inside: avoid;
+		break-inside: avoid;
 	}
 
 	/* Keep figures together */
