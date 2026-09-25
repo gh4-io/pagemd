@@ -1,0 +1,35 @@
+name: Notify pagemd-vscode of new release
+
+# On every pagemd release, tell the pagemd-vscode repo to rebuild its
+# combined VSIX against this new tag. pagemd-vscode is not a submodule of
+# this repo, so there is no other way for it to learn a new release
+# happened - a cross-repo API call is required, authenticated with a PAT
+# (default GITHUB_TOKEN cannot act outside this repo).
+#
+# Requires a repository secret named VSCODE_DISPATCH_TOKEN: a fine-grained
+# personal access token scoped to gh4-io/pagemd-vscode only, with
+# "Contents: Read and write" permission (that permission covers the
+# repository_dispatch API endpoint used below).
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger pagemd-vscode build
+        env:
+          GH_TOKEN: ${{ secrets.VSCODE_DISPATCH_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "${GH_TOKEN:-}" ]; then
+            echo "::error::VSCODE_DISPATCH_TOKEN secret is not set - cannot notify pagemd-vscode. See .github/workflows/notify-vscode-release.yml for setup instructions."
+            exit 1
+          fi
+          gh api repos/gh4-io/pagemd-vscode/dispatches \
+            --method POST \
+            -f event_type='pagemd-released' \
+            -F 'client_payload[tag]=${{ github.event.release.tag_name }}'
+          echo "Dispatched pagemd-released event for tag ${{ github.event.release.tag_name }}"
