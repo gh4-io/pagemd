@@ -1061,6 +1061,51 @@ $env:PAGEMD_KEEP_CHROME="1"
 
 ---
 
+### Large Blank Gap Below a Heading (Fixed 2026-09-24)
+
+**Symptom:** A section heading (`h2`/`h3`) is followed by a large blank area at the bottom of
+the page, and the heading's list content resumes at the top of the next page instead of right
+below the heading.
+
+**Cause:** `base.css` combines `h1..h6 { page-break-after: avoid; }` with
+`ul, ol, dl { page-break-inside: avoid; }` in print. When a list following a heading is taller
+than one page (for example, a numbered procedure step whose items each embed a screenshot
+`<figure>`), both constraints together are unsatisfiable. Paged.js resolves this by pushing the
+*entire* heading+list block onto the next page, leaving a large blank gap where it used to sit.
+
+**Fix (built into `base.css` as of 2026-09-24):** The "keep together" guarantee now applies to
+each list item (`li`) instead of the whole list:
+
+```css
+@media print {
+  ul, ol, dl {
+    page-break-inside: auto;
+    break-inside: auto;
+  }
+
+  li {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+}
+```
+
+Short lists still render intact (they already fit on one page). Long lists now break cleanly
+between items instead of being shoved as one unit, so the gap disappears and the heading stays
+attached to its first item.
+
+**If you still see this:** it means an individual `<li>` itself (not the list as a whole) is
+taller than a page — e.g. a single step whose figure is very tall. Cap the figure's height in
+your document or profile CSS:
+
+```css
+figure img {
+  max-height: 6in;
+}
+```
+
+---
+
 ### Images Not Displaying in PDF
 
 **Symptom:** Images appear in HTML output but are missing or broken in PDF.
