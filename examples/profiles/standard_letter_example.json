@@ -1,0 +1,51 @@
+{
+  "id": "standard_letter_example",
+  "description": "Example: Standard US Letter layout for SOPs and documentation",
+
+  "resources": {
+    "template": "${cliPath}/templates/standard_letter.html",
+    "layout": "${cliPath}/layouts/letter.css",
+    "css": ["${cliPath}/styles/primary.css"],
+    "fonts": [],
+    "assets": []
+  },
+
+  "pagedjs": {
+    "mode": "browser"
+  },
+  "outputs": {
+    "pdf": {
+      "enabled": true,
+      "mode": "ACTIVE_ONLY",
+      "options": {}
+    },
+    "html": {
+      "enabled": false,
+      "mode": "DISABLED",
+      "options": {}
+    },
+    "png": {
+      "enabled": false,
+      "mode": "DISABLED",
+      "options": {}
+    },
+    "jpeg": {
+      "enabled": false,
+      "mode": "DISABLED",
+      "options": {}
+    }
+  },
+  "validation": {
+    "required_fields": ["document_id", "title"]
+  },
+  "metadata": {
+    "defaults": {
+      "doc_type": "Letter",
+      "status": "Draft",
+      "revision": 0,
+      "page_numbers": false,
+      "running_header": false,
+      "running_footer": false
+    }
+  }
+}
