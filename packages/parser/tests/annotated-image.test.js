@@ -6,6 +6,44 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import MarkdownIt from 'markdown-it';
 import { annotatedImagePlugin } from '../src/plugins/annotated-image.js';
 
+/**
+ * Tokenize every start tag in the HTML and return its element name and real
+ * attribute names. The plugin always emits double-quoted attribute values, so
+ * a value can only "break out" if an unescaped `"` reaches the output - in
+ * that case the injected text shows up here as an extra attribute name.
+ * Escaped text inside a value (e.g. `&quot;onclick=`) is NOT reported.
+ * @param {string} html - Rendered HTML
+ * @returns {Array<{tag: string, attrs: string[]}>} Parsed start tags
+ */
+function parseTags(html) {
+  const tags = [];
+  const tagRe = /<([a-zA-Z][\w-]*)((?:\s+[^\s=/>]+(?:\s*=\s*"[^"]*")?)*)\s*\/?>/g;
+  const attrRe = /([^\s=/>]+)(?:\s*=\s*"[^"]*")?/g;
+  let m;
+  while ((m = tagRe.exec(html)) !== null) {
+    const attrs = [...m[2].matchAll(attrRe)].map(a => a[1].toLowerCase());
+    tags.push({ tag: m[1].toLowerCase(), attrs });
+  }
+  return tags;
+}
+
+/**
+ * Assert rendered HTML has no event-handler attributes and only the expected
+ * element types (no injected <script>, <img onerror>, etc.)
+ * @param {string} html - Rendered HTML
+ */
+function expectNoInjectedMarkup(html) {
+  const tags = parseTags(html);
+  // Every start tag must tokenize cleanly - a mangled tag would otherwise be
+  // skipped and let the checks below pass vacuously
+  expect(tags).toHaveLength((html.match(/<[a-zA-Z]/g) || []).length);
+  const allAttrs = tags.flatMap(t => t.attrs);
+  expect(allAttrs.filter(a => a.startsWith('on'))).toEqual([]);
+  expect(tags.filter(t => t.tag === 'script')).toEqual([]);
+  // Exactly one <img> - the annotated image itself
+  expect(tags.filter(t => t.tag === 'img')).toHaveLength(1);
+}
+
 describe('annotatedImagePlugin', () => {
   let md;
 
@@ -555,6 +593,489 @@ markers:
       expect(html).toContain('Settings menu');
       expect(html).toContain('Work package grid');
       expect(html).toContain('Status bar');
+    });
+  });
+
+  describe('Arrows', () => {
+    it('should render arrow with x1/y1/x2/y2 coordinates', () => {
+      const input = `::: annotated-image ./test.png
+arrows:
+  - { x1: 10, y1: 20, x2: 40, y2: 50, color: "#cc0000" }
+:::`;
+      const html = md.render(input);
+
+      expect(html).toContain('<svg class="annotation-shapes"');
+      expect(html).toContain('<line x1="10" y1="20" x2="40" y2="50" stroke="#cc0000"');
+      expect(html).toContain('marker-end="url(#arrowhead-annotated-1)"');
+      expect(html).toContain('vector-effect="non-scaling-stroke"');
+    });
+
+    it('should clamp arrow coordinates to 0-100 range', () => {
+      const input = `::: annotated-image ./test.png
+arrows:
+  - { x1: -10, y1: 120, x2: 50, y2: 50 }
+:::`;
+      const html = md.render(input);
+
+      expect(html).toContain('<line x1="0" y1="100" x2="50" y2="50"');
+    });
+
+    it('should apply custom stroke width on arrows', () => {
+      const input = `::: annotated-image ./test.png
+arrows:
+  - { x1: 10, y1: 20, x2: 40, y2: 50, strokeWidth: 3 }
+:::`;
+      const html = md.render(input);
+
+      expect(html).toContain('stroke-width="3"');
+    });
+
+    it('should include arrow with id and label in legend', () => {
+      const input = `::: annotated-image ./test.png
+arrows:
+  - { id: 1, x1: 10, y1: 20, x2: 40, y2: 50, label: "Flow direction" }
+:::`;
+      const html = md.render(input);
+
+      expect(html).toContain('<span class="legend-text">Flow direction</span>');
+      expect(html).toContain('<span class="legend-num">1</span>');
+    });
+
+    it('should skip invalid arrow entries', () => {
+      const input = `::: annotated-image ./test.png
+arrows:
+  - { x1: 10, y1: 20, x2: 40 }
+  - { x1: 50, y1: 50, x2: 60, y2: 60 }
+:::`;
+      const html = md.render(input);
+
+      expect(html).toContain('<line x1="50" y1="50" x2="60" y2="60"');
+      expect(html).not.toContain('<line x1="10" y1="20"');
+    });
+  });
+
+  describe('Boxes', () => {
+    it('should render box with x/y/width/height', () => {
+      const input = `::: annotated-image ./test.png
+boxes:
+  - { x: 10, y: 20, width: 30, height: 15, color: "#0066cc" }
+:::`;
+      const html = md.render(input);
+
+      expect(html).toContain('<rect x="10" y="20" width="30" height="15" stroke="#0066cc"');
+      expect(html).toContain('vector-effect="non-scaling-stroke"');
+    });
+
+    it('should clamp box coordinates and dimensions', () => {
+      const input = `::: annotated-image ./test.png
+boxes:
+  - { x: 80, y: 90, width: 50, height: 50 }
+:::`;
+      const html = md.render(input);
+
+      expect(html).toContain('<rect x="80" y="90" width="20" height="10"');
+    });
+
+    it('should apply fill property on boxes', () => {
+      const input = `::: annotated-image ./test.png
+boxes:
+  - { x: 10, y: 20, width: 30, height: 15, fill: "#ccccff" }
+:::`;
+      const html = md.render(input);
+
+      expect(html).toContain('fill="#ccccff"');
+    });
+
+    it('should include box with id and label in legend', () => {
+      const input = `::: annotated-image ./test.png
+boxes:
+  - { id: 1, x: 10, y: 20, width: 30, height: 15, label: "Settings panel" }
+:::`;
+      const html = md.render(input);
+
+      expect(html).toContain('<span class="legend-text">Settings panel</span>');
+      expect(html).toContain('<span class="legend-num">1</span>');
+    });
+
+    it('should skip invalid box entries', () => {
+      const input = `::: annotated-image ./test.png
+boxes:
+  - { x: 10, y: 20, width: 30 }
+  - { x: 50, y: 50, width: 20, height: 15 }
+:::`;
+      const html = md.render(input);
+
+      expect(html).toContain('<rect x="50" y="50" width="20" height="15"');
+      expect(html).not.toContain('<rect x="10" y="20"');
+    });
+  });
+
+  describe('Text', () => {
+    it('should render text shape with x/y/text', () => {
+      const input = `::: annotated-image ./test.png
+text:
+  - { x: 50, y: 10, text: "Note here" }
+:::`;
+      const html = md.render(input);
+
+      // Text overlays are HTML spans (SVG <text> would be stretched by the
+      // non-uniform 0-100 viewBox), positioned by top-left corner
+      expect(html).toContain('<span class="annotation-text" style="left: 50%; top: 10%;');
+      expect(html).toContain('>Note here</span>');
+      expect(html).not.toContain('<text');
+    });
+
+    it('should render text without an SVG layer when there are no arrows or boxes', () => {
+      const input = `::: annotated-image ./test.png
+text:
+  - { x: 50, y: 10, text: "Note here" }
+:::`;
+      const html = md.render(input);
+
+      expect(html).not.toContain('<svg');
+    });
+
+    it('should clamp text coordinates', () => {
+      const input = `::: annotated-image ./test.png
+text:
+  - { x: -10, y: 120, text: "Test" }
+:::`;
+      const html = md.render(input);
+
+      expect(html).toContain('style="left: 0%; top: 100%;');
+    });
+
+    it('should apply font size to text (px) with a default of 14', () => {
+      const input = `::: annotated-image ./test.png
+text:
+  - { x: 50, y: 10, text: "Big", fontSize: 18 }
+  - { x: 50, y: 30, text: "Default" }
+:::`;
+      const html = md.render(input);
+
+      expect(html).toContain('font-size: 18px;');
+      expect(html).toContain('font-size: 14px;');
+    });
+
+    it('should apply color and background to text', () => {
+      const input = `::: annotated-image ./test.png
+text:
+  - { x: 50, y: 10, text: "Note", color: "#ff0000", background: "#333333" }
+:::`;
+      const html = md.render(input);
+
+      expect(html).toContain('color: #ff0000;');
+      expect(html).toContain('background: #333333;');
+    });
+
+    it('should omit background when not provided', () => {
+      const input = `::: annotated-image ./test.png
+text:
+  - { x: 50, y: 10, text: "Note" }
+:::`;
+      const html = md.render(input);
+
+      expect(html).not.toContain('background:');
+    });
+
+    it('should skip invalid text entries', () => {
+      const input = `::: annotated-image ./test.png
+text:
+  - { x: 50, y: 10 }
+  - { x: 60, y: 20, text: "Valid" }
+:::`;
+      const html = md.render(input);
+
+      expect(html).toContain('>Valid</span>');
+      expect(html).not.toContain('left: 50%; top: 10%;');
+    });
+  });
+
+  describe('Mixed Shapes', () => {
+    it('should render markers, arrows, boxes, and text together', () => {
+      const input = `::: annotated-image ./test.png
+markers:
+  - { id: 1, x: 10, y: 20, label: "Point" }
+arrows:
+  - { id: 2, x1: 30, y1: 30, x2: 50, y2: 50, label: "Arrow" }
+boxes:
+  - { id: 3, x: 60, y: 60, width: 20, height: 20, label: "Box" }
+text:
+  - { x: 80, y: 80, text: "Text" }
+:::`;
+      const html = md.render(input);
+
+      expect(html).toContain('<span class="marker" style="left: 10%; top: 20%;">1</span>');
+      expect(html).toContain('<line');
+      expect(html).toContain('<rect');
+      expect(html).toContain('>Text</span>');
+      expect(html).toContain('Point');
+      expect(html).toContain('Arrow');
+      expect(html).toContain('Box');
+    });
+
+    it('should merge legend items from all shape types', () => {
+      const input = `::: annotated-image ./test.png
+markers:
+  - { id: 1, x: 10, y: 20, label: "Marker 1" }
+arrows:
+  - { id: 2, x1: 30, y1: 30, x2: 50, y2: 50, label: "Arrow 2" }
+boxes:
+  - { id: 3, x: 60, y: 60, width: 20, height: 20, label: "Box 3" }
+:::`;
+      const html = md.render(input);
+
+      const legend1 = html.indexOf('Marker 1');
+      const legend2 = html.indexOf('Arrow 2');
+      const legend3 = html.indexOf('Box 3');
+
+      expect(legend1).toBeGreaterThan(-1);
+      expect(legend2).toBeGreaterThan(-1);
+      expect(legend3).toBeGreaterThan(-1);
+      expect(legend1).toBeLessThan(legend2);
+      expect(legend2).toBeLessThan(legend3);
+    });
+  });
+
+  describe('XSS Protection', () => {
+    it('should escape text content in text shapes', () => {
+      const input = `::: annotated-image ./test.png
+text:
+  - { x: 50, y: 10, text: "<script>alert('xss')</script>" }
+:::`;
+      const html = md.render(input);
+
+      expect(html).not.toContain('<script>');
+      expect(html).toContain('&lt;script&gt;');
+    });
+
+    // Note: escaped output still contains substrings like `onclick=` inside a
+    // quoted value (e.g. `stroke="&quot;onclick=&quot;..."`). That is inert
+    // text, so these tests check the parsed attribute structure instead of
+    // raw substrings.
+
+    it('should keep arrow color inside the stroke attribute', () => {
+      const input = `::: annotated-image ./test.png
+arrows:
+  - { x1: 10, y1: 20, x2: 40, y2: 50, color: "\\"onclick=\\"alert(1)" }
+:::`;
+      const html = md.render(input);
+
+      expect(html).toContain('stroke="&quot;onclick=&quot;alert(1)"');
+      expectNoInjectedMarkup(html);
+    });
+
+    it('should keep box fill inside the fill attribute', () => {
+      const input = `::: annotated-image ./test.png
+boxes:
+  - { x: 10, y: 20, width: 30, height: 15, fill: "red\\"onload=\\"alert(1)" }
+:::`;
+      const html = md.render(input);
+
+      expect(html).toContain('fill="red&quot;onload=&quot;alert(1)"');
+      expectNoInjectedMarkup(html);
+    });
+
+    it('should escape labels in shape legend items', () => {
+      const input = `::: annotated-image ./test.png
+arrows:
+  - { id: 1, x1: 10, y1: 20, x2: 40, y2: 50, label: "<img src=x onerror=alert(1)>" }
+:::`;
+      const html = md.render(input);
+
+      expect(html).toContain('<span class="legend-text">&lt;img src=x onerror=alert(1)&gt;</span>');
+      expectNoInjectedMarkup(html);
+    });
+
+    it('should reject non-numeric strokeWidth and fontSize (no attribute injection)', () => {
+      const input = `::: annotated-image ./test.png
+arrows:
+  - { x1: 10, y1: 20, x2: 40, y2: 50, strokeWidth: '2" onmouseover="alert(1)' }
+boxes:
+  - { x: 10, y: 20, width: 30, height: 15, strokeWidth: '1" onclick="alert(1)' }
+text:
+  - { x: 5, y: 5, text: "T", fontSize: '12px; } body { display:none' }
+:::`;
+      const html = md.render(input);
+
+      expect(html.match(/stroke-width="2"/g)).toHaveLength(2);
+      expect(html).toContain('font-size: 14px;');
+      expect(html).not.toContain('display:none');
+      expectNoInjectedMarkup(html);
+    });
+
+    it('should reject non-numeric legendColumns', () => {
+      const input = `::: annotated-image ./test.png
+options:
+  legendColumns: '3;"><img src=x onerror=alert(1)>'
+markers:
+  - { id: 1, x: 10, y: 20, label: "Button" }
+:::`;
+      const html = md.render(input);
+
+      expect(html).toContain('--legend-columns: 3;');
+      expectNoInjectedMarkup(html);
+    });
+
+    it('should reject CSS declaration injection in text color/background', () => {
+      const input = `::: annotated-image ./test.png
+text:
+  - { x: 5, y: 5, text: "T", color: "red; position: fixed", background: "#000}" }
+:::`;
+      const html = md.render(input);
+
+      expect(html).not.toContain('position: fixed');
+      expect(html).toContain('color: #000000;');
+      expect(html).toContain('background: transparent;');
+    });
+
+    it('should fall back to default arrow/box colours for values containing ; { }', () => {
+      const input = `::: annotated-image ./test.png
+arrows:
+  - { x1: 10, y1: 20, x2: 40, y2: 50, color: "red; x" }
+boxes:
+  - { x: 10, y: 20, width: 30, height: 15, color: "{blue}", fill: "a;b" }
+:::`;
+      const html = md.render(input);
+
+      expect(html).toContain('stroke="#cc0000"');
+      expect(html).toContain('stroke="#0066cc" fill="none"');
+    });
+
+    it('should escape text overlay content', () => {
+      const input = `::: annotated-image ./test.png
+text:
+  - { x: 5, y: 5, text: "<img src=x onerror=alert(1)> & 'quotes'" }
+:::`;
+      const html = md.render(input);
+
+      expect(html).toContain('&lt;img src=x onerror=alert(1)&gt; &amp; &#39;quotes&#39;');
+      expectNoInjectedMarkup(html);
+    });
+  });
+
+  describe('Arrowhead colours', () => {
+    it('should give each arrow colour its own arrowhead marker', () => {
+      const input = `::: annotated-image ./test.png
+arrows:
+  - { x1: 10, y1: 20, x2: 40, y2: 50 }
+  - { x1: 50, y1: 50, x2: 60, y2: 60, color: "#0a7d00" }
+  - { x1: 70, y1: 70, x2: 80, y2: 80 }
+:::`;
+      const html = md.render(input);
+
+      // First colour keeps the base id; later colours get a suffix
+      expect(html).toContain('<marker id="arrowhead-annotated-1"');
+      expect(html).toContain('<marker id="arrowhead-annotated-1-2"');
+      expect(html.match(/<marker /g)).toHaveLength(2);
+      expect(html).toContain('<polygon points="0 0, 10 3, 0 6" fill="#cc0000" />');
+      expect(html).toContain('<polygon points="0 0, 10 3, 0 6" fill="#0a7d00" />');
+      expect(html).toContain('stroke="#0a7d00" stroke-width="2" marker-end="url(#arrowhead-annotated-1-2)"');
+      expect(html.match(/marker-end="url\(#arrowhead-annotated-1\)"/g)).toHaveLength(2);
+    });
+
+    it('should not emit <defs> when there are boxes but no arrows', () => {
+      const input = `::: annotated-image ./test.png
+boxes:
+  - { x: 10, y: 20, width: 30, height: 15 }
+:::`;
+      const html = md.render(input);
+
+      expect(html).toContain('<svg class="annotation-shapes"');
+      expect(html).not.toContain('<defs>');
+    });
+  });
+
+  describe('Badge positions', () => {
+    it('should place arrow badge at the line midpoint', () => {
+      const input = `::: annotated-image ./test.png
+arrows:
+  - { id: 1, x1: 10, y1: 20, x2: 40, y2: 50, label: "Arrow" }
+:::`;
+      const html = md.render(input);
+
+      expect(html).toContain('<span class="marker" style="left: 25%; top: 35%;">1</span>');
+    });
+
+    it('should inset box badge 3% from the top-left corner', () => {
+      const input = `::: annotated-image ./test.png
+boxes:
+  - { id: 1, x: 10, y: 20, width: 30, height: 15, label: "Box" }
+:::`;
+      const html = md.render(input);
+
+      expect(html).toContain('<span class="marker" style="left: 13%; top: 23%;">1</span>');
+    });
+
+    it('should keep badge inside very small boxes (inset capped at half size)', () => {
+      const input = `::: annotated-image ./test.png
+boxes:
+  - { id: 1, x: 10, y: 20, width: 2, height: 4, label: "Tiny" }
+:::`;
+      const html = md.render(input);
+
+      expect(html).toContain('<span class="marker" style="left: 11%; top: 22%;">1</span>');
+    });
+
+    it('should not add arrows/boxes without label to the legend', () => {
+      const input = `::: annotated-image ./test.png
+arrows:
+  - { id: 1, x1: 10, y1: 20, x2: 40, y2: 50 }
+boxes:
+  - { label: "No id", x: 10, y: 20, width: 30, height: 15 }
+:::`;
+      const html = md.render(input);
+
+      expect(html).not.toContain('class="marker"');
+      expect(html).not.toContain('annotation-legend');
+    });
+  });
+
+  describe('Malformed shape data', () => {
+    it.each([
+      ['arrows as string', 'arrows: "oops"'],
+      ['boxes as mapping', 'boxes: { x: 1 }'],
+      ['text as number', 'text: 5'],
+      ['options as string', 'options: "caption"']
+    ])('should not throw for %s', (_name, yamlLine) => {
+      const input = `::: annotated-image ./test.png
+${yamlLine}
+markers:
+  - { id: 1, x: 10, y: 20, label: "Still works" }
+:::`;
+      let html;
+      expect(() => { html = md.render(input); }).not.toThrow();
+      expect(html).toContain('Still works');
+    });
+
+    it('should skip shapes with NaN/Infinity-like or string coordinates', () => {
+      const input = `::: annotated-image ./test.png
+arrows:
+  - { x1: ".nan", y1: 20, x2: 40, y2: 50 }
+  - { x1: .inf, y1: 20, x2: 40, y2: 50 }
+:::`;
+      const html = md.render(input);
+
+      expect(html).not.toContain('<line');
+    });
+  });
+
+  describe('Multi-block ID Collision Prevention', () => {
+    it('should use distinct arrowhead IDs for multiple annotated-image blocks', () => {
+      const input = `::: annotated-image ./test1.png
+arrows:
+  - { x1: 10, y1: 20, x2: 40, y2: 50 }
+:::
+::: annotated-image ./test2.png
+arrows:
+  - { x1: 50, y1: 50, x2: 80, y2: 80 }
+:::`;
+      const html = md.render(input);
+
+      expect(html).toContain('id="arrowhead-annotated-1"');
+      expect(html).toContain('id="arrowhead-annotated-2"');
+      expect(html).toContain('marker-end="url(#arrowhead-annotated-1)"');
+      expect(html).toContain('marker-end="url(#arrowhead-annotated-2)"');
     });
   });
 });

@@ -1479,7 +1479,7 @@ Here's a helpful suggestion.
 
 ## Annotated Images
 
-Overlay numbered markers on screenshots for UI documentation without image editing.
+Overlay numbered markers, arrows, boxes, and text notes on screenshots for UI documentation without image editing.
 
 ### Basic Syntax
 
@@ -1524,7 +1524,94 @@ markers:
 | `caption` | (none) | Figure caption (enables figure numbering) |
 | `id` | (none) | HTML id for cross-references |
 | `markerColor` | `#cc0000` | Marker circle background color |
-| `legendColumns` | `3` | Number of columns in legend grid |
+| `legendColumns` | `3` | Number of columns in legend grid (whole number, 1-12) |
+
+### Shapes: Arrows, Boxes, and Text
+
+Besides point markers, a block can contain `arrows:`, `boxes:`, and `text:` lists. All coordinates and sizes use the same 0-100 percentage system as markers. Each list must be a YAML list; entries missing a required field (or using non-numeric coordinates) are skipped silently.
+
+```markdown
+::: annotated-image ./assets/workpackage.png
+options:
+  caption: "Workpackage screen"
+markers:
+  - { id: 1, x: 12, y: 8, label: "Search field" }
+arrows:
+  - { id: 2, x1: 60, y1: 60, x2: 40, y2: 40, label: "Save button", color: "#0a7d00" }
+boxes:
+  - { id: 3, x: 5, y: 50, width: 30, height: 20, label: "Task list", fill: "rgba(0,102,204,0.12)" }
+text:
+  - { x: 55, y: 80, text: "Click here", color: "#ffffff", background: "#333333" }
+:::
+```
+
+#### Arrow Parameters
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `x1`, `y1` | number | Yes | - | Start point (0-100) |
+| `x2`, `y2` | number | Yes | - | End point; arrowhead is drawn here (0-100) |
+| `color` | string | No | `#cc0000` | Line and arrowhead color |
+| `strokeWidth` | number | No | `2` | Line thickness in px (max 20) |
+| `id` | number/string | No | - | Badge number; with `label`, adds a legend entry |
+| `label` | string | No | - | Legend text (requires `id`) |
+
+#### Box Parameters
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `x`, `y` | number | Yes | - | Top-left corner (0-100) |
+| `width`, `height` | number | Yes | - | Size (0-100); trimmed so the box stays inside the image |
+| `color` | string | No | `#0066cc` | Border color |
+| `fill` | string | No | `none` | Fill color (use `rgba(...)` for translucency) |
+| `strokeWidth` | number | No | `2` | Border thickness in px (max 20) |
+| `id` | number/string | No | - | Badge number; with `label`, adds a legend entry |
+| `label` | string | No | - | Legend text (requires `id`) |
+
+#### Text Parameters
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `x`, `y` | number | Yes | - | Top-left corner of the text (0-100) |
+| `text` | string | Yes | - | Text to display (HTML-escaped, not interpreted) |
+| `fontSize` | number | No | `14` | Font size in px (max 96) |
+| `color` | string | No | `#000000` | Text color |
+| `background` | string | No | (none) | Background color behind the text |
+
+#### Legend and Badges
+
+- Markers are always in the legend. Arrows and boxes are added only when they have **both** `id` and `label`.
+- All legend entries share one list, sorted by `id` (numeric IDs numerically, otherwise alphabetically). Use unique IDs across markers, arrows, and boxes.
+- Badge positions: markers at `(x, y)`; arrows at the midpoint of the line; boxes 3% in from the top-left corner (less for very small boxes, so the badge stays inside).
+- Text overlays never appear in the legend.
+
+#### Rendering Notes
+
+- Arrows and boxes are drawn in an SVG (Scalable Vector Graphics) layer with `viewBox="0 0 100 100"` and `preserveAspectRatio="none"`, so percentages map directly onto the image at any aspect ratio. Lines use `vector-effect="non-scaling-stroke"` so they keep an even thickness on wide or tall images.
+- Each distinct arrow color gets its own arrowhead, so arrowheads always match their line.
+- Text overlays are HTML elements (class `annotation-text`), not SVG text, so they are never stretched. Their size is fixed in px and does **not** scale with the image.
+- Colors that contain `;`, `{`, or `}` are rejected and the default is used. `strokeWidth`, `fontSize`, and `legendColumns` must be numbers; other values fall back to the default.
+
+#### HTML Output (shapes)
+
+```html
+<div class="image-wrapper" style="--marker-color: #cc0000;">
+  <img src="./assets/workpackage.png" alt="Workpackage screen">
+  <span class="marker" style="left: 50%; top: 50%;">2</span>
+  <svg class="annotation-shapes" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+    <defs>
+      <marker id="arrowhead-annotated-1" ...><polygon ... fill="#0a7d00" /></marker>
+    </defs>
+    <rect x="5" y="50" width="30" height="20" stroke="#0066cc" fill="rgba(0,102,204,0.12)" ... />
+    <line x1="60" y1="60" x2="40" y2="40" stroke="#0a7d00" marker-end="url(#arrowhead-annotated-1)" ... />
+  </svg>
+  <span class="annotation-text" style="left: 55%; top: 80%; font-size: 14px; color: #ffffff; background: #333333;">Click here</span>
+</div>
+```
+
+**Styling hooks:** `.annotation-shapes` (SVG layer, `z-index: 5`), `.annotation-text` (text overlays, `z-index: 8`), `.marker` (badges, `z-index: 10`).
+
+See the [Annotate Screenshots guide](Annotate-Screenshots.md#arrows) for step-by-step examples.
 
 ### Coordinate System
 
